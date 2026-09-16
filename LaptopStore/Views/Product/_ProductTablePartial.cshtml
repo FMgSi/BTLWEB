@@ -1,0 +1,47 @@
+@model IEnumerable<LaptopStore.Models.Product>
+
+<table class="table table-bordered table-hover align-middle bg-white shadow-sm">
+    <thead class="table-light">
+        <tr>
+            <th>ID</th>
+            <th>Hình ảnh</th>
+            <th>Tên sản phẩm</th>
+            <th>Hãng</th>
+            <th>Danh mục</th>
+            <th>Giá</th>
+            <th>Tồn kho</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr id="row-@item.ProductId">
+                <td>@item.ProductId</td>
+                <td><img src="@item.ThumbnailUrl" onerror="this.src='/images/default.png'" style="width: 50px; height: 50px; object-fit: contain;" class="rounded border p-1" /></td>
+                <td class="fw-bold">@item.ProductName</td>
+                <td>@item.Brand?.BrandName</td>
+                <td>@item.Category?.CategoryName</td>
+                <td class="text-danger fw-bold">@string.Format("{0:N0}đ", item.DiscountPrice ?? item.Price)</td>
+                <td>@item.StockQuantity</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn btn-sm btn-primary">Sửa</a>
+                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(@item.ProductId)">Xóa</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Phân trang AJAX -->
+<div class="d-flex justify-content-between align-items-center">
+    <span>Trang @ViewBag.CurrentPage / @ViewBag.TotalPages</span>
+    <ul class="pagination pagination-sm m-0">
+        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                <a class="page-link" href="javascript:void(0)" onclick="loadPage(@i)">@i</a>
+            </li>
+        }
+    </ul>
+</div>

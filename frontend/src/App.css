@@ -1,0 +1,154 @@
+/* 1. Nhúng font Inter cực nịnh mắt và tối ưu tiếng Việt */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --pc-red: #e30019;
+  --pc-dark: #111111;
+  --sidebar-w: 240px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #2b2b2b;
+  background-color: #f8f9fa;
+  text-align: left;
+  letter-spacing: -0.01em; /* Giúp chữ thanh thoát hơn */
+}
+
+/* Container full màn hình */
+.site-container {
+  width: 100%;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* Header & Navbar */
+.top-header {
+  background-color: var(--pc-dark);
+  width: 100%;
+}
+.bg-pc-red {
+  background-color: var(--pc-red) !important;
+}
+.text-pc-red {
+  color: var(--pc-red) !important;
+}
+.btn-pc-red {
+  background-color: var(--pc-red);
+  color: #fff;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-pc-red:hover {
+  background-color: #c40015;
+  color: #fff;
+}
+
+/* Sidebar & Content */
+.sidebar-fixed {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.content-fluid-area {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Menu danh mục */
+.category-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid #f2f2f2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease-in-out;
+}
+.category-item:hover {
+  background-color: #fff5f5;
+  color: var(--pc-red);
+  padding-left: 15px; /* Hiệu ứng nhích nhẹ sang phải khi hover */
+}
+
+/* Product Card */
+.product-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #eaeaea;
+  background-color: #fff;
+  border-radius: 6px;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+.product-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 36px;
+}
+.product-specs {
+  font-size: 11px;
+  color: #6c757d;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-custom {
+  font-size: 11px;
+  padding: 3px 6px;
+  font-weight: 700;
+  border-radius: 3px;
+}
+
+/* 3 Nút icon hành động ở đáy mỗi card */
+.card-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+.card-action-link:hover {
+  color: #ffffff !important;
+  background-color: var(--pc-red);
+  border-color: var(--pc-red);
+  transform: translateY(-2px);
+}
+
+/* Nút tag lọc nhanh */
+.filter-tag-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  background-color: #fff;
+  color: #495057;
+  transition: all 0.15s ease;
+}
+.filter-tag-btn:hover {
+  border-color: var(--pc-red);
+  color: var(--pc-red);
+}
+.filter-tag-btn.active {
+  background-color: var(--pc-red);
+  color: #fff;
+  border-color: var(--pc-red);
+}

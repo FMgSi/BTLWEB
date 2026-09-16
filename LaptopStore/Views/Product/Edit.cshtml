@@ -1,0 +1,82 @@
+@model LaptopStore.ViewModels.ProductEditViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa sản phẩm";
+}
+
+<div class="container py-4" style="max-width: 800px;">
+    <h4 class="mb-3">Chỉnh sửa sản phẩm #@Model.ProductId</h4>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ProductId" />
+        <input type="hidden" asp-for="ExistingThumbnail" />
+
+        <div class="mb-3">
+            <label asp-for="ProductName" class="form-label fw-bold"></label>
+            <input asp-for="ProductName" class="form-control" />
+            <span asp-validation-for="ProductName" class="text-danger small"></span>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label asp-for="BrandId" class="form-label fw-bold"></label>
+                <select asp-for="BrandId" class="form-select" asp-items="ViewBag.Brands"></select>
+                <span asp-validation-for="BrandId" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="CategoryId" class="form-label fw-bold"></label>
+                <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories"></select>
+                <span asp-validation-for="CategoryId" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label asp-for="Price" class="form-label fw-bold"></label>
+                <input asp-for="Price" type="number" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DiscountPrice" class="form-label fw-bold"></label>
+                <input asp-for="DiscountPrice" type="number" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="StockQuantity" class="form-label fw-bold"></label>
+                <input asp-for="StockQuantity" type="number" class="form-control" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Ảnh hiện tại:</label>
+            @if (!string.IsNullOrEmpty(Model.ExistingThumbnail))
+            {
+                <div class="mb-2">
+                    <img src="@Model.ExistingThumbnail" alt="Thumbnail" class="img-thumbnail" style="max-height: 120px; object-fit: contain;" />
+                </div>
+            }
+            <label asp-for="UploadedImage" class="form-label fw-bold">Thay ảnh mới (tùy chọn)</label>
+            <input asp-for="UploadedImage" type="file" class="form-control" accept="image/*" />
+        </div>
+
+        <!-- Tích hợp TinyMCE Textarea -->
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label fw-bold"></label>
+            <textarea asp-for="Description" id="editor" class="form-control" rows="5"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary px-4">Cập nhật</button>
+        <a asp-action="Index" class="btn btn-secondary ms-2">Hủy</a>
+    </form>
+</div>
+
+@section Scripts {
+    <!-- CDN TinyMCE editor miễn phí -->
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+        tinymce.init({
+            selector: '#editor',
+            plugins: 'lists link image code table',
+            toolbar: 'undo redo | bold italic underline | bullist numlist | link image | code'
+        });
+    </script>
+}
