@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Controllers.Api;
 
+/// <summary>
+/// Controller API cung cấp dữ liệu sản phẩm cho giao diện React Frontend
+/// Đường dẫn gốc: /api/products
+/// </summary>
 [ApiController]
 [Route("api/products")]
 public class ProductsApiController : ControllerBase
@@ -16,6 +20,10 @@ public class ProductsApiController : ControllerBase
         _db = db;
     }
 
+    /// <summary>
+    /// Lấy danh sách sản phẩm có hỗ trợ bộ lọc và phân trang
+    /// GET: /api/products?tag=...&brands=...&cpus=...&page=1
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetProducts(
         [FromQuery] string? tag = null,
@@ -29,6 +37,7 @@ public class ProductsApiController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12)
     {
+        // [Bước 1]: Khởi tạo truy vấn từ bảng Products kèm các bảng liên kết (Hãng, Danh mục, Cấu hình)
         var query = _db.Products
             .Include(p => p.Brand)
             .Include(p => p.Category)
@@ -36,7 +45,7 @@ public class ProductsApiController : ControllerBase
             .Where(p => p.IsActive)
             .AsQueryable();
 
-        // 1. Lọc theo Tag danh mục linh hoạt
+        // [Bước 2]: Lọc theo Danh mục (Category/Tag) nếu người dùng chọn
         if (!string.IsNullOrEmpty(tag) && tag != "Tất cả sản phẩm")
         {
             var cleanTag = tag.Trim().ToLower();
@@ -52,14 +61,14 @@ public class ProductsApiController : ControllerBase
                 query = query.Where(p => p.Category!.CategoryName.ToLower().Contains(cleanTag) || cleanTag.Contains(p.Category!.CategoryName.ToLower()));
         }
 
-        // 2. Lọc theo Brands (danh sách cách nhau bởi dấu phẩy)
+        // [Bước 3]: Lọc theo Thương hiệu (ASUS, Dell, Apple,...)
         if (!string.IsNullOrEmpty(brands))
         {
             var brandList = brands.Split(',').Select(b => b.Trim().ToLower()).ToList();
             query = query.Where(p => brandList.Contains(p.Brand!.BrandName.ToLower()));
         }
 
-        // 3. Lọc theo Kích thước màn hình (Hỗ trợ khoảng giá trị chính xác)
+        // [Bước 4]: Lọc theo Kích thước màn hình (13", 14", 15.6",...)
         if (!string.IsNullOrEmpty(sizes))
         {
             var sizeList = sizes.Split(',').Select(s => s.Replace("inch", "").Trim().ToLower()).ToList();
@@ -78,7 +87,7 @@ public class ProductsApiController : ControllerBase
             ));
         }
 
-        // 4. Lọc theo Vi xử lý (CPU)
+        // [Bước 5]: Lọc theo Vi xử lý CPU (Core i5/i7/i9, Ryzen, Apple M)
         if (!string.IsNullOrEmpty(cpus))
         {
             var cpuList = cpus.Split(',').Select(c => c.Trim().ToLower()).ToList();
@@ -103,7 +112,7 @@ public class ProductsApiController : ControllerBase
             ));
         }
 
-        // 4. Lọc theo khoảng giá
+        // [Bước 6]: Lọc theo Khoảng giá (Dưới 10tr, 10-20tr, 20-30tr, Trên 30tr, hoặc giá tùy biến)
         if (priceRange == "under10")
             query = query.Where(p => (p.DiscountPrice ?? p.Price) < 10000000);
         else if (priceRange == "10to20")
@@ -118,7 +127,7 @@ public class ProductsApiController : ControllerBase
             if (maxPrice.HasValue) query = query.Where(p => (p.DiscountPrice ?? p.Price) <= maxPrice.Value);
         }
 
-        // 5. Sắp xếp (Sort)
+        // [Bước 7]: Sắp xếp danh sách (Mới nhất, Giá tăng dần, Giá giảm dần)
         query = sortBy switch
         {
             "price-asc" => query.OrderBy(p => (p.DiscountPrice ?? p.Price)),
@@ -126,10 +135,11 @@ public class ProductsApiController : ControllerBase
             _ => query.OrderByDescending(p => p.ProductId)
         };
 
+        // [Bước 8]: Đếm tổng số kết quả và phân trang bằng Skip() / Take()
         var total = await query.CountAsync();
         var rawList = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        // Chuẩn hóa format DTO cho React
+        // [Bước 9]: Chuẩn hóa dữ liệu sang dạng DTO gửi về cho React
         var result = rawList.Select(p =>
         {
             var curPrice = p.DiscountPrice ?? p.Price;

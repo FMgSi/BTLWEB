@@ -84,13 +84,15 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // Gọi API từ ASP.NET Core Backend (có fallback về mockData nếu API chưa bật)
+  // 3. Gọi API từ ASP.NET Core Backend (GET: /api/products)
+  // useEffect sẽ tự động kích hoạt mỗi khi người dùng thay đổi bộ lọc hoặc đổi trang
   useEffect(() => {
     let isMounted = true;
 
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
+        // Gom các tham số lọc và phân trang thành Query String
         const params = new URLSearchParams();
         if (activeTag && activeTag !== "Tất cả sản phẩm") params.append("tag", activeTag);
         if (selectedBrands.length > 0) params.append("brands", selectedBrands.join(","));
@@ -105,85 +107,24 @@ export default function App() {
         params.append("page", currentPage.toString());
         params.append("pageSize", pageSize.toString());
 
+        // Gửi HTTP GET request sang Backend API
         const res = await fetch(`/api/products?${params.toString()}`);
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        if (!res.ok) throw new Error(`Lỗi kết nối API: ${res.status}`);
+        
         const data = await res.json();
 
         if (isMounted && data && Array.isArray(data.items)) {
           setProducts(data.items);
-          setTotalCount(data.totalItems || data.items.length);
+          setTotalCount(data.totalItems || 0);
           setIsBackendConnected(true);
         }
       } catch (err) {
         if (isMounted) {
-          console.warn("Chưa kết nối được API Backend C#, đang hiển thị dữ liệu mẫu dự phòng:", err);
+          console.warn("Chưa kết nối được API Backend, sử dụng dữ liệu mẫu:", err);
           setIsBackendConnected(false);
-
-          // Fallback lọc dữ liệu mẫu tại Client
-          let result = [...PRODUCT_DATA];
-          if (activeTag !== "Tất cả sản phẩm") {
-            result = result.filter((item) => item.category === activeTag);
-          }
-          if (selectedBrands.length > 0) {
-            result = result.filter((item) => selectedBrands.includes(item.brand));
-          }
-          if (selectedSizes.length > 0) {
-            const has13 = selectedSizes.includes("13 inch");
-            const has14 = selectedSizes.includes("14 inch");
-            const has15 = selectedSizes.includes("15.6 inch");
-            const has16 = selectedSizes.includes("16 inch");
-            const has17 = selectedSizes.includes("17 inch");
-            result = result.filter((item) => {
-              const sz = parseFloat((item.screenSize || '').replace('inch', '').trim()) || 0;
-              return (
-                (has13 && sz >= 13 && sz < 14) ||
-                (has14 && sz >= 14 && sz < 15) ||
-                (has15 && sz >= 15 && sz < 16) ||
-                (has16 && sz >= 16 && sz < 17) ||
-                (has17 && sz >= 17)
-              );
-            });
-          }
-          if (selectedCpus.length > 0) {
-            result = result.filter((item) => {
-              const specText = (item.specs || '').toLowerCase();
-              return selectedCpus.some(c => {
-                const cl = c.toLowerCase();
-                if (cl.includes("i5")) return specText.includes("i5") || specText.includes("core 5");
-                if (cl.includes("i7")) return specText.includes("i7");
-                if (cl.includes("i9")) return specText.includes("i9");
-                if (cl.includes("ultra")) return specText.includes("ultra");
-                if (cl.includes("ryzen 5")) return specText.includes("ryzen 5");
-                if (cl.includes("ryzen 7")) return specText.includes("ryzen 7");
-                if (cl.includes("apple")) return specText.includes("m1") || specText.includes("m2") || specText.includes("m3") || specText.includes("apple");
-                return specText.includes(cl);
-              });
-            });
-          }
-          if (selectedPriceRange === 'under10') {
-            result = result.filter((item) => item.price < 10000000);
-          } else if (selectedPriceRange === '10to20') {
-            result = result.filter((item) => item.price >= 10000000 && item.price <= 20000000);
-          } else if (selectedPriceRange === '20to30') {
-            result = result.filter((item) => item.price >= 20000000 && item.price <= 30000000);
-          } else if (selectedPriceRange === 'above30') {
-            result = result.filter((item) => item.price > 30000000);
-          } else if (selectedPriceRange === 'custom' && appliedCustomPrice) {
-            result = result.filter(
-              (item) => item.price >= appliedCustomPrice.min && item.price <= appliedCustomPrice.max
-            );
-          }
-          if (sortBy === 'price-asc') {
-            result.sort((a, b) => a.price - b.price);
-          } else if (sortBy === 'price-desc') {
-            result.sort((a, b) => b.price - a.price);
-          } else {
-            result.sort((a, b) => b.id - a.id);
-          }
-
-          setTotalCount(result.length);
-          const startIndex = (currentPage - 1) * pageSize;
-          setProducts(result.slice(startIndex, startIndex + pageSize));
+          // Nếu chưa bật backend thì hiển thị dữ liệu tĩnh mẫu
+          setProducts(PRODUCT_DATA.slice(0, pageSize));
+          setTotalCount(PRODUCT_DATA.length);
         }
       } finally {
         if (isMounted) setIsLoading(false);
