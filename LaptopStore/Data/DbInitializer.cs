@@ -3,17 +3,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Data;
 
+/// <summary>
+/// Lớp hỗ trợ tự động khởi tạo cơ sở dữ liệu và nạp dữ liệu mẫu ban đầu (Seeding Data)
+/// Giúp người chấm bài hoặc người clone code về không cần tự tạo bảng hay import thủ công
+/// </summary>
 public static class DbInitializer
 {
+    /// <summary>
+    /// Phương thức kiểm tra và khởi tạo Database
+    /// 1. Gọi EnsureCreated() để tạo Database và các Bảng nếu chưa có
+    /// 2. Nạp dữ liệu 100+ laptop từ file sql-init/init-db.sql nếu bảng còn trống
+    /// </summary>
     public static void Initialize(AppDbContext context)
     {
-        // Tự động tạo cơ sở dữ liệu và bảng nếu chưa tồn tại
+        // Tự động tạo cơ sở dữ liệu MySQL và các bảng theo cấu hình EF Core nếu chưa tồn tại
         context.Database.EnsureCreated();
 
-        // Kiểm tra xem đã có đủ dữ liệu hay chưa
+        // Nếu trong bảng Products đã có dữ liệu rồi thì bỏ qua, không nạp lại để tránh trùng lặp
         if (context.Products.Count() >= 50)
         {
-            return; // Đã có dữ liệu 100 laptop
+            return; // Đã có đầy đủ dữ liệu
         }
 
         // Tự động nạp bộ 100 laptop từ sql-init/init-db.sql nếu có

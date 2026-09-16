@@ -1,5 +1,8 @@
 import { CATEGORIES } from '../../data/mockData';
 
+/**
+ * Component hiển thị danh mục các loại linh kiện / dịch vụ bên cột trái
+ */
 export default function CategorySidebar() {
   return (
     <div className="border rounded bg-white mb-3 shadow-sm">

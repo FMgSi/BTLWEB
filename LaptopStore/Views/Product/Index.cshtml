@@ -1,14 +1,25 @@
+@*
+    View: Index.cshtml
+    Mục đích: Giao diện chính của Trang Quản trị Sản phẩm (Admin)
+    Các tính năng:
+    1. Hiển thị thông báo Session (LastAction) khi vừa Thêm/Sửa thành công.
+    2. Ô tìm kiếm theo tên và Dropdown lọc theo Danh mục.
+    3. AJAX Pagination và Search (tải lại bảng dữ liệu mà không f5 trang).
+    4. Xóa sản phẩm bằng AJAX với xác nhận popup.
+*@
 @model IEnumerable<LaptopStore.Models.Product>
 @{
     ViewData["Title"] = "Quản lý sản phẩm";
 }
 
 <div class="container py-4">
+    <!-- Tiêu đề và nút Thêm mới -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Quản lý sản phẩm</h3>
         <a asp-action="Create" class="btn btn-success">+ Thêm mới</a>
     </div>
 
+    <!-- Hiển thị thông báo Flash Message từ Session nếu có -->
     @if (Context.Session.GetString("LastAction") != null)
     {
         <div class="alert alert-info alert-dismissible fade show">
@@ -17,7 +28,7 @@
         </div>
     }
 
-    <!-- Thanh tìm kiếm & lọc AJAX -->
+    <!-- Thanh tìm kiếm & lọc theo danh mục -->
     <div class="row g-2 mb-3">
         <div class="col-md-4">
             <input type="text" id="keyword" class="form-control" placeholder="Tìm theo tên..." />
@@ -32,7 +43,7 @@
         </div>
     </div>
 
-    <!-- Vùng nạp partial bằng AJAX -->
+    <!-- Vùng chứa bảng dữ liệu (được cập nhật động thông qua Javascript AJAX) -->
     <div id="tableContainer">
         @await Html.PartialAsync("_ProductTablePartial", Model)
     </div>
@@ -40,19 +51,23 @@
 
 @section Scripts {
     <script>
+        // Hàm tải dữ liệu phân trang và tìm kiếm bằng AJAX
         function loadPage(page) {
             const kw = document.getElementById('keyword').value;
             const cat = document.getElementById('categoryId').value;
 
+            // Gửi request kèm header 'X-Requested-With' để Controller biết đây là AJAX request
             fetch(`/Product/Index?keyword=${encodeURIComponent(kw)}&categoryId=${cat}&page=${page}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(res => res.text())
             .then(html => {
+                // Thay thế nội dung cũ trong #tableContainer bằng HTML mới trả về từ PartialView
                 document.getElementById('tableContainer').innerHTML = html;
             });
         }
 
+        // Hàm xóa sản phẩm bằng AJAX
         function deleteProduct(id) {
             if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
 
@@ -60,6 +75,7 @@
                 .then(res => res.json())
                 .then(res => {
                     if (res.success) {
+                        // Xóa trực tiếp hàng trong bảng trên giao diện mà không cần tải lại trang
                         const row = document.getElementById(`row-${id}`);
                         if (row) row.remove();
                     } else {

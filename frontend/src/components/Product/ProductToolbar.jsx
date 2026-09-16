@@ -1,5 +1,11 @@
 import { FILTER_TAGS } from '../../data/mockData';
 
+/**
+ * Component thanh công cụ đầu danh sách sản phẩm:
+ * - Hiển thị tiêu đề và Breadcrumb
+ * - Các nút Tag danh mục nhanh (Tất cả, Gaming, Văn phòng, Đồ họa, Mỏng nhẹ)
+ * - Dropdown chọn tiêu chí sắp xếp (Mới nhất, Giá tăng dần, Giá giảm dần)
+ */
 export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSortBy }) {
   return (
     <>
@@ -27,7 +33,7 @@ export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSor
           ))}
         </div>
 
-        {/* Dropdown sắp xếp */}
+        {/* Dropdown chọn kiểu sắp xếp sản phẩm */}
         <div className="d-flex align-items-center gap-2">
           <select
             className="form-select form-select-sm"

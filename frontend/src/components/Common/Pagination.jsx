@@ -1,16 +1,26 @@
 import React from 'react';
 
+/**
+ * Component phân trang (Pagination)
+ * Props:
+ * - currentPage: Số trang hiện tại (bắt đầu từ 1)
+ * - totalItems: Tổng số lượng sản phẩm khớp với bộ lọc
+ * - pageSize: Số lượng sản phẩm trên mỗi trang (mặc định 12)
+ * - onPageChange: Hàm callback khi người dùng bấm chọn số trang
+ */
 export default function Pagination({
   currentPage = 1,
   totalItems = 0,
   pageSize = 12,
   onPageChange
 }) {
+  // Tính tổng số trang = trần của (tổng số sản phẩm / số sản phẩm mỗi trang)
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
+  // Nếu không có sản phẩm nào thì ẩn thanh phân trang
   if (totalItems === 0) return null;
 
-  // Tính danh sách các số trang cần hiển thị
+  // Thuật toán tính danh sách các số trang cần hiển thị (kèm dấu '...' nếu danh sách trang quá dài)
   const getPageNumbers = () => {
     const pages = [];
     if (totalPages <= 7) {
@@ -34,7 +44,7 @@ export default function Pagination({
     <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 pt-2 border-top">
       <nav>
         <ul className="pagination pagination-sm m-0">
-          {/* Nút Trang Trước */}
+          {/* Nút Trang Trước (<) */}
           <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
             <button
               className="page-link text-dark"
@@ -46,7 +56,7 @@ export default function Pagination({
             </button>
           </li>
 
-          {/* Các số trang */}
+          {/* Các nút bấm số trang (1, 2, 3...) */}
           {getPageNumbers().map((page, index) => {
             if (page === '...') {
               return (
@@ -69,7 +79,7 @@ export default function Pagination({
             );
           })}
 
-          {/* Nút Trang Sau */}
+          {/* Nút Trang Sau (>) */}
           <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
             <button
               className="page-link text-dark"
@@ -83,6 +93,7 @@ export default function Pagination({
         </ul>
       </nav>
 
+      {/* Dòng thông báo số lượng sản phẩm đang xem */}
       <div className="text-muted" style={{ fontSize: '12px' }}>
         Hiển thị <strong>{startItem} - {endItem}</strong> trong tổng số <strong>{totalItems}</strong> sản phẩm
       </div>
