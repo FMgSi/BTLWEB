@@ -2,6 +2,8 @@
 
 Dự án website thương mại điện tử chuyên kinh doanh Laptop, xây dựng theo kiến trúc hiện đại tách biệt Frontend & Backend (Full-stack API).
 
+> 📘 **Tài liệu kỹ thuật chi tiết dành cho người phát triển & người đọc**: Xem tại **[DOCUMENTATION.md](DOCUMENTATION.md)** (bao gồm sơ đồ kiến trúc, thiết kế ERD database, chi tiết các API endpoints và luồng xử lý).
+
 - **Frontend (Giao diện khách hàng)**: React 19 + Vite, Lucide Icons, Vanilla CSS cao cấp, bộ lọc đa năng (Hãng, Giá, CPU, Kích thước màn hình, Sắp xếp), phân trang mượt mà.
 - **Backend (Web API & Quản trị)**: ASP.NET Core 8.0, Entity Framework Core, RESTful APIs, Swagger UI.
 - **Admin Panel**: ASP.NET Core MVC (Quản lý sản phẩm, thương hiệu, danh mục, hình ảnh).
