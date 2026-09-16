@@ -3,6 +3,13 @@ Write-Host "   KHỞI ĐỘNG HỆ THỐNG LAPTOP STORE (BACKEND + FRONTEND)   "
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 
+if (-not (Test-Path "$PSScriptRoot\frontend\node_modules")) {
+    Write-Host "[!] Phát hiện lần đầu khởi động: Đang cài đặt thư viện Frontend (npm install)..." -ForegroundColor Yellow
+    Start-Process cmd -ArgumentList "/c npm install" -WorkingDirectory "$PSScriptRoot\frontend" -Wait -NoNewWindow
+    Write-Host "[*] Cài đặt thư viện hoàn tất!" -ForegroundColor Green
+    Write-Host ""
+}
+
 # Khởi động React Vite
 Write-Host "[1/2] Đang khởi động React Frontend (Port 3000)..." -ForegroundColor Gray
 Start-Process cmd -ArgumentList "/c npm.cmd run dev" -WorkingDirectory "$PSScriptRoot\frontend" -WindowStyle Minimized

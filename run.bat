@@ -4,7 +4,15 @@ chcp 65001 > nul
 echo ========================================================
 echo   KHOI DONG HE THONG LAPTOP STORE (FULL STACK)
 echo ========================================================
-echo.
+if not exist "%~dp0frontend\node_modules" (
+    echo [!] Phat hien lan dau khoi dong: Dang cai dat thu vien Frontend (npm install)...
+    cd /d "%~dp0frontend"
+    call npm install
+    cd /d "%~dp0"
+    echo [*] Cai dat thu vien hoan tat!
+    echo.
+)
+
 echo [1/2] Dang khoi dong React Frontend (Port 3000)...
 start "LaptopStore-Frontend" /min cmd /c "cd /d "%~dp0frontend" && npm.cmd run dev"
 
