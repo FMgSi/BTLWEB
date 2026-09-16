@@ -5,7 +5,7 @@ echo ========================================================
 echo   KHOI DONG HE THONG LAPTOP STORE (FULL STACK)
 echo ========================================================
 if not exist "%~dp0frontend\node_modules" (
-    echo [!] Phat hien lan dau khoi dong: Dang cai dat thu vien Frontend (npm install)...
+    echo [!] Phat hien lan dau: Dang cai dat thu vien Frontend [npm install]
     cd /d "%~dp0frontend"
     call npm install
     cd /d "%~dp0"
