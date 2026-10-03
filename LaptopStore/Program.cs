@@ -85,6 +85,17 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Lỗi khi tự động khởi tạo cơ sở dữ liệu.");
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("=================================================================");
+        Console.WriteLine("[LỖI KẾT NỐI CSDL MYSQL]");
+        Console.WriteLine("Chi tiết lỗi: " + ex.Message);
+        if (ex.InnerException != null)
+        {
+            Console.WriteLine("Nguyên nhân: " + ex.InnerException.Message);
+        }
+        Console.WriteLine("Vui lòng kiểm tra lại: MySQL đang chạy trên cổng 3306 và tài khoản root/root!");
+        Console.WriteLine("=================================================================");
+        Console.ResetColor();
     }
 }
 

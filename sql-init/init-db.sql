@@ -1,5 +1,64 @@
--- Tự động sinh từ Excel bằng sync_excel.py
+CREATE DATABASE IF NOT EXISTS LaptopStoreDb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE LaptopStoreDb;
+
+CREATE TABLE IF NOT EXISTS Brands (
+    BrandId INT NOT NULL AUTO_INCREMENT,
+    BrandName VARCHAR(255) NOT NULL,
+    LogoUrl LONGTEXT NULL,
+    Description LONGTEXT NULL,
+    PRIMARY KEY (BrandId)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS Categories (
+    CategoryId INT NOT NULL AUTO_INCREMENT,
+    CategoryName VARCHAR(255) NOT NULL,
+    Description LONGTEXT NULL,
+    PRIMARY KEY (CategoryId)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS Products (
+    ProductId INT NOT NULL AUTO_INCREMENT,
+    ProductName VARCHAR(200) NOT NULL,
+    BrandId INT NOT NULL,
+    CategoryId INT NOT NULL,
+    Price DECIMAL(18, 2) NOT NULL,
+    DiscountPrice DECIMAL(18, 2) NULL,
+    StockQuantity INT NOT NULL,
+    ThumbnailUrl LONGTEXT NULL,
+    Description LONGTEXT NULL,
+    IsActive TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (ProductId),
+    INDEX IX_Products_BrandId (BrandId),
+    INDEX IX_Products_CategoryId (CategoryId),
+    CONSTRAINT FK_Products_Brands_BrandId FOREIGN KEY (BrandId) REFERENCES Brands (BrandId) ON DELETE CASCADE,
+    CONSTRAINT FK_Products_Categories_CategoryId FOREIGN KEY (CategoryId) REFERENCES Categories (CategoryId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ProductSpecifications (
+    ProductId INT NOT NULL,
+    CPU LONGTEXT NULL,
+    RamGB INT NOT NULL,
+    StorageGB INT NOT NULL,
+    StorageType LONGTEXT NULL,
+    GPU LONGTEXT NULL,
+    ScreenSizeInch DECIMAL(18, 2) NOT NULL,
+    RefreshRateHz INT NOT NULL,
+    WeightKg DECIMAL(18, 2) NOT NULL,
+    BatteryWh INT NOT NULL,
+    OS LONGTEXT NULL,
+    PRIMARY KEY (ProductId),
+    CONSTRAINT FK_ProductSpecifications_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ProductImages (
+    ImageId INT NOT NULL AUTO_INCREMENT,
+    ProductId INT NOT NULL,
+    ImageUrl LONGTEXT NOT NULL,
+    DisplayOrder INT NOT NULL DEFAULT 1,
+    PRIMARY KEY (ImageId),
+    INDEX IX_ProductImages_ProductId (ProductId),
+    CONSTRAINT FK_ProductImages_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM ProductImages;
