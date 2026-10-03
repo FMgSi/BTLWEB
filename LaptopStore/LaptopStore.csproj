@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\uploads\" />
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\sql-init\**" CopyToOutputDirectory="PreserveNewest" Link="sql-init\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

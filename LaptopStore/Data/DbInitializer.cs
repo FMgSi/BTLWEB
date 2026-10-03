@@ -38,6 +38,7 @@ public static class DbInitializer
         {
             try
             {
+                context.Database.OpenConnection();
                 var rawSql = File.ReadAllText(sqlFile);
                 var statements = rawSql.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var stmt in statements)
@@ -45,12 +46,21 @@ public static class DbInitializer
                     var trimmed = stmt.Trim();
                     if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("--") && !trimmed.StartsWith("USE"))
                     {
+                        // Chuyển TRUNCATE TABLE thành DELETE FROM để tránh lỗi MySQL InnoDB Error 1701 với Foreign Key
+                        if (trimmed.StartsWith("TRUNCATE TABLE ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            trimmed = "DELETE FROM " + trimmed.Substring("TRUNCATE TABLE ".Length);
+                        }
                         try { context.Database.ExecuteSqlRaw(trimmed); } catch { }
                     }
                 }
                 if (context.Products.Any()) return;
             }
             catch { }
+            finally
+            {
+                try { context.Database.CloseConnection(); } catch { }
+            }
         }
 
         // 1. Thêm danh sách Thương hiệu (Brands)

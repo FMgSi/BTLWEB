@@ -1,7 +1,37 @@
 using LaptopStore.Data;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+// Tự động định vị ContentRootPath và WebRootPath kể cả khi chạy trực tiếp file .exe từ bin\Debug
+var currentDir = Directory.GetCurrentDirectory();
+var webRoot = Path.Combine(currentDir, "wwwroot");
+var contentRoot = currentDir;
+
+if (!Directory.Exists(webRoot))
+{
+    var baseWebRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+    if (Directory.Exists(baseWebRoot))
+    {
+        contentRoot = AppContext.BaseDirectory;
+        webRoot = baseWebRoot;
+    }
+    else
+    {
+        var projectDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+        var projectWebRoot = Path.Combine(projectDir, "wwwroot");
+        if (Directory.Exists(projectWebRoot))
+        {
+            contentRoot = projectDir;
+            webRoot = projectWebRoot;
+        }
+    }
+}
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = contentRoot,
+    WebRootPath = webRoot
+});
 
 // =========================================================================
 // 1. CẤU HÌNH CÁC DỊCH VỤ (DEPENDENCY INJECTION - DI SERVICES)
@@ -91,44 +121,49 @@ app.MapControllerRoute(
 app.MapControllers();
 
 // =========================================================================
-// 4. TIỆN ÍCH TỰ ĐỘNG BẬT REACT FRONTEND KHI CHẠY TRÊN VISUAL STUDIO (F5)
+// 4. TIỆN ÍCH TỰ ĐỘNG BẬT REACT FRONTEND (PORT 3000)
 // =========================================================================
-if (app.Environment.IsDevelopment())
+_ = Task.Run(async () =>
 {
-    _ = Task.Run(async () =>
+    try
     {
-        try
+        var frontendCandidates = new[]
         {
-            var frontendDir = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "frontend"));
-            if (Directory.Exists(frontendDir))
-            {
-                using var tcpClient = new System.Net.Sockets.TcpClient();
-                try
-                {
-                    // Kiểm tra xem cổng 3000 đã có React chạy chưa
-                    await tcpClient.ConnectAsync("127.0.0.1", 3000);
-                    return; // Đã chạy rồi thì không cần bật lại
-                }
-                catch
-                {
-                    // Cổng 3000 chưa có tiến trình nào, tiến hành chạy lệnh "npm run dev"
-                }
+            Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "frontend")),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "frontend")),
+            Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "frontend")),
+            Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "frontend"))
+        };
+        var frontendDir = frontendCandidates.FirstOrDefault(Directory.Exists);
 
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c npm.cmd run dev",
-                    WorkingDirectory = frontendDir,
-                    UseShellExecute = true,
-                    CreateNoWindow = false,
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized
-                };
-                System.Diagnostics.Process.Start(psi);
+        if (frontendDir != null)
+        {
+            using var tcpClient = new System.Net.Sockets.TcpClient();
+            try
+            {
+                // Kiểm tra xem cổng 3000 đã có React chạy chưa
+                await tcpClient.ConnectAsync("127.0.0.1", 3000);
+                return; // Đã chạy rồi thì không cần bật lại
             }
+            catch
+            {
+                // Cổng 3000 chưa có tiến trình nào, tiến hành chạy lệnh "npm run dev"
+            }
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/c npm.cmd run dev",
+                WorkingDirectory = frontendDir,
+                UseShellExecute = true,
+                CreateNoWindow = false,
+                WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized
+            };
+            System.Diagnostics.Process.Start(psi);
         }
-        catch { }
-    });
-}
+    }
+    catch { }
+});
 
 // Khởi động Web Server Kestrel
 app.Run();
