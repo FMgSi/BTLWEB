@@ -13,6 +13,8 @@ if not exist "%~dp0frontend\node_modules" (
     echo.
 )
 
+set LAUNCHED_BY_RUN_BAT=true
+
 echo [1/2] Dang khoi dong React Frontend (Port 3000)...
 start "LaptopStore-Frontend" /min cmd /c "cd /d "%~dp0frontend" && npm.cmd run dev"
 

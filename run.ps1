@@ -10,6 +10,8 @@ if (-not (Test-Path "$PSScriptRoot\frontend\node_modules")) {
     Write-Host ""
 }
 
+$env:LAUNCHED_BY_RUN_BAT = "true"
+
 # Khởi động React Vite
 Write-Host "[1/2] Đang khởi động React Frontend (Port 3000)..." -ForegroundColor Gray
 Start-Process cmd -ArgumentList "/c npm.cmd run dev" -WorkingDirectory "$PSScriptRoot\frontend" -WindowStyle Minimized

@@ -43,20 +43,39 @@ public static class DbInitializer
                 var statements = rawSql.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 foreach (var stmt in statements)
                 {
-                    var trimmed = stmt.Trim();
-                    if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("--") && !trimmed.StartsWith("USE"))
+                    // Lọc bỏ từng dòng chú thích '--' và câu lệnh 'USE' bên trong mỗi block
+                    var lines = stmt.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)
+                                    .Select(l => l.Trim())
+                                    .Where(l => !string.IsNullOrEmpty(l) && !l.StartsWith("--") && !l.StartsWith("USE ", StringComparison.OrdinalIgnoreCase));
+
+                    var cleanSql = string.Join(" ", lines).Trim();
+                    if (string.IsNullOrWhiteSpace(cleanSql))
                     {
-                        // Chuyển TRUNCATE TABLE thành DELETE FROM để tránh lỗi MySQL InnoDB Error 1701 với Foreign Key
-                        if (trimmed.StartsWith("TRUNCATE TABLE ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            trimmed = "DELETE FROM " + trimmed.Substring("TRUNCATE TABLE ".Length);
-                        }
-                        try { context.Database.ExecuteSqlRaw(trimmed); } catch { }
+                        continue;
+                    }
+
+                    // Chuyển TRUNCATE TABLE thành DELETE FROM để tránh lỗi MySQL InnoDB Error 1701 với Foreign Key
+                    if (cleanSql.StartsWith("TRUNCATE TABLE ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        cleanSql = "DELETE FROM " + cleanSql.Substring("TRUNCATE TABLE ".Length);
+                    }
+
+                    try
+                    {
+                        context.Database.ExecuteSqlRaw(cleanSql);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[DbInitializer] Lỗi khi thực thi SQL: {ex.Message}");
                     }
                 }
-                if (context.Products.Any()) return;
+
+                if (context.Products.Count() >= 50) return;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DbInitializer] Lỗi khi nạp file SQL: {ex.Message}");
+            }
             finally
             {
                 try { context.Database.CloseConnection(); } catch { }

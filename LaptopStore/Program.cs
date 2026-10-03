@@ -123,47 +123,53 @@ app.MapControllers();
 // =========================================================================
 // 4. TIỆN ÍCH TỰ ĐỘNG BẬT REACT FRONTEND (PORT 3000)
 // =========================================================================
-_ = Task.Run(async () =>
+// Nếu đã được khởi động từ run.bat hoặc run.ps1 thì bỏ qua hoàn toàn để không mở thêm terminal thứ 2
+if (Environment.GetEnvironmentVariable("LAUNCHED_BY_RUN_BAT") != "true")
 {
-    try
+    _ = Task.Run(async () =>
     {
-        var frontendCandidates = new[]
+        try
         {
-            Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "frontend")),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "frontend")),
-            Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "frontend")),
-            Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "frontend"))
-        };
-        var frontendDir = frontendCandidates.FirstOrDefault(Directory.Exists);
+            await Task.Delay(2500);
 
-        if (frontendDir != null)
-        {
-            using var tcpClient = new System.Net.Sockets.TcpClient();
-            try
+            var frontendCandidates = new[]
             {
-                // Kiểm tra xem cổng 3000 đã có React chạy chưa
-                await tcpClient.ConnectAsync("127.0.0.1", 3000);
-                return; // Đã chạy rồi thì không cần bật lại
-            }
-            catch
-            {
-                // Cổng 3000 chưa có tiến trình nào, tiến hành chạy lệnh "npm run dev"
-            }
-
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = "/c npm.cmd run dev",
-                WorkingDirectory = frontendDir,
-                UseShellExecute = true,
-                CreateNoWindow = false,
-                WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized
+                Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "frontend")),
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "frontend")),
+                Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "frontend")),
+                Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "frontend"))
             };
-            System.Diagnostics.Process.Start(psi);
+            var frontendDir = frontendCandidates.FirstOrDefault(Directory.Exists);
+
+            if (frontendDir != null)
+            {
+                using var tcpClient = new System.Net.Sockets.TcpClient();
+                try
+                {
+                    // Kiểm tra xem cổng 3000 đã có React chạy chưa
+                    await tcpClient.ConnectAsync("127.0.0.1", 3000);
+                    return; // Đã chạy rồi thì không cần bật lại
+                }
+                catch
+                {
+                    // Cổng 3000 chưa có tiến trình nào, tiến hành chạy lệnh "npm run dev"
+                }
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/c npm.cmd run dev",
+                    WorkingDirectory = frontendDir,
+                    UseShellExecute = true,
+                    CreateNoWindow = false,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
         }
-    }
-    catch { }
-});
+        catch { }
+    });
+}
 
 // Khởi động Web Server Kestrel
 app.Run();
