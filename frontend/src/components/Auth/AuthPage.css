@@ -1,0 +1,302 @@
+/* AuthPage.css - Giao diện Đăng nhập & Đăng ký PCStore (FastFingers Layout + PCStore Brand) */
+
+.auth-page-wrapper {
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f5f9;
+  padding: 40px 16px;
+  position: relative;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  padding: 36px 32px;
+  animation: authCardFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-align: center;
+  margin-bottom: 24px;
+  letter-spacing: -0.5px;
+}
+
+.auth-form-group {
+  margin-bottom: 18px;
+}
+
+.auth-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.auth-label .required-star {
+  color: #e11b1e;
+  margin-left: 3px;
+}
+
+.auth-input-wrap {
+  position: relative;
+}
+
+.auth-input {
+  width: 100%;
+  height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #1e293b;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.auth-input:focus {
+  border-color: #e11b1e;
+  box-shadow: 0 0 0 3px rgba(225, 27, 30, 0.12);
+}
+
+.auth-input::placeholder {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.auth-input.has-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.auth-field-hint {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+.auth-toggle-pwd {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: color 0.15s ease;
+}
+
+.auth-toggle-pwd:hover {
+  color: #475569;
+}
+
+/* Primary Button */
+.auth-submit-btn {
+  width: 100%;
+  height: 44px;
+  background-color: #e11b1e;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  box-shadow: 0 2px 4px rgba(225, 27, 30, 0.2);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  background-color: #c8101e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(225, 27, 30, 0.3);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Forgot Password */
+.auth-forgot-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  text-decoration: none;
+  margin-top: 14px;
+  transition: color 0.15s ease;
+}
+
+.auth-forgot-link:hover {
+  color: #e11b1e;
+  text-decoration: underline;
+}
+
+/* Divider "HOẶC" */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.auth-divider-text {
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+/* Google Button */
+.auth-google-btn {
+  width: 100%;
+  height: 44px;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.auth-google-btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Switch link between Login and Register */
+.auth-switch-text {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 22px;
+  margin-bottom: 0;
+}
+
+.auth-switch-link {
+  color: #e11b1e;
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: none;
+}
+
+.auth-switch-link:hover {
+  text-decoration: underline;
+}
+
+/* Return home link */
+.auth-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  text-decoration: none;
+  margin-top: 18px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.auth-home-link:hover {
+  color: #1e293b;
+}
+
+/* Alert Boxes */
+.auth-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-alert-error {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.auth-alert-success {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* Demo account quick fill box */
+.auth-demo-box {
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 16px;
+  font-size: 12px;
+}
+
+.auth-demo-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.auth-demo-btn:hover {
+  background: #e2e8f0;
+}

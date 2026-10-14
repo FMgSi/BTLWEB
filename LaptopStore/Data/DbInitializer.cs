@@ -20,6 +20,8 @@ public static class DbInitializer
         context.Database.EnsureCreated();
 
         // Nếu trong bảng Products đã có dữ liệu rồi thì bỏ qua, không nạp lại để tránh trùng lặp
+        SeedProductImagesIfEmpty(context);
+        SeedUsersIfEmpty(context);
         if (context.Products.Count() >= 50)
         {
             return; // Đã có đầy đủ dữ liệu
@@ -185,5 +187,116 @@ public static class DbInitializer
 
         context.Products.AddRange(p1, p2, p3);
         context.SaveChanges();
+    }
+
+    public static void SeedProductImagesIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            if (context.Products.Any() && !context.ProductImages.Any())
+            {
+                var allProds = context.Products.Include(p => p.Category).Include(p => p.Brand).ToList();
+                var imgs = new List<ProductImage>();
+                foreach (var p in allProds)
+                {
+                    if (!string.IsNullOrEmpty(p.ThumbnailUrl))
+                    {
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = p.ThumbnailUrl, DisplayOrder = 1 });
+                    }
+                    bool isGaming = (p.Category?.CategoryName ?? "").ToLower().Contains("gaming");
+                    bool isApple = (p.Brand?.BrandName ?? "").ToLower().Contains("apple");
+
+                    if (isGaming)
+                    {
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&q=80", DisplayOrder = 2 });
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80", DisplayOrder = 3 });
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=800&q=80", DisplayOrder = 4 });
+                    }
+                    else if (isApple)
+                    {
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80", DisplayOrder = 2 });
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80", DisplayOrder = 3 });
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&q=80", DisplayOrder = 4 });
+                    }
+                    else
+                    {
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80", DisplayOrder = 2 });
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&q=80", DisplayOrder = 3 });
+                        imgs.Add(new ProductImage { ProductId = p.ProductId, ImageUrl = "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800&q=80", DisplayOrder = 4 });
+                    }
+                }
+
+                if (imgs.Any())
+                {
+                    context.ProductImages.AddRange(imgs);
+                    context.SaveChanges();
+                    Console.WriteLine($"[DbInitializer] Added {imgs.Count} images into ProductImages table.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DbInitializer] Error seeding ProductImages: {ex.Message}");
+        }
+    }
+
+
+    /// <summary>
+    /// Tự động nạp tài khoản mẫu (Admin & Khách hàng) nếu bảng Users còn trống
+    /// Phục vụ kiểm thử chức năng Đăng nhập / Đăng ký phân quyền người dùng
+    /// </summary>
+    public static void SeedUsersIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            // Đảm bảo bảng Users được tạo trong MySQL nếu CSDL đã có từ trước
+            context.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS `Users` (
+                    `UserId` INT NOT NULL AUTO_INCREMENT,
+                    `Username` VARCHAR(50) NOT NULL,
+                    `Email` VARCHAR(100) NOT NULL,
+                    `PasswordHash` VARCHAR(255) NOT NULL,
+                    `FullName` VARCHAR(100) NULL,
+                    `Role` VARCHAR(20) NOT NULL DEFAULT 'Customer',
+                    `GoogleId` VARCHAR(100) NULL,
+                    `AvatarUrl` VARCHAR(255) NULL,
+                    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`UserId`),
+                    UNIQUE KEY `IX_Users_Username` (`Username`),
+                    UNIQUE KEY `IX_Users_Email` (`Email`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            if (!context.Users.Any())
+            {
+                var admin = new User
+                {
+                    Username = "admin",
+                    Email = "admin@pcstore.vn",
+                    FullName = "Quản Trị Viên",
+                    PasswordHash = LaptopStore.Helpers.PasswordHelper.HashPassword("Admin@123"),
+                    Role = "Admin",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var customer = new User
+                {
+                    Username = "khachhang",
+                    Email = "khachhang@gmail.com",
+                    FullName = "Nguyễn Văn A",
+                    PasswordHash = LaptopStore.Helpers.PasswordHelper.HashPassword("User@123"),
+                    Role = "Customer",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                context.Users.AddRange(admin, customer);
+                context.SaveChanges();
+                Console.WriteLine("[DbInitializer] Đã nạp thành công tài khoản mẫu: admin@pcstore.vn và khachhang@gmail.com");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Lỗi SeedUsersIfEmpty: " + ex.Message);
+        }
     }
 }

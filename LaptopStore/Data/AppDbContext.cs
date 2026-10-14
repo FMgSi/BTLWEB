@@ -37,11 +37,23 @@ public class AppDbContext : DbContext
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
     /// <summary>
+    /// Bảng Users (Tài khoản người dùng và quản trị viên)
+    /// </summary>
+    public DbSet<User> Users => Set<User>();
+
+    /// <summary>
     /// Cấu hình nâng cao cho các bảng và mối quan hệ (Fluent API)
     /// </summary>
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
+
+        // Cấu hình ràng buộc duy nhất cho Username và Email trong bảng Users
+        mb.Entity<User>(entity =>
+        {
+            entity.HasIndex(u => u.Username).IsUnique();
+            entity.HasIndex(u => u.Email).IsUnique();
+        });
 
         // Định dạng độ chính xác cho kiểu dữ liệu tiền tệ (decimal 18, 2)
         mb.Entity<Product>(entity =>

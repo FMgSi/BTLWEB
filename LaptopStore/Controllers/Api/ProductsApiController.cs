@@ -30,6 +30,7 @@ public class ProductsApiController : ControllerBase
         [FromQuery] string? brands = null,
         [FromQuery] string? sizes = null,
         [FromQuery] string? cpus = null,
+        [FromQuery] string? rams = null,
         [FromQuery] string? priceRange = null,
         [FromQuery] decimal? minPrice = null,
         [FromQuery] decimal? maxPrice = null,
@@ -112,6 +113,21 @@ public class ProductsApiController : ControllerBase
             ));
         }
 
+        // [Bước 5.5]: Lọc theo Dung lượng RAM (4GB, 8GB, 16GB, 32GB, 64GB)
+        if (!string.IsNullOrEmpty(rams))
+        {
+            var ramNumbers = rams.Split(',')
+                .Select(r => System.Text.RegularExpressions.Regex.Replace(r, @"\D", ""))
+                .Select(s => int.TryParse(s, out var n) ? n : 0)
+                .Where(n => n > 0)
+                .ToList();
+
+            if (ramNumbers.Any())
+            {
+                query = query.Where(p => p.Specification != null && ramNumbers.Contains(p.Specification.RamGB));
+            }
+        }
+
         // [Bước 6]: Lọc theo Khoảng giá (Dưới 10tr, 10-20tr, 20-30tr, Trên 30tr, hoặc giá tùy biến)
         if (priceRange == "under10")
             query = query.Where(p => (p.DiscountPrice ?? p.Price) < 10000000);
@@ -192,6 +208,7 @@ public class ProductsApiController : ControllerBase
     public async Task<IActionResult> GetById(int id)
     {
         var p = await _db.Products
+            .AsNoTracking()
             .Include(x => x.Brand)
             .Include(x => x.Category)
             .Include(x => x.Specification)
@@ -199,6 +216,77 @@ public class ProductsApiController : ControllerBase
             .FirstOrDefaultAsync(x => x.ProductId == id);
 
         if (p == null) return NotFound(new { message = "Không tìm thấy sản phẩm" });
-        return Ok(p);
+
+        var curPrice = p.DiscountPrice ?? p.Price;
+        decimal? oldPrice = p.DiscountPrice.HasValue ? p.Price : null;
+        int discountPercent = 0;
+        if (p.DiscountPrice.HasValue && p.Price > p.DiscountPrice.Value)
+        {
+            discountPercent = (int)Math.Round((1 - (p.DiscountPrice.Value / p.Price)) * 100);
+        }
+
+        var imageList = p.Images.OrderBy(img => img.DisplayOrder).Select(img => img.ImageUrl).ToList();
+        if (!string.IsNullOrEmpty(p.ThumbnailUrl) && !imageList.Contains(p.ThumbnailUrl))
+        {
+            imageList.Insert(0, p.ThumbnailUrl);
+        }
+        if (imageList.Count == 0 && !string.IsNullOrEmpty(p.ThumbnailUrl))
+        {
+            imageList.Add(p.ThumbnailUrl);
+        }
+        if (imageList.Count <= 1)
+        {
+            bool isGaming = (p.Category?.CategoryName ?? "").ToLower().Contains("gaming");
+            bool isApple = (p.Brand?.BrandName ?? "").ToLower().Contains("apple");
+
+            if (isGaming)
+            {
+                imageList.Add("https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&q=80");
+                imageList.Add("https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80");
+                imageList.Add("https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=800&q=80");
+            }
+            else if (isApple)
+            {
+                imageList.Add("https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80");
+                imageList.Add("https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80");
+                imageList.Add("https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&q=80");
+            }
+            else
+            {
+                imageList.Add("https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80");
+                imageList.Add("https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&q=80");
+                imageList.Add("https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800&q=80");
+            }
+        }
+
+        var detail = new ProductDetailDto
+        {
+            Id = p.ProductId,
+            Name = p.ProductName,
+            Brand = p.Brand?.BrandName ?? "",
+            Category = p.Category?.CategoryName ?? "",
+            Price = curPrice,
+            OriginalPrice = oldPrice,
+            DiscountPercent = discountPercent,
+            StockQuantity = p.StockQuantity,
+            Image = p.ThumbnailUrl ?? "/images/default.png",
+            Images = imageList,
+            Description = p.Description ?? "",
+            Specification = p.Specification == null ? null : new ProductSpecDto
+            {
+                CPU = p.Specification.CPU ?? "",
+                RamGB = p.Specification.RamGB,
+                StorageGB = p.Specification.StorageGB,
+                StorageType = p.Specification.StorageType ?? "SSD NVMe",
+                GPU = p.Specification.GPU ?? "",
+                ScreenSizeInch = p.Specification.ScreenSizeInch,
+                RefreshRateHz = p.Specification.RefreshRateHz,
+                WeightKg = p.Specification.WeightKg,
+                BatteryWh = p.Specification.BatteryWh,
+                OS = p.Specification.OS ?? "Windows 11"
+            }
+        };
+
+        return Ok(detail);
     }
 }

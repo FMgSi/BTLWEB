@@ -4,6 +4,8 @@ export const BRANDS_LIST = [
 
 export const SCREEN_SIZES = ['13 inch', '14 inch', '15.6 inch', '16 inch', '17 inch'];
 
+export const RAM_LIST = ['4 GB', '8 GB', '12 GB', '16 GB', '24 GB', '32 GB', '48 GB', '64 GB'];
+
 export const CPU_TYPES = [
   'Intel Core i5',
   'Intel Core i7',

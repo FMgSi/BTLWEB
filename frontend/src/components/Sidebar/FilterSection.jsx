@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BRANDS_LIST, SCREEN_SIZES, CPU_TYPES } from '../../data/mockData';
+import { BRANDS_LIST, SCREEN_SIZES, RAM_LIST, CPU_TYPES } from '../../data/mockData';
 
 export default function FilterSection({
   selectedPriceRange,
@@ -13,6 +13,8 @@ export default function FilterSection({
   toggleBrand,
   selectedSizes,
   toggleSize,
+  selectedRams = [],
+  toggleRam,
   selectedCpus = [],
   toggleCpu,
   onResetFilters
@@ -60,7 +62,7 @@ export default function FilterSection({
             checked={selectedPriceRange === 'under10'}
             onChange={() => setSelectedPriceRange('under10')}
           />
-          <label className="form-check-label text-nowrap" htmlFor="p1">Dưới 10.000.000đ</label>
+          <label className="form-check-label text-nowrap" htmlFor="p1">Dưới 10.000.000₫</label>
         </div>
 
         <div className="form-check mb-1">
@@ -72,7 +74,7 @@ export default function FilterSection({
             checked={selectedPriceRange === '10to20'}
             onChange={() => setSelectedPriceRange('10to20')}
           />
-          <label className="form-check-label text-nowrap" htmlFor="p2">10.000.000đ - 20.000.000đ</label>
+          <label className="form-check-label text-nowrap" htmlFor="p2">10.000.000₫ - 20.000.000₫</label>
         </div>
 
         <div className="form-check mb-1">
@@ -84,7 +86,7 @@ export default function FilterSection({
             checked={selectedPriceRange === '20to30'}
             onChange={() => setSelectedPriceRange('20to30')}
           />
-          <label className="form-check-label text-nowrap" htmlFor="p3">20.000.000đ - 30.000.000đ</label>
+          <label className="form-check-label text-nowrap" htmlFor="p3">20.000.000₫ - 30.000.000₫</label>
         </div>
 
         <div className="form-check mb-2">
@@ -96,7 +98,7 @@ export default function FilterSection({
             checked={selectedPriceRange === 'above30'}
             onChange={() => setSelectedPriceRange('above30')}
           />
-          <label className="form-check-label text-nowrap" htmlFor="p4">Trên 30.000.000đ</label>
+          <label className="form-check-label text-nowrap" htmlFor="p4">Trên 30.000.000₫</label>
         </div>
 
         {/* Nhập khoảng giá Min - Max */}
@@ -130,7 +132,7 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 2. LỌC THEO HÃNG SẢN XUẤT (Có nút bung Xem thêm) */}
+      {/* 2. LỌC THEO HÃNG SẢN XUẤT */}
       <div className="mb-3">
         <p className="fw-semibold mb-2 text-secondary">Hãng sản xuất</p>
         {visibleBrands.map((brand) => (
@@ -165,7 +167,35 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 3. LỌC THEO KÍCH THƯỚC MÀN HÌNH */}
+      {/* 3. LỌC THEO DUNG LƯỢNG RAM (4, 8, 12, 16, 24, 32, 48, 64 GB) */}
+      <div className="mb-3">
+        <p className="fw-semibold mb-2 text-secondary d-flex align-items-center gap-1">
+          <i className="bi bi-memory text-danger"></i>
+          <span>Dung lượng RAM</span>
+        </p>
+        <div className="row row-cols-2 g-1">
+          {RAM_LIST.map((ram) => (
+            <div className="col" key={ram}>
+              <div className="form-check mb-1">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id={`ram-${ram.replace(/\s+/g, '')}`}
+                  checked={selectedRams.includes(ram)}
+                  onChange={() => toggleRam(ram)}
+                />
+                <label className="form-check-label cursor-pointer text-nowrap" htmlFor={`ram-${ram.replace(/\s+/g, '')}`}>
+                  {ram}
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <hr className="text-muted opacity-25" />
+
+      {/* 4. LỌC THEO KÍCH THƯỚC MÀN HÌNH */}
       <div className="mb-3">
         <p className="fw-semibold mb-2 text-secondary">Kích thước màn hình</p>
         {SCREEN_SIZES.map((size) => (
@@ -186,7 +216,7 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 4. LỌC THEO VI XỬ LÝ (CPU) */}
+      {/* 5. LỌC THEO VI XỬ LÝ (CPU) */}
       <div>
         <p className="fw-semibold mb-2 text-secondary">Vi xử lý (CPU)</p>
         {CPU_TYPES.map((cpu) => (
