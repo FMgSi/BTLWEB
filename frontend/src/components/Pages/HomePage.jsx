@@ -1,6 +1,7 @@
 import React from 'react';
 import CategorySidebar from '../Sidebar/CategorySidebar';
 import ProductCard from '../Product/ProductCard';
+import CellphoneSArticleSection from './CellphoneSArticleSection';
 import './Pages.css';
 
 export default function HomePage({
@@ -8,6 +9,7 @@ export default function HomePage({
   onSelectProduct,
   onAddToCart,
   onNavigateToProducts,
+  onSelectCategory,
 }) {
   // Lấy 5 sản phẩm khuyến mãi hot cho trang chủ
   const hotProducts = products.slice(0, 5);
@@ -18,7 +20,7 @@ export default function HomePage({
       <div className="row g-3 mb-3">
         {/* Cột trái: Phân loại Laptop (5 danh mục có icon và mũi tên >) */}
         <div className="col-12 col-lg-auto d-none d-lg-block" style={{ width: '256px' }}>
-          <CategorySidebar onSelectCategory={() => onNavigateToProducts && onNavigateToProducts()} />
+          <CategorySidebar onSelectCategory={onSelectCategory || onNavigateToProducts} />
         </div>
 
         {/* Cột giữa: Banner Hero chính nền tối */}
@@ -58,7 +60,7 @@ export default function HomePage({
               type="button"
               className="btn btn-danger px-4 py-2 fw-bold rounded-2 shadow"
               style={{ backgroundColor: '#e11b1e', borderColor: '#e11b1e', fontSize: '13px' }}
-              onClick={() => onNavigateToProducts && onNavigateToProducts()}
+              onClick={() => (onSelectCategory ? onSelectCategory('student') : onNavigateToProducts && onNavigateToProducts())}
             >
               MUA NGAY
             </button>
@@ -71,7 +73,7 @@ export default function HomePage({
           <div
             className="rounded-3 p-3 text-white d-flex flex-column justify-content-center shadow-sm"
             style={{ backgroundColor: '#334155', height: 'calc(50% - 6px)', cursor: 'pointer' }}
-            onClick={() => onNavigateToProducts && onNavigateToProducts()}
+            onClick={() => (onSelectCategory ? onSelectCategory('macbook') : onNavigateToProducts && onNavigateToProducts())}
           >
             <h6 className="fw-bold mb-1" style={{ color: '#38bdf8' }}>MacBook Cho Sinh Viên</h6>
             <div className="small text-light opacity-90">Trả góp 0% lãi suất</div>
@@ -81,7 +83,7 @@ export default function HomePage({
           <div
             className="rounded-3 p-3 text-white d-flex flex-column justify-content-center shadow-sm"
             style={{ backgroundColor: '#2563eb', height: 'calc(50% - 6px)', cursor: 'pointer' }}
-            onClick={() => onNavigateToProducts && onNavigateToProducts()}
+            onClick={() => (onSelectCategory ? onSelectCategory('gaming') : onNavigateToProducts && onNavigateToProducts())}
           >
             <h6 className="fw-bold mb-1 text-white">Laptop Gaming Cực Khủng</h6>
             <div className="small text-light opacity-90">Giảm sốc tới 30%</div>
@@ -164,6 +166,9 @@ export default function HomePage({
           ))}
         </div>
       </div>
+
+      {/* 4. KHUNG BÀI VIẾT & MỤC LỤC NỘI DUNG CHÍNH CHUẨN CELLPHONES */}
+      <CellphoneSArticleSection />
     </div>
   );
 }

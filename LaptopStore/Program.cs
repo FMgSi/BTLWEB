@@ -182,5 +182,41 @@ if (Environment.GetEnvironmentVariable("LAUNCHED_BY_RUN_BAT") != "true")
     });
 }
 
+// Tự động giải phóng cổng 5148 nếu có tiến trình LaptopStore cũ bị treo
+try
+{
+    var currentProcId = System.Diagnostics.Process.GetCurrentProcess().Id;
+    foreach (var proc in System.Diagnostics.Process.GetProcessesByName("LaptopStore"))
+    {
+        if (proc.Id != currentProcId)
+        {
+            try { proc.Kill(); proc.WaitForExit(1000); } catch { }
+        }
+    }
+}
+catch { }
+
 // Khởi động Web Server Kestrel
-app.Run();
+try
+{
+    app.Run();
+}
+catch (System.IO.IOException ex) when (ex.Message.Contains("address already in use"))
+{
+    try
+    {
+        var currentProcId = System.Diagnostics.Process.GetCurrentProcess().Id;
+        foreach (var proc in System.Diagnostics.Process.GetProcessesByName("LaptopStore"))
+        {
+            if (proc.Id != currentProcId)
+            {
+                try { proc.Kill(); proc.WaitForExit(1500); } catch { }
+            }
+        }
+        app.Run();
+    }
+    catch
+    {
+        Console.WriteLine($"[Cảnh báo cổng 5148]: {ex.Message}");
+    }
+}

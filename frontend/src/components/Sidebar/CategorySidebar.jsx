@@ -1,11 +1,12 @@
 import React from 'react';
 
+// Danh sách 5 phân loại laptop hiển thị đồng nhất trên Sidebar trang chủ và Toolbar sản phẩm
 const LAPTOP_CATEGORIES = [
-  { id: 'student', label: 'Laptop Sinh Viên', icon: 'bi-mortarboard-fill', tag: 'sinh vien' },
-  { id: 'office', label: 'Laptop Văn Phòng', icon: 'bi-briefcase-fill', tag: 'van phong' },
-  { id: 'gaming', label: 'Laptop Gaming', icon: 'bi-controller', tag: 'gaming' },
-  { id: 'graphics', label: 'Laptop Đồ Họa - Kỹ Thuật', icon: 'bi-palette-fill', tag: 'do hoa' },
-  { id: 'macbook', label: 'Apple MacBook', icon: 'bi-apple', tag: 'macbook' },
+  { id: 'student', label: 'Laptop Sinh Viên', icon: 'bi-mortarboard-fill', tag: 'Laptop Sinh Viên' },
+  { id: 'office', label: 'Laptop Văn Phòng', icon: 'bi-briefcase-fill', tag: 'Laptop Văn Phòng' },
+  { id: 'gaming', label: 'Laptop Gaming', icon: 'bi-controller', tag: 'Laptop Gaming' },
+  { id: 'graphics', label: 'Laptop Đồ Họa - Kỹ Thuật', icon: 'bi-palette-fill', tag: 'Laptop Đồ Họa - Kỹ Thuật' },
+  { id: 'macbook', label: 'Apple MacBook', icon: 'bi-apple', tag: 'Apple MacBook' },
 ];
 
 export default function CategorySidebar({ onSelectCategory }) {
@@ -24,7 +25,7 @@ export default function CategorySidebar({ onSelectCategory }) {
             e.currentTarget.style.backgroundColor = '#ffffff';
             e.currentTarget.style.color = '#1e293b';
           }}
-          onClick={() => onSelectCategory && onSelectCategory(cat.tag)}
+          onClick={() => onSelectCategory && onSelectCategory(cat.label)}
         >
           <div className="d-flex align-items-center gap-2">
             <i className={`bi ${cat.icon} text-danger fs-6`}></i>

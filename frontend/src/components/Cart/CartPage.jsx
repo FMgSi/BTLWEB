@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import './CartPage.css';
 
+// Danh sách ngân hàng phổ biến tại Việt Nam hỗ trợ tạo mã VietQR
+const POPULAR_BANKS = [
+  { id: 'MB', name: 'MBBank (Ngân hàng Quân Đội)' },
+  { id: 'VCB', name: 'Vietcombank (Ngoại Thương)' },
+  { id: 'TCB', name: 'Techcombank (Kỹ Thương)' },
+  { id: 'VPB', name: 'VPBank (Việt Nam Thịnh Vượng)' },
+  { id: 'ACB', name: 'ACB (Á Châu)' },
+  { id: 'TPB', name: 'TPBank (Tiên Phong)' },
+  { id: 'BIDV', name: 'BIDV (Đầu tư và Phát triển)' },
+  { id: 'ICB', name: 'VietinBank (Công Thương)' },
+  { id: 'VBA', name: 'Agribank (Nông Nghiệp)' },
+];
+
 export default function CartPage({
   cartItems = [],
   onUpdateQuantity,
@@ -13,65 +26,128 @@ export default function CartPage({
   currentUser,
 }) {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const [copiedKey, setCopiedKey] = useState('');
 
   // Form đặt hàng
   const [customerName, setCustomerName] = useState(currentUser?.fullName || currentUser?.username || '');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' hoặc 'banking'
   const [orderNotes, setOrderNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('banking');
 
-  // Định dạng tiền tệ VNĐ
-  const formatVND = (num) => {
-    if (!num) return '0đ';
-    return Number(num).toLocaleString('vi-VN') + 'đ';
-  };
+  // Thông tin tài khoản nhận tiền (cho phép tùy chỉnh tài khoản nhận của bạn)
+  const [bankAccount, setBankAccount] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pcstore_bank_account');
+      return saved
+        ? JSON.parse(saved)
+        : {
+            bankId: 'MB',
+            bankName: 'MBBank (Ngân hàng Quân Đội)',
+            accountNo: '0987654321',
+            accountName: 'NGUYEN VAN A',
+          };
+    } catch (e) {
+      return {
+        bankId: 'MB',
+        bankName: 'MBBank (Ngân hàng Quân Đội)',
+        accountNo: '0987654321',
+        accountName: 'NGUYEN VAN A',
+      };
+    }
+  });
+  const [showBankEdit, setShowBankEdit] = useState(false);
 
-  // Các sản phẩm được chọn để thanh toán (mặc định nếu chưa set checked thì xem như được chọn)
+  // Định dạng số tiền sang chuẩn Việt Nam Đồng (VND)
+  const formatVND = (num) => (num ? num.toLocaleString('vi-VN') + 'đ' : '0đ');
+
+  // Các sản phẩm được chọn để thanh toán
   const checkedItems = cartItems.filter((i) => i.checked !== false);
   const isAllChecked = cartItems.length > 0 && checkedItems.length === cartItems.length;
 
-  // Tính toán tổng tiền
+  // Tính tổng tiền giỏ hàng
   const totalPayable = checkedItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   const totalOriginal = checkedItems.reduce((sum, item) => {
     const orig = item.originalPrice && item.originalPrice > item.price ? item.originalPrice : item.price;
     return sum + (orig || 0) * (item.quantity || 1);
   }, 0);
   const totalDiscount = Math.max(0, totalOriginal - totalPayable);
-  // Điểm thưởng đã được loại bỏ theo yêu cầu
 
-  // Xử lý gửi đơn hàng
+  // Sao chép văn bản vào bộ nhớ tạm
+  const handleCopy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(''), 2000);
+  };
+
+  // Xử lý khi nhấn nút Hoàn tất đặt hàng
   const handleConfirmOrder = (e) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
-      alert('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ giao hàng!');
+      alert('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
       return;
     }
 
     const orderId = 'PC' + Math.floor(100000 + Math.random() * 900000);
-    setOrderSuccess({
+    const orderData = {
       orderId,
       name: customerName,
       phone: customerPhone,
       address: customerAddress,
+      notes: orderNotes,
       total: totalPayable,
       items: [...checkedItems],
-      paymentMethod: paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản QR Ngân hàng',
-    });
-
-    // Xóa các sản phẩm đã đặt khỏi giỏ
-    checkedItems.forEach((item) => {
-      onRemoveItem(item.cartItemId || item.id);
-    });
+      paymentMethod: paymentMethod === 'cod' ? 'Thanh toán tiền mặt khi nhận hàng (COD)' : `Chuyển khoản VietQR (${bankAccount.bankId})`,
+    };
 
     setShowCheckoutModal(false);
+
+    // Nếu chọn chuyển khoản ngân hàng -> Mở modal quét mã VietQR
+    if (paymentMethod === 'banking') {
+      setPendingOrder(orderData);
+      setShowQrModal(true);
+    } else {
+      // Nếu chọn COD -> Hoàn tất đặt hàng trực tiếp
+      checkedItems.forEach((item) => {
+        onRemoveItem(item.cartItemId || item.id);
+      });
+      setOrderSuccess(orderData);
+    }
   };
+
+  // Xác nhận đã thanh toán xong từ màn hình VietQR
+  const handleConfirmPaidQr = () => {
+    if (pendingOrder) {
+      checkedItems.forEach((item) => {
+        onRemoveItem(item.cartItemId || item.id);
+      });
+      setOrderSuccess(pendingOrder);
+      setPendingOrder(null);
+    }
+    setShowQrModal(false);
+  };
+
+  // Lưu thông tin tài khoản ngân hàng của bạn vào bộ nhớ trình duyệt
+  const handleSaveBankAccount = (e) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem('pcstore_bank_account', JSON.stringify(bankAccount));
+    } catch (err) {}
+    setShowBankEdit(false);
+  };
+
+  // Đường link tạo mã QR VietQR tự động theo số tiền và mã đơn hàng
+  const qrImageUrl = pendingOrder
+    ? `https://img.vietqr.io/image/${bankAccount.bankId}-${bankAccount.accountNo}-compact2.png?amount=${pendingOrder.total}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(bankAccount.accountName)}`
+    : '';
 
   return (
     <div className="cart-page-wrap py-4">
       <div className="site-container">
-        {/* Breadcrumb theo mẫu FPT Shop */}
+        {/* Đường dẫn Breadcrumb */}
         <div className="cart-breadcrumb">
           <a
             href="/"
@@ -86,9 +162,7 @@ export default function CartPage({
           <span className="text-dark fw-semibold">Giỏ hàng</span>
         </div>
 
-        {/* =========================================================================
-            THÔNG BÁO ĐẶT HÀNG THÀNH CÔNG NẾU VỪA XÁC NHẬN ĐƠN
-        ========================================================================= */}
+        {/* Thông báo đặt hàng thành công */}
         {orderSuccess ? (
           <div className="bg-white rounded-3 border p-5 text-center shadow-sm my-3 mx-auto" style={{ maxWidth: '640px' }}>
             <div className="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '64px', height: '64px' }}>
@@ -120,175 +194,137 @@ export default function CartPage({
             </button>
           </div>
         ) : cartItems.length === 0 ? (
-          /* =========================================================================
-              TRƯỜNG HỢP GIỎ HÀNG TRỐNG
-          ========================================================================= */
-          <div className="cart-empty-box my-3">
-            <div className="cart-empty-icon">
-              <i className="bi bi-cart-x"></i>
-            </div>
+          /* Trạng thái giỏ hàng trống */
+          <div className="cart-empty-box my-4">
+            <i className="bi bi-cart-x cart-empty-icon"></i>
             <h5 className="fw-bold text-dark mb-2">Giỏ hàng của bạn đang trống</h5>
-            <p className="text-muted small mb-3">Hãy dạo một vòng cửa hàng để chọn được chiếc laptop ưng ý nhất nhé!</p>
+            <p className="text-muted small mb-3">Hãy chọn thêm sản phẩm laptop để nhận nhiều ưu đãi hấp dẫn!</p>
             <button
               type="button"
               className="cart-empty-btn"
-              onClick={onGoHome}
+              onClick={() => onGoHome()}
             >
-              <i className="bi bi-arrow-left"></i> Tiếp tục mua sắm
+              <i className="bi bi-arrow-left"></i> Khám phá sản phẩm ngay
             </button>
           </div>
         ) : (
-          /* =========================================================================
-              GIAO DIỆN GIỎ HÀNG CHUẨN FPT SHOP (ẢNH 1 ĐÍNH KÈM)
-          ========================================================================= */
-          <div className="row g-4 align-items-start">
-            {/* CỘT TRÁI: Danh sách sản phẩm trong giỏ */}
+          /* Giao diện danh sách sản phẩm trong giỏ hàng */
+          <div className="row g-3">
             <div className="col-12 col-lg-8">
-              <div className="cart-items-card">
-                {/* Thanh tiêu đề: Chọn tất cả & Nút xóa tất cả */}
-                <div className="cart-header-row">
-                  <label className="d-flex align-items-center gap-2 m-0" style={{ cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      className="cart-checkbox"
-                      checked={isAllChecked}
-                      onChange={(e) => onToggleAll(e.target.checked)}
-                    />
-                    <span>Chọn tất cả ({cartItems.length})</span>
-                  </label>
+              <div className="cart-header-bar">
+                <label className="cart-check-all">
+                  <input
+                    type="checkbox"
+                    checked={isAllChecked}
+                    onChange={(e) => onToggleAll(e.target.checked)}
+                  />
+                  <span>Chọn tất cả ({cartItems.length} sản phẩm)</span>
+                </label>
 
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-link text-muted text-decoration-none p-0 d-flex align-items-center gap-1"
-                    onClick={() => {
-                      if (window.confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng?')) {
-                        onClearCart();
-                      }
-                    }}
-                    title="Xóa toàn bộ giỏ hàng"
-                  >
-                    <i className="bi bi-trash3"></i>
-                    <span>Xóa tất cả</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="cart-clear-btn"
+                  onClick={() => {
+                    if (window.confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
+                      onClearCart();
+                    }
+                  }}
+                >
+                  <i className="bi bi-trash3 me-1"></i> Xóa tất cả
+                </button>
+              </div>
 
-                {/* Danh sách từng sản phẩm */}
+              <div className="cart-items-list">
                 {cartItems.map((item) => {
-                  const itemKey = item.cartItemId || item.id;
+                  const itemTotal = (item.price || 0) * (item.quantity || 1);
                   const isChecked = item.checked !== false;
 
                   return (
-                    <div key={itemKey} className="cart-item-row">
-                      {/* Checkbox chọn sản phẩm */}
-                      <input
-                        type="checkbox"
-                        className="cart-checkbox"
-                        checked={isChecked}
-                        onChange={() => onToggleCheck(itemKey)}
-                      />
-
-                      {/* Ảnh sản phẩm */}
-                      <div className="cart-item-thumb">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80';
-                          }}
+                    <div className="cart-item-card" key={item.cartItemId || item.id}>
+                      <div className="cart-item-check">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => onToggleCheck(item.cartItemId || item.id)}
                         />
                       </div>
 
-                      {/* Thông tin sản phẩm */}
+                      <div
+                        className="cart-item-thumb-wrap"
+                        onClick={() => onSelectProduct && onSelectProduct(item.id)}
+                        title="Xem chi tiết sản phẩm"
+                      >
+                        <img
+                          src={item.image || '/images/default.png'}
+                          alt={item.name}
+                          className="cart-item-thumb"
+                        />
+                      </div>
+
                       <div className="cart-item-info">
-                        <a
-                          href={`/product/${item.id}`}
-                          className="cart-item-title"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (onSelectProduct) onSelectProduct(item.id);
-                          }}
+                        <div
+                          className="cart-item-name"
+                          onClick={() => onSelectProduct && onSelectProduct(item.id)}
+                          title={item.name}
                         >
                           {item.name}
-                        </a>
-
-                        {/* Tùy chọn cấu hình RAM & Ổ cứng hiển thị chi tiết */}
-                        <div className="cart-item-spec-tag">
-                          <span>RAM: <strong className="text-dark">{item.selectedRam || '16 GB'}</strong></span>
-                          <span className="mx-2 text-muted">•</span>
-                          <span>Ổ cứng: <strong className="text-dark">{item.selectedStorage || '512 GB SSD'}</strong></span>
                         </div>
 
-                        {/* Banner Mua kèm giá sốc giống FPT Shop */}
-                        <div className="d-block mt-1">
-                          <span className="cart-promo-tag">
-                            <i className="bi bi-lightning-charge-fill text-danger"></i>
-                            Giá sốc: Mua kèm với mức giá ưu đãi
-                          </span>
+                        {(item.selectedRam || item.selectedStorage) && (
+                          <div className="cart-item-variant">
+                            <i className="bi bi-cpu me-1"></i>
+                            {item.selectedRam && <span>RAM: {item.selectedRam}</span>}
+                            {item.selectedRam && item.selectedStorage && <span className="mx-1">•</span>}
+                            {item.selectedStorage && <span>Ổ cứng: {item.selectedStorage}</span>}
+                          </div>
+                        )}
+
+                        <div className="cart-item-price-row">
+                          <span className="cart-item-price">{formatVND(item.price)}</span>
+                          {item.originalPrice && item.originalPrice > item.price && (
+                            <span className="cart-item-orig-price">{formatVND(item.originalPrice)}</span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Giá tiền & Nút tăng giảm số lượng */}
                       <div className="cart-item-actions">
-                        <div className="text-end">
-                          <div className="cart-price-current">{formatVND(item.price)}</div>
-                          {item.originalPrice && item.originalPrice > item.price && (
-                            <div className="cart-price-original">{formatVND(item.originalPrice)}</div>
-                          )}
-                        </div>
-
-                        <div className="d-flex align-items-center gap-2">
-                          {/* Bộ tăng giảm số lượng [-] [1] [+] */}
-                          <div className="cart-qty-ctrl">
-                            <button
-                              type="button"
-                              className="cart-qty-btn"
-                              onClick={() => onUpdateQuantity(itemKey, -1)}
-                              title="Giảm số lượng"
-                            >
-                              <i className="bi bi-dash"></i>
-                            </button>
-                            <span className="cart-qty-val">{item.quantity || 1}</span>
-                            <button
-                              type="button"
-                              className="cart-qty-btn"
-                              onClick={() => onUpdateQuantity(itemKey, 1)}
-                              title="Tăng số lượng"
-                            >
-                              <i className="bi bi-plus"></i>
-                            </button>
-                          </div>
-
-                          {/* Nút xóa sản phẩm */}
+                        <div className="cart-qty-control">
                           <button
                             type="button"
-                            className="cart-remove-btn"
-                            onClick={() => onRemoveItem(itemKey)}
-                            title="Xóa sản phẩm này"
+                            className="cart-qty-btn"
+                            disabled={(item.quantity || 1) <= 1}
+                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, -1)}
                           >
-                            <i className="bi bi-trash3"></i>
+                            -
+                          </button>
+                          <span className="cart-qty-val">{item.quantity || 1}</span>
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, 1)}
+                          >
+                            +
                           </button>
                         </div>
+
+                        <div className="cart-item-total">{formatVND(itemTotal)}</div>
+
+                        <button
+                          type="button"
+                          className="cart-item-del-btn"
+                          title="Xóa sản phẩm"
+                          onClick={() => onRemoveItem(item.cartItemId || item.id)}
+                        >
+                          <i className="bi bi-trash3"></i>
+                        </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-
-              {/* Nút quay lại mua thêm */}
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2"
-                  onClick={onGoHome}
-                >
-                  <i className="bi bi-arrow-left"></i>
-                  <span>Chọn thêm sản phẩm khác</span>
-                </button>
-              </div>
             </div>
 
-            {/* CỘT PHẢI: Thông tin đơn hàng (FPT Shop Order Summary) */}
+            {/* Cột thông tin đơn hàng bên phải */}
             <div className="col-12 col-lg-4">
               <div className="cart-summary-card">
                 <h6 className="cart-summary-title">Thông tin đơn hàng</h6>
@@ -302,23 +338,12 @@ export default function CartPage({
                   <span>Tổng khuyến mãi</span>
                   <span className="text-danger fw-semibold">-{formatVND(totalDiscount)}</span>
                 </div>
-                <div className="cart-summary-subline">
-                  <span>• Giảm giá sản phẩm</span>
-                  <span>{formatVND(totalDiscount)}</span>
-                </div>
-                <div className="cart-summary-subline">
-                  <span>• Voucher</span>
-                  <span>0đ</span>
-                </div>
 
                 <div className="cart-summary-total">
                   <span className="cart-summary-total-label">Cần thanh toán</span>
                   <span className="cart-summary-total-price">{formatVND(totalPayable)}</span>
                 </div>
 
-
-
-                {/* Nút Xác nhận đơn chuẩn mẫu FPT Shop */}
                 <button
                   type="button"
                   className="cart-checkout-btn"
@@ -333,9 +358,7 @@ export default function CartPage({
         )}
       </div>
 
-      {/* =========================================================================
-          MODAL XÁC NHẬN ĐƠN HÀNG & THÔNG TIN GIAO HÀNG
-      ========================================================================= */}
+      {/* 1. MODAL XÁC NHẬN ĐẶT HÀNG & THÔNG TIN GIAO HÀNG */}
       {showCheckoutModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '480px' }}>
@@ -459,6 +482,190 @@ export default function CartPage({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. MODAL THANH TOÁN QUÉT MÃ VIETQR ĐẾN TÀI KHOẢN NGÂN HÀNG CỦA BẠN */}
+      {showQrModal && pendingOrder && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1070 }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '500px' }}>
+            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+              {/* Header Modal */}
+              <div className="modal-header bg-danger text-white border-0 py-3">
+                <div>
+                  <h5 className="modal-title fw-bold fs-6 m-0 d-flex align-items-center gap-2">
+                    <i className="bi bi-qr-code-scan"></i> Quét mã VietQR để thanh toán
+                  </h5>
+                  <div className="small opacity-90" style={{ fontSize: '11px' }}>
+                    Chuyển khoản nhanh 24/7 qua Napas & Ngân hàng
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setShowQrModal(false)}
+                ></button>
+              </div>
+
+              <div className="modal-body p-4 text-center">
+                {/* Ảnh Mã QR tạo tự động */}
+                <div className="bg-white p-2 rounded-3 border d-inline-block shadow-sm mb-3">
+                  <img
+                    src={qrImageUrl}
+                    alt="Mã QR Chuyển khoản"
+                    className="img-fluid"
+                    style={{ width: '240px', height: '240px', objectFit: 'contain' }}
+                  />
+                </div>
+
+                <p className="text-secondary small mb-3">
+                  Mở ứng dụng ngân hàng bất kỳ (Vietcombank, MB, Techcombank, MoMo...) và chọn <strong>Quét mã QR</strong> để thanh toán.
+                </p>
+
+                {/* Bảng chi tiết thông tin chuyển khoản kèm nút sao chép */}
+                <div className="bg-light p-3 rounded-3 text-start small border mb-3">
+                  <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <span className="text-muted">Ngân hàng:</span>
+                    <strong className="text-dark">{bankAccount.bankName}</strong>
+                  </div>
+
+                  <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <span className="text-muted">Số tài khoản:</span>
+                    <div className="d-flex align-items-center gap-2">
+                      <strong className="text-danger fs-6">{bankAccount.accountNo}</strong>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary py-0 px-2"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => handleCopy(bankAccount.accountNo, 'acc')}
+                      >
+                        {copiedKey === 'acc' ? '✓ Đã chép' : 'Sao chép'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <span className="text-muted">Chủ tài khoản:</span>
+                    <strong className="text-dark">{bankAccount.accountName}</strong>
+                  </div>
+
+                  <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <span className="text-muted">Số tiền:</span>
+                    <div className="d-flex align-items-center gap-2">
+                      <strong className="text-danger">{formatVND(pendingOrder.total)}</strong>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary py-0 px-2"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => handleCopy(pendingOrder.total.toString(), 'amount')}
+                      >
+                        {copiedKey === 'amount' ? '✓ Đã chép' : 'Sao chép'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="d-flex justify-content-between align-items-center py-1">
+                    <span className="text-muted">Nội dung CK:</span>
+                    <div className="d-flex align-items-center gap-2">
+                      <strong className="text-primary">{pendingOrder.orderId}</strong>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary py-0 px-2"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => handleCopy(pendingOrder.orderId, 'msg')}
+                      >
+                        {copiedKey === 'msg' ? '✓ Đã chép' : 'Sao chép'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tùy chọn thay đổi thông tin STK của bạn */}
+                <div className="text-start mb-3">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm text-decoration-none p-0 text-secondary"
+                    style={{ fontSize: '12px' }}
+                    onClick={() => setShowBankEdit(!showBankEdit)}
+                  >
+                    <i className="bi bi-gear me-1"></i>
+                    {showBankEdit ? 'Ẩn cài đặt tài khoản nhận' : 'Thay đổi số tài khoản nhận tiền của bạn'}
+                  </button>
+
+                  {showBankEdit && (
+                    <form onSubmit={handleSaveBankAccount} className="bg-white p-3 rounded-3 border mt-2">
+                      <div className="mb-2">
+                        <label className="form-label text-muted" style={{ fontSize: '11px' }}>Chọn Ngân hàng:</label>
+                        <select
+                          className="form-select form-select-sm"
+                          value={bankAccount.bankId}
+                          onChange={(e) => {
+                            const b = POPULAR_BANKS.find((item) => item.id === e.target.value);
+                            setBankAccount({
+                              ...bankAccount,
+                              bankId: e.target.value,
+                              bankName: b ? b.name : e.target.value,
+                            });
+                          }}
+                        >
+                          {POPULAR_BANKS.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="mb-2">
+                        <label className="form-label text-muted" style={{ fontSize: '11px' }}>Số tài khoản nhận tiền:</label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          value={bankAccount.accountNo}
+                          onChange={(e) => setBankAccount({ ...bankAccount, accountNo: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div className="mb-2">
+                        <label className="form-label text-muted" style={{ fontSize: '11px' }}>Tên chủ tài khoản (IN HOA KHÔNG DẤU):</label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          value={bankAccount.accountName}
+                          onChange={(e) => setBankAccount({ ...bankAccount, accountName: e.target.value.toUpperCase() })}
+                          required
+                        />
+                      </div>
+
+                      <button type="submit" className="btn btn-sm btn-dark w-100 mt-1">
+                        Lưu thông tin tài khoản
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* Nút hoàn tất xác nhận thanh toán */}
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-light w-50"
+                    onClick={() => setShowQrModal(false)}
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger w-50 fw-bold"
+                    style={{ backgroundColor: '#e11b1e' }}
+                    onClick={handleConfirmPaidQr}
+                  >
+                    <i className="bi bi-check-circle me-1"></i> Tôi đã chuyển khoản
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

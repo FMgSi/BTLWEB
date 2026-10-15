@@ -15,6 +15,7 @@ import HomePage from './components/Pages/HomePage';
 import ContactPage from './components/Pages/ContactPage';
 import GuidesPage from './components/Pages/GuidesPage';
 import PromosPage from './components/Pages/PromosPage';
+import SearchResultsPage from './components/Pages/SearchResultsPage';
 import Pagination from './components/Common/Pagination';
 
 import { PRODUCT_DATA } from './data/mockData';
@@ -23,7 +24,10 @@ export default function App() {
   // State điều hướng trang chi tiết sản phẩm (null = trang danh sách, number = id sản phẩm)
   const [selectedProductId, setSelectedProductId] = useState(null);
 
-  // State điều hướng tab trang chính ('home', 'products', 'promos', 'news', 'guides', 'contact')
+  // State tìm kiếm sản phẩm ({ keyword: '', category: 'Tất cả danh mục' })
+  const [searchQuery, setSearchQuery] = useState({ keyword: '', category: 'Tất cả danh mục' });
+
+  // State điều hướng tab trang chính ('home', 'products', 'promos', 'news', 'guides', 'contact', 'search')
   const [activeNav, setActiveNav] = useState('home');
 
   // State điều hướng trang Giỏ hàng
@@ -87,7 +91,16 @@ export default function App() {
   useEffect(() => {
     const parseUrl = () => {
       const path = window.location.pathname.toLowerCase();
-      if (path.includes('/cart')) {
+      if (path.includes('/search')) {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q') || '';
+        const cat = params.get('cat') || 'Tất cả danh mục';
+        setSearchQuery({ keyword: q, category: cat });
+        setActiveNav('search');
+        setIsCartView(false);
+        setAuthView(null);
+        setSelectedProductId(null);
+      } else if (path.includes('/cart')) {
         setIsCartView(true);
         setAuthView(null);
         setSelectedProductId(null);
@@ -182,12 +195,68 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Hàm xử lý tìm kiếm và chuyển hướng sang trang kết quả tìm kiếm riêng biệt
+  const handleSearch = (kw, cat = 'Tất cả danh mục') => {
+    setSearchQuery({ keyword: kw, category: cat });
+    setSelectedProductId(null);
+    setAuthView(null);
+    setIsCartView(false);
+    setActiveNav('search');
+    const params = new URLSearchParams();
+    if (kw) params.append('q', kw);
+    if (cat && cat !== 'Tất cả danh mục') params.append('cat', cat);
+    const queryString = params.toString();
+    window.history.pushState({}, '', queryString ? `/search?${queryString}` : '/search');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Hàm quay lại danh sách sản phẩm hoặc trang chủ
   const handleBackToList = () => {
     setSelectedProductId(null);
     setAuthView(null);
     setIsCartView(false);
     setActiveNav('products');
+    window.history.pushState({}, '', '/products');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Hàm xử lý chọn danh mục phân loại laptop từ Trang chủ
+  const handleSelectCategoryFromHome = (cat) => {
+    setSelectedProductId(null);
+    setAuthView(null);
+    setIsCartView(false);
+    setActiveNav('products');
+
+    // Reset các bộ lọc phụ để hiển thị trọn vẹn danh mục
+    setSelectedBrands([]);
+    setSelectedSizes([]);
+    setSelectedRams([]);
+    setSelectedCpus([]);
+    setCustomMin('');
+    setCustomMax('');
+    setAppliedCustomPrice(null);
+    setCurrentPage(1);
+
+    if (cat === 'student' || cat === 'Laptop Sinh Viên') {
+      setActiveTag('Laptop Sinh Viên');
+      setSelectedPriceRange('under30');
+    } else if (cat === 'office' || cat === 'Laptop Văn Phòng') {
+      setActiveTag('Laptop Văn Phòng');
+      setSelectedPriceRange('all');
+    } else if (cat === 'gaming' || cat === 'Laptop Gaming') {
+      setActiveTag('Laptop Gaming');
+      setSelectedPriceRange('all');
+    } else if (cat === 'graphics' || cat === 'Laptop Đồ Họa - Kỹ Thuật' || cat === 'Laptop đồ họa') {
+      setActiveTag('Laptop Đồ Họa - Kỹ Thuật');
+      setSelectedPriceRange('all');
+    } else if (cat === 'macbook' || cat === 'Apple MacBook') {
+      setActiveTag('Apple MacBook');
+      setSelectedPriceRange('all');
+    } else {
+      setActiveTag(cat || 'Tất cả sản phẩm');
+      setSelectedPriceRange('all');
+    }
+
     window.history.pushState({}, '', '/products');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -426,10 +495,22 @@ export default function App() {
           // Lọc offline dữ liệu mock để demo
           let filtered = [...PRODUCT_DATA];
 
-          // Lọc Tag
+          // Lọc Tag đồng nhất theo 5 nhóm laptop chính thống
           if (activeTag && activeTag !== "Tất cả sản phẩm") {
             const cleanTag = activeTag.toLowerCase();
-            filtered = filtered.filter(p => p.category.toLowerCase().includes(cleanTag) || cleanTag.includes(p.category.toLowerCase()));
+            if (cleanTag.includes("sinh viên")) {
+              filtered = filtered.filter(p => p.price <= 30000000);
+            } else if (cleanTag.includes("văn phòng") || cleanTag.includes("học tập")) {
+              filtered = filtered.filter(p => p.category.toLowerCase().includes("văn phòng") || p.category.toLowerCase().includes("học tập"));
+            } else if (cleanTag.includes("gaming")) {
+              filtered = filtered.filter(p => p.category.toLowerCase().includes("gaming"));
+            } else if (cleanTag.includes("đồ họa") || cleanTag.includes("kỹ thuật")) {
+              filtered = filtered.filter(p => p.category.toLowerCase().includes("đồ họa") || p.category.toLowerCase().includes("kỹ thuật"));
+            } else if (cleanTag.includes("macbook") || cleanTag.includes("apple")) {
+              filtered = filtered.filter(p => p.brand.toLowerCase() === "apple" || p.name.toLowerCase().includes("macbook") || p.category.toLowerCase().includes("macbook"));
+            } else {
+              filtered = filtered.filter(p => p.category.toLowerCase().includes(cleanTag) || cleanTag.includes(p.category.toLowerCase()));
+            }
           }
 
           // Lọc Hãng
@@ -461,6 +542,7 @@ export default function App() {
           if (selectedPriceRange === 'under10') filtered = filtered.filter(p => p.price < 10000000);
           else if (selectedPriceRange === '10to20') filtered = filtered.filter(p => p.price >= 10000000 && p.price <= 20000000);
           else if (selectedPriceRange === '20to30') filtered = filtered.filter(p => p.price >= 20000000 && p.price <= 30000000);
+          else if (selectedPriceRange === 'under30') filtered = filtered.filter(p => p.price <= 30000000);
           else if (selectedPriceRange === 'above30') filtered = filtered.filter(p => p.price > 30000000);
 
           setTotalCount(filtered.length);
@@ -488,6 +570,9 @@ export default function App() {
         onLogout={handleLogout}
         cartCount={cartItems.reduce((s, i) => s + (i.quantity || 1), 0)}
         onOpenCart={handleOpenCart}
+        onSearch={handleSearch}
+        searchKeyword={searchQuery.keyword}
+        searchCategory={searchQuery.category}
       />
       <Navbar activeNav={activeNav} onNavigate={handleNavigate} onGoHome={() => handleNavigate('home')} />
 
@@ -519,12 +604,23 @@ export default function App() {
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
         />
+      ) : activeNav === 'search' ? (
+        <SearchResultsPage
+          keyword={searchQuery.keyword}
+          category={searchQuery.category}
+          onSelectProduct={handleSelectProduct}
+          onAddToCart={handleAddToCart}
+          onSearchAgain={handleSearch}
+          onGoHome={() => handleNavigate('home')}
+          onNavigateToProducts={() => handleNavigate('products')}
+        />
       ) : activeNav === 'home' ? (
         <HomePage
           products={products}
           onSelectProduct={handleSelectProduct}
           onAddToCart={handleAddToCart}
           onNavigateToProducts={() => handleNavigate('products')}
+          onSelectCategory={handleSelectCategoryFromHome}
         />
       ) : activeNav === 'promos' ? (
         <PromosPage
@@ -567,7 +663,15 @@ export default function App() {
             <main className="content-fluid-area">
               <ProductToolbar
                 activeTag={activeTag}
-                setActiveTag={(tag) => { setActiveTag(tag); setCurrentPage(1); }}
+                setActiveTag={(tag) => {
+                  setActiveTag(tag);
+                  if (tag === 'Laptop Sinh Viên') {
+                    setSelectedPriceRange('under30');
+                  } else if (selectedPriceRange === 'under30') {
+                    setSelectedPriceRange('all');
+                  }
+                  setCurrentPage(1);
+                }}
                 sortBy={sortBy}
                 setSortBy={(sort) => { setSortBy(sort); setCurrentPage(1); }}
               />

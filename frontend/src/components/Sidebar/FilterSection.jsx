@@ -46,6 +46,18 @@ export default function FilterSection({
             className="form-check-input"
             type="radio"
             name="priceRadio"
+            id="p-under30"
+            checked={selectedPriceRange === 'under30'}
+            onChange={() => setSelectedPriceRange('under30')}
+          />
+          <label className="form-check-label text-nowrap fw-semibold text-danger" htmlFor="p-under30">Từ 30.000.000đ trở lại</label>
+        </div>
+
+        <div className="form-check mb-1">
+          <input
+            className="form-check-input"
+            type="radio"
+            name="priceRadio"
             id="p-all"
             checked={selectedPriceRange === 'all'}
             onChange={() => setSelectedPriceRange('all')}

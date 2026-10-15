@@ -26,6 +26,7 @@ public class ProductsApiController : ControllerBase
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetProducts(
+        [FromQuery] string? q = null,
         [FromQuery] string? tag = null,
         [FromQuery] string? brands = null,
         [FromQuery] string? sizes = null,
@@ -46,20 +47,52 @@ public class ProductsApiController : ControllerBase
             .Where(p => p.IsActive)
             .AsQueryable();
 
-        // [Bước 2]: Lọc theo Danh mục (Category/Tag) nếu người dùng chọn
+        // Tim kiem theo tu khoa (Keyword Search: Ten, Hang, Danh muc, CPU, GPU)
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var kw = q.Trim().ToLower();
+            query = query.Where(p =>
+                p.ProductName.ToLower().Contains(kw) ||
+                (p.Brand != null && p.Brand.BrandName.ToLower().Contains(kw)) ||
+                (p.Category != null && p.Category.CategoryName.ToLower().Contains(kw)) ||
+                (p.Specification != null && p.Specification.CPU != null && p.Specification.CPU.ToLower().Contains(kw)) ||
+                (p.Specification != null && p.Specification.GPU != null && p.Specification.GPU.ToLower().Contains(kw))
+            );
+        }
+
+        // [Bước 2]: Lọc theo Danh mục (Category/Tag) đồng nhất 5 phân loại laptop chính
         if (!string.IsNullOrEmpty(tag) && tag != "Tất cả sản phẩm")
         {
             var cleanTag = tag.Trim().ToLower();
-            if (cleanTag.Contains("gaming"))
+            if (cleanTag.Contains("sinh viên"))
+            {
+                // Laptop Sinh Viên: các máy có giá từ 30 triệu trở lại
+                query = query.Where(p => (p.DiscountPrice ?? p.Price) <= 30000000);
+            }
+            else if (cleanTag.Contains("gaming"))
+            {
                 query = query.Where(p => p.Category!.CategoryName.ToLower().Contains("gaming"));
+            }
             else if (cleanTag.Contains("văn phòng") || cleanTag.Contains("học tập"))
+            {
                 query = query.Where(p => p.Category!.CategoryName.ToLower().Contains("văn phòng") || p.Category!.CategoryName.ToLower().Contains("học tập"));
+            }
             else if (cleanTag.Contains("đồ họa") || cleanTag.Contains("kỹ thuật"))
+            {
                 query = query.Where(p => p.Category!.CategoryName.ToLower().Contains("đồ họa") || p.Category!.CategoryName.ToLower().Contains("kỹ thuật"));
+            }
+            else if (cleanTag.Contains("macbook") || cleanTag.Contains("apple"))
+            {
+                query = query.Where(p => (p.Brand != null && p.Brand.BrandName.ToLower().Contains("apple")) || p.ProductName.ToLower().Contains("macbook") || p.Category!.CategoryName.ToLower().Contains("macbook"));
+            }
             else if (cleanTag.Contains("mỏng nhẹ") || cleanTag.Contains("doanh nhân"))
+            {
                 query = query.Where(p => p.Category!.CategoryName.ToLower().Contains("mỏng nhẹ") || p.Category!.CategoryName.ToLower().Contains("doanh nhân"));
+            }
             else
+            {
                 query = query.Where(p => p.Category!.CategoryName.ToLower().Contains(cleanTag) || cleanTag.Contains(p.Category!.CategoryName.ToLower()));
+            }
         }
 
         // [Bước 3]: Lọc theo Thương hiệu (ASUS, Dell, Apple,...)
@@ -135,6 +168,8 @@ public class ProductsApiController : ControllerBase
             query = query.Where(p => (p.DiscountPrice ?? p.Price) >= 10000000 && (p.DiscountPrice ?? p.Price) <= 20000000);
         else if (priceRange == "20to30")
             query = query.Where(p => (p.DiscountPrice ?? p.Price) >= 20000000 && (p.DiscountPrice ?? p.Price) <= 30000000);
+        else if (priceRange == "under30")
+            query = query.Where(p => (p.DiscountPrice ?? p.Price) <= 30000000);
         else if (priceRange == "above30")
             query = query.Where(p => (p.DiscountPrice ?? p.Price) > 30000000);
         else if (priceRange == "custom")

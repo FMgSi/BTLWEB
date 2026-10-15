@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './ProductDetail.css';
 import { PRODUCT_DATA } from '../../data/mockData';
 
-export default function ProductDetail({ productId, onBack, onSelectProduct, allProducts = [] }) {
+export default function ProductDetail({ productId, onBack, onSelectProduct, allProducts = [], onAddToCart, onBuyNow }) {
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);

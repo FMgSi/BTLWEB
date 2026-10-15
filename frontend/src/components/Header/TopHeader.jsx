@@ -1,7 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function TopHeader({ onGoHome, onOpenLogin, currentUser, onLogout, cartCount = 0, onOpenCart }) {
+export default function TopHeader({ 
+  onGoHome, 
+  onOpenLogin, 
+  currentUser, 
+  onLogout, 
+  cartCount = 0, 
+  onOpenCart,
+  onSearch,
+  searchKeyword = '',
+}) {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [keyword, setKeyword] = useState(searchKeyword || '');
+
+  useEffect(() => {
+    setKeyword(searchKeyword || '');
+  }, [searchKeyword]);
+
+  // Xử lý gửi từ khóa tìm kiếm khi người dùng nhấn Enter hoặc bấm nút Tìm kiếm
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (onSearch) {
+      onSearch(keyword.trim());
+    }
+  };
 
   return (
     <header className="top-header text-white py-2">
@@ -12,38 +34,48 @@ export default function TopHeader({ onGoHome, onOpenLogin, currentUser, onLogout
             <a 
               href="/" 
               onClick={(e) => {
-                if (onGoHome) {
-                  e.preventDefault();
-                  onGoHome();
-                }
+                e.preventDefault();
+                setKeyword('');
+                if (onGoHome) onGoHome();
               }} 
               className="text-white text-decoration-none d-flex flex-column"
             >
               <span className="fw-black fs-4 lh-1">PC<span className="text-pc-red">STORE</span></span>
               <span style={{ fontSize: '9px', letterSpacing: '0.8px' }} className="text-secondary fw-semibold">
-                LAPTOP - PC - GAMING GEAR
+                LAPTOP CHÍNH HÃNG - GAMING - MACBOOK
               </span>
             </a>
           </div>
 
-          {/* Search Box */}
+          {/* Search Box - Đã loại bỏ phần lọc danh mục theo yêu cầu */}
           <div className="col">
-            <div className="input-group">
+            <form onSubmit={handleSearchSubmit} className="input-group">
               <input
                 type="text"
-                className="form-control form-control-sm border-0"
-                placeholder="Bạn cần tìm sản phẩm gì?"
+                className="form-control form-control-sm border-0 px-3"
+                placeholder="Bạn cần tìm sản phẩm gì? (ví dụ: Vivobook, Gaming, Dell...)"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                style={{ fontSize: '13px' }}
               />
-              <select className="form-select form-select-sm border-0 bg-light text-secondary" style={{ maxWidth: '140px', fontSize: '12px' }}>
-                <option>Tất cả danh mục</option>
-                <option>Laptop văn phòng</option>
-                <option>Laptop Gaming</option>
-                <option>Laptop đồ họa</option>
-              </select>
-              <button className="btn btn-pc-red btn-sm px-3" type="button">
+              {keyword && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-white bg-white text-secondary border-0 px-2"
+                  onClick={() => setKeyword('')}
+                  title="Xóa từ khóa"
+                >
+                  <i className="bi bi-x-lg" style={{ fontSize: '11px' }}></i>
+                </button>
+              )}
+              <button 
+                className="btn btn-pc-red btn-sm px-3" 
+                type="submit"
+                title="Tìm kiếm"
+              >
                 <i className="bi bi-search"></i>
               </button>
-            </div>
+            </form>
           </div>
 
           {/* Hotline, Support, Account, Cart */}
