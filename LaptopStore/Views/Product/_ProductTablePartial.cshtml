@@ -1,58 +1,109 @@
-@*
-    Partial View: _ProductTablePartial.cshtml
-    Mục đích: Hiển thị bảng danh sách sản phẩm và thanh phân trang.
-    Được sử dụng lại khi tải trang lần đầu và khi người dùng bấm phân trang AJAX mà không tải lại toàn trang.
-*@
 @model IEnumerable<LaptopStore.Models.Product>
 
-<!-- Bảng hiển thị danh sách sản phẩm -->
-<table class="table table-bordered table-hover align-middle bg-white shadow-sm">
-    <thead class="table-light">
-        <tr>
-            <th>ID</th>
-            <th>Hình ảnh</th>
-            <th>Tên sản phẩm</th>
-            <th>Hãng</th>
-            <th>Danh mục</th>
-            <th>Giá</th>
-            <th>Tồn kho</th>
-            <th>Thao tác</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr id="row-@item.ProductId">
-                <td>@item.ProductId</td>
-                <td>
-                    <!-- Ảnh sản phẩm (có cơ chế dự phòng onerror nếu ảnh bị lỗi) -->
-                    <img src="@item.ThumbnailUrl" onerror="this.src='/images/default.png'" style="width: 50px; height: 50px; object-fit: contain;" class="rounded border p-1" />
-                </td>
-                <td class="fw-bold">@item.ProductName</td>
-                <td>@item.Brand?.BrandName</td>
-                <td>@item.Category?.CategoryName</td>
-                <td class="text-danger fw-bold">@string.Format("{0:N0}đ", item.DiscountPrice ?? item.Price)</td>
-                <td>@item.StockQuantity</td>
-                <td>
-                    <!-- Nút Sửa dẫn đến Action Edit -->
-                    <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn btn-sm btn-primary">Sửa</a>
-                    <!-- Nút Xóa gọi hàm Javascript deleteProduct() qua AJAX -->
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(@item.ProductId)">Xóa</button>
-                </td>
+<div class="admin-table-container">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th style="width: 40px;"><input type="checkbox" class="custom-checkbox" /></th>
+                <th>Mã SP</th>
+                <th>Hình ảnh</th>
+                <th>Tên sản phẩm</th>
+                <th>Thương hiệu</th>
+                <th>Giá bán</th>
+                <th>Kho số lượng</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Hành động</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    var statusClass = item.StockQuantity > 5 ? "badge-in-stock" : (item.StockQuantity > 0 ? "badge-low-stock" : "badge-out-of-stock");
+                    var statusText = item.StockQuantity > 5 ? "Còn hàng" : (item.StockQuantity > 0 ? "Sắp hết hàng" : "Hết hàng");
 
-<!-- Thanh phân trang AJAX (Chuyển trang mượt mà không reload lại toàn bộ trang web) -->
-<div class="d-flex justify-content-between align-items-center">
-    <span>Trang @ViewBag.CurrentPage / @ViewBag.TotalPages</span>
-    <ul class="pagination pagination-sm m-0">
-        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    <tr id="row-@item.ProductId">
+                        <td><input type="checkbox" class="custom-checkbox" /></td>
+                        <td class="fw-semibold text-primary">SP@(item.ProductId.ToString("D3"))</td>
+                        <td>
+                            <img src="@item.ThumbnailUrl" onerror="this.src='/images/default.png'" 
+                                 style="width: 44px; height: 44px; object-fit: contain; background: #0f172a; border-radius: 6px; padding: 2px;" 
+                                 class="border border-secondary" />
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-white">@item.ProductName</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                @(item.Category?.CategoryName ?? "Laptop")
+                            </div>
+                        </td>
+                        <td class="text-secondary">@(item.Brand?.BrandName ?? "-")</td>
+                        <td class="fw-bold text-white">
+                            @string.Format("{0:N0}đ", item.DiscountPrice ?? item.Price)
+                        </td>
+                        <td class="text-white">@item.StockQuantity</td>
+                        <td>
+                            <span class="badge-status @statusClass">
+                                @statusText
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn-action-edit me-1 text-decoration-none">
+                                <i class="bi bi-pencil-square"></i> Sửa
+                            </a>
+                            <button type="button" class="btn-action-delete" onclick="deleteProduct(@item.ProductId)">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- PAGINATION FOOTER -->
+<div class="admin-pagination-wrap">
+    <div class="pagination-info">
+        Hiển thị 1-@ViewBag.PageSize trên @ViewBag.TotalCount sản phẩm
+    </div>
+    <ul class="admin-pagination">
+        <!-- Nút Trước -->
+        <li class="admin-page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+            <a href="javascript:void(0)" onclick="loadProductPage(@(ViewBag.CurrentPage - 1))">
+                <i class="bi bi-chevron-left"></i> Trước
+            </a>
+        </li>
+
+        @for (int i = 1; i <= Math.Min((int)ViewBag.TotalPages, 5); i++)
         {
-            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                <a class="page-link" href="javascript:void(0)" onclick="loadPage(@i)">@i</a>
+            <li class="admin-page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                <a href="javascript:void(0)" onclick="loadProductPage(@i)">@i</a>
             </li>
         }
+
+        @if (ViewBag.TotalPages > 5)
+        {
+            <li class="admin-page-item disabled"><a href="javascript:void(0)">...</a></li>
+            <li class="admin-page-item @(ViewBag.TotalPages == ViewBag.CurrentPage ? "active" : "")">
+                <a href="javascript:void(0)" onclick="loadProductPage(@ViewBag.TotalPages)">@ViewBag.TotalPages</a>
+            </li>
+        }
+
+        <!-- Nút Sau -->
+        <li class="admin-page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+            <a href="javascript:void(0)" onclick="loadProductPage(@(ViewBag.CurrentPage + 1))">
+                Sau <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
     </ul>
 </div>

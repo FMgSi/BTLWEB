@@ -60,7 +60,8 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
 
     try {
       // Gửi yêu cầu đăng nhập lên API ASP.NET Core
-      const response = await fetch('http://localhost:5148/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -137,7 +138,8 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
 
     try {
       // Gửi yêu cầu đăng ký lên API ASP.NET Core
-      const response = await fetch('http://localhost:5148/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -351,7 +353,9 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
               <button
                 type="button"
                 className="auth-google-btn"
-                onClick={() => setShowGoogleModal(true)}
+                onClick={() => {
+                  alert('Chức năng đăng nhập Google hiện đang bảo trì để nâng cấp xác thực Google OAuth 2.0 an toàn. Vui lòng đăng nhập bằng Email/Tài khoản và Mật khẩu.');
+                }}
               >
                 <GoogleIcon />
                 <span>Đăng nhập với Google</span>

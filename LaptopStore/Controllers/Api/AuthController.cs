@@ -144,82 +144,15 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// POST /api/auth/google
-    /// Đăng nhập / Đăng ký nhanh bằng tài khoản Google
-    /// Nếu tài khoản chưa tồn tại sẽ tự động tạo mới với vai trò Customer
+    /// Tạm khóa cơ chế nhận email không xác minh từ client nhằm ngăn chặn chiếm quyền tài khoản
     /// </summary>
     [HttpPost("google")]
-    public async Task<IActionResult> GoogleAuth([FromBody] GoogleAuthRequest request)
+    public IActionResult GoogleAuth([FromBody] GoogleAuthRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email))
+        return BadRequest(new
         {
-            return BadRequest(new { success = false, message = "Email Google không hợp lệ." });
-        }
-
-        var normalizedEmail = request.Email.Trim().ToLower();
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
-
-        if (user == null)
-        {
-            // Tự tạo tên đăng nhập từ email (ví dụ: nguyenvan@gmail.com -> nguyenvan)
-            string baseUsername = normalizedEmail.Split('@')[0];
-            string safeUsername = baseUsername;
-            int counter = 1;
-            while (await _context.Users.AnyAsync(u => u.Username.ToLower() == safeUsername.ToLower()))
-            {
-                safeUsername = $"{baseUsername}_{counter++}";
-            }
-
-            // Mật khẩu ngẫu nhiên được băm an toàn
-            string randomPass = Guid.NewGuid().ToString("N");
-            string hash = PasswordHelper.HashPassword(randomPass);
-
-            user = new User
-            {
-                Username = safeUsername,
-                Email = normalizedEmail,
-                FullName = string.IsNullOrWhiteSpace(request.Name) ? baseUsername : request.Name.Trim(),
-                PasswordHash = hash,
-                Role = "Customer",
-                GoogleId = request.GoogleId ?? Guid.NewGuid().ToString(),
-                AvatarUrl = request.Avatar ?? "https://lh3.googleusercontent.com/a/default-user",
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-        }
-        else
-        {
-            // Cập nhật GoogleId nếu chưa có
-            if (string.IsNullOrEmpty(user.GoogleId) && !string.IsNullOrEmpty(request.GoogleId))
-            {
-                user.GoogleId = request.GoogleId;
-            }
-            if (!string.IsNullOrEmpty(request.Avatar))
-            {
-                user.AvatarUrl = request.Avatar;
-            }
-            await _context.SaveChangesAsync();
-        }
-
-        // Lưu vào Session
-        HttpContext.Session.SetString("UserId", user.UserId.ToString());
-        HttpContext.Session.SetString("Username", user.Username);
-        HttpContext.Session.SetString("Role", user.Role);
-
-        return Ok(new
-        {
-            success = true,
-            message = "Đăng nhập bằng tài khoản Google thành công!",
-            user = new
-            {
-                id = user.UserId,
-                username = user.Username,
-                email = user.Email,
-                fullName = string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName,
-                role = user.Role,
-                avatarUrl = user.AvatarUrl
-            }
+            success = false,
+            message = "Chức năng đăng nhập Google hiện đang bảo trì để nâng cấp xác thực Google OAuth 2.0 an toàn. Vui lòng đăng nhập bằng Email/Tài khoản và Mật khẩu."
         });
     }
 

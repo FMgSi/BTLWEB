@@ -22,7 +22,7 @@ echo [2/2] Dang khoi dong ASP.NET Core Backend (Port 5148)...
 echo.
 echo ========================================================
 echo   * React Web Khach hang : http://localhost:3000
-echo   * Trang Quan tri Admin : http://localhost:5148/Product
+echo   * Trang Quan tri Admin : http://localhost:5148/Admin
 echo ========================================================
 echo.
 

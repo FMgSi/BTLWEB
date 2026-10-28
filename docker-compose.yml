@@ -1,21 +1,16 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: laptop_store_mysql
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: laptop_store_mssql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: LaptopStoreDb
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Express
     ports:
-      - "3306:3306"
+      - "1433:1433"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./sql-init:/docker-entrypoint-initdb.d
+      - mssql_data:/var/opt/mssql
     restart: always
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   backend:
     build:
@@ -23,14 +18,13 @@ services:
       dockerfile: LaptopStore/Dockerfile
     container_name: laptop_store_backend
     environment:
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=LaptopStoreDb;User=root;Password=root;
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=LaptopStoreDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true;
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5000:8080"
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mssql
     restart: always
 
 volumes:
-  mysql_data:
+  mssql_data:

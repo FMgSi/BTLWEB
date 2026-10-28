@@ -19,3 +19,4 @@ yarn-error.log*
 ## Temporary & Cache
 scratch_images/
 *.log
+.dotnet/

@@ -1,0 +1,230 @@
+@model IEnumerable<LaptopStore.ViewModels.DiscountDto>
+@{
+    ViewData["Title"] = "Quản lý mã giảm giá";
+    string currentStatus = ViewBag.Status ?? "all";
+    string currentType = ViewBag.DiscountType ?? "all";
+    string currentSearch = ViewBag.Search ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Quản lý mã giảm giá</h2>
+        <p class="text-muted small mb-0">Thiết lập các chương trình khuyến mãi, voucher giảm giá cho các đơn hàng</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createDiscountModal">
+            <i class="bi bi-plus-lg"></i> Tạo mã giảm giá mới
+        </button>
+        <a href="/Admin/ExportDiscounts" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-arrow-down"></i> Xuất file
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- FILTER CARD -->
+<div class="admin-card mb-3">
+    <form method="get" action="/Admin/Discounts" id="discountFilterForm">
+        <div class="row g-3 align-items-center">
+            <!-- Search Input -->
+            <div class="col-lg-4 col-md-12">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                    <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" 
+                           placeholder="Tìm kiếm mã giảm giá..." onchange="this.form.submit()" />
+                </div>
+            </div>
+
+            <!-- Filter Status -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-semibold text-nowrap">Trạng thái:</span>
+                    <input type="hidden" name="status" id="discountStatusInput" value="@currentStatus" />
+                    <div class="filter-btn-group">
+                        <button type="button" class="filter-btn-item @(currentStatus == "all" ? "active" : "")" onclick="setDiscountStatus('all')">Tất cả</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "active" ? "active" : "")" onclick="setDiscountStatus('active')">Đang hoạt động</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "upcoming" ? "active" : "")" onclick="setDiscountStatus('upcoming')">Chưa bắt đầu</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "expired" ? "active" : "")" onclick="setDiscountStatus('expired')">Hết hạn</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Type -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-semibold text-nowrap">Loại giảm:</span>
+                    <input type="hidden" name="discountType" id="discountTypeInput" value="@currentType" />
+                    <div class="filter-btn-group">
+                        <button type="button" class="filter-btn-item @(currentType == "all" ? "active" : "")" onclick="setDiscountType('all')">Tất cả</button>
+                        <button type="button" class="filter-btn-item @(currentType == "percent" ? "active" : "")" onclick="setDiscountType('percent')">Giảm theo %</button>
+                        <button type="button" class="filter-btn-item @(currentType == "fixed" ? "active" : "")" onclick="setDiscountType('fixed')">Giảm số tiền thẳng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- DISCOUNT TABLE CARD -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="card-title-text">
+            <i class="bi bi-tag-fill text-primary"></i> Bảng dữ liệu mã giảm giá
+        </h5>
+        <span class="text-muted small">Quản lý hiệu lực voucher</span>
+    </div>
+
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" class="custom-checkbox" /></th>
+                    <th>Mã giảm giá</th>
+                    <th>Tên chương trình</th>
+                    <th>Loại giảm giá</th>
+                    <th>Giá trị giảm</th>
+                    <th>Điều kiện áp dụng</th>
+                    <th>Đã dùng / Tổng số</th>
+                    <th>Thời gian hạn</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model)
+                {
+                    <tr id="row-discount-@d.Code">
+                        <td><input type="checkbox" class="custom-checkbox" /></td>
+                        <td>
+                            <span class="fw-bold px-2 py-1 rounded" style="background-color: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px dashed rgba(59, 130, 246, 0.4); font-family: monospace; font-size: 0.95rem;">
+                                @d.Code
+                            </span>
+                        </td>
+                        <td class="fw-semibold text-white">@d.Title</td>
+                        <td class="text-secondary">@d.DiscountType</td>
+                        <td class="fw-bold text-white">@d.DiscountValueText</td>
+                        <td class="text-muted small">@d.ConditionText</td>
+                        <td class="text-white">@d.UsageText</td>
+                        <td class="text-muted small">@d.ExpiryText</td>
+                        <td>
+                            <span class="badge-status @d.StatusBadgeClass">
+                                @d.Status
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn-action-edit me-1" onclick="alert('Chỉnh sửa mã @d.Code')">
+                                <i class="bi bi-pencil-square"></i> Sửa
+                            </button>
+                            <button type="button" class="btn-action-delete" onclick="deleteDiscount('@d.Code')">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="admin-pagination-wrap">
+        <div class="pagination-info">
+            Hiển thị 1-5 trong tổng số @ViewBag.TotalCount mã giảm giá
+        </div>
+        <ul class="admin-pagination">
+            <li class="admin-page-item disabled"><a href="javascript:void(0)"><i class="bi bi-chevron-left"></i> Trước</a></li>
+            <li class="admin-page-item active"><a href="javascript:void(0)">1</a></li>
+            <li class="admin-page-item"><a href="javascript:void(0)">2</a></li>
+            <li class="admin-page-item"><a href="javascript:void(0)">3</a></li>
+            <li class="admin-page-item"><a href="javascript:void(0)">Sau <i class="bi bi-chevron-right"></i></a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- MODAL TẠO MÃ GIẢM GIÁ MỚI -->
+<div class="modal fade" id="createDiscountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-tag-fill text-primary me-2"></i>Tạo mã giảm giá mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/Admin/CreateDiscount">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-dark">Mã giảm giá (Code) *</label>
+                        <input type="text" name="code" class="form-control-dark" placeholder="VD: SUMMER2026" required style="text-transform: uppercase;" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Tên chương trình *</label>
+                        <input type="text" name="title" class="form-control-dark" placeholder="Khuyến mãi hè sôi động" required />
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label-dark">Loại giảm giá</label>
+                            <select name="discountType" class="form-select-dark">
+                                <option value="percent">Giảm theo %</option>
+                                <option value="fixed">Giảm số tiền thẳng (VNĐ)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark">Giá trị giảm *</label>
+                            <input type="text" name="value" class="form-control-dark" placeholder="VD: 10 hoặc 500000" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Điều kiện áp dụng</label>
+                        <input type="text" name="condition" class="form-control-dark" placeholder="Đơn hàng từ 10.000.000đ" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Số lượng phát hành</label>
+                        <input type="number" name="quantity" class="form-control-dark" value="100" />
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom">Tạo voucher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setDiscountStatus(val) {
+            document.getElementById('discountStatusInput').value = val;
+            document.getElementById('discountFilterForm').submit();
+        }
+
+        function setDiscountType(val) {
+            document.getElementById('discountTypeInput').value = val;
+            document.getElementById('discountFilterForm').submit();
+        }
+
+        function deleteDiscount(code) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa mã giảm giá "${code}"?`)) return;
+
+            fetch('/Admin/DeleteDiscount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `code=${encodeURIComponent(code)}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.getElementById(`row-discount-${code}`);
+                    if (row) row.remove();
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            });
+        }
+    </script>
+}

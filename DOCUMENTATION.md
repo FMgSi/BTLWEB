@@ -53,7 +53,7 @@ graph TD
     end
 
     subgraph StorageLayer ["Tầng Lưu Trữ (Persistence Layer)"]
-        MySQL[("🗄️ MySQL Database 8.0<br/>(LaptopStoreDb - Port 3306)")]
+        MSSQL[("🗄️ Microsoft SQL Server<br/>(LaptopStoreDb - SQLEXPRESS)")]
         StaticFiles["📁 Thư mục lưu ảnh<br/>(wwwroot/images & uploads)"]
         ExcelFile["📊 File Excel nhập liệu<br/>(data_laptop.xlsx)"]
     end
@@ -66,9 +66,9 @@ graph TD
     MVCCtrl --> EFCore
     DbInit --> EFCore
 
-    EFCore --> MySQL
+    EFCore --> MSSQL
     MVCCtrl -->|Upload ảnh| StaticFiles
-    ExcelFile -.->|Python Sync Script| MySQL
+    ExcelFile -.->|Python Sync Script| MSSQL
 ```
 
 ---
@@ -80,11 +80,11 @@ graph TD
 | **Frontend Web** | React | 19.x | Xây dựng giao diện tương tác khách hàng dạng Single Page App (SPA) |
 | **Bundler / Dev Server** | Vite | 6.x / 8.x | Đóng gói mã nguồn Frontend, Hot Module Reload (HMR), Reverse Proxy API |
 | **Icons & UI Utility** | Bootstrap & Bootstrap Icons | 5.3.x | Hệ thống lưới Responsive (Grid System) và bộ icon giao diện |
-| **Backend Framework** | ASP.NET Core | 8.0 LTS | Xây dựng RESTful Web API và ứng dụng Web MVC quản trị |
-| **ORM / Data Access** | Entity Framework Core | 8.0.x (Pomelo MySQL) | Ánh xạ đối tượng C# với các bảng cơ sở dữ liệu quan hệ (Object-Relational Mapping) |
-| **Database Engine** | MySQL Server | 8.0 | Hệ quản trị cơ sở dữ liệu quan hệ lưu trữ dữ liệu sản phẩm, hãng, danh mục |
+| **Backend Framework** | ASP.NET Core | .NET 10 / 8.0 LTS | Xây dựng RESTful Web API và ứng dụng Web MVC quản trị |
+| **ORM / Data Access** | Entity Framework Core | 8.0.x (SQL Server) | Ánh xạ đối tượng C# với các bảng cơ sở dữ liệu quan hệ (Object-Relational Mapping) |
+| **Database Engine** | Microsoft SQL Server | 2022 / Express | Hệ quản trị cơ sở dữ liệu quan hệ lưu trữ dữ liệu sản phẩm, hãng, đơn hàng |
 | **Data Automation** | Python / OpenPyXL | 3.10+ | Tiện ích đọc và đồng bộ tự động dữ liệu từ file Excel vào Database |
-| **Containerization** | Docker / Docker Compose | Latest | Đóng gói môi trường chạy MySQL và Backend cho môi trường máy chủ |
+| **Containerization** | Docker / Docker Compose | Latest | Đóng gói môi trường chạy SQL Server và Backend cho môi trường máy chủ |
 
 ---
 

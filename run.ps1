@@ -21,7 +21,7 @@ Write-Host "[2/2] Đang khởi động ASP.NET Core Backend (Port 5148)..." -For
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host "  👉 React Web Khách hàng : http://localhost:3000" -ForegroundColor Green
-Write-Host "  👉 Trang Quản trị Admin : http://localhost:5148/Product" -ForegroundColor Yellow
+Write-Host "  👉 Trang Quản trị Admin : http://localhost:5148/Admin" -ForegroundColor Yellow
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 

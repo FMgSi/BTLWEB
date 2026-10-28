@@ -1,0 +1,325 @@
+@model LaptopStore.ViewModels.SystemSettingsViewModel
+@{
+    ViewData["Title"] = "Cấu hình hệ thống";
+    string activeTab = ViewBag.ActiveTab ?? "payments";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Cấu hình hệ thống</h2>
+        <p class="text-muted small mb-0">Quản trị các thiết lập thanh toán, email thông báo, bảo mật và thông tin cửa hàng</p>
+    </div>
+    <div class="page-actions">
+        <a href="/Admin/ExportProducts" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-arrow-down"></i> Xuất file
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- SETTINGS NAVIGATION TABS -->
+<div class="admin-nav-tabs">
+    <button type="button" class="nav-tab-item @(activeTab == "store" ? "active" : "")" onclick="switchTab('tab-store', this)">
+        <i class="bi bi-shop me-1"></i> Thông tin cửa hàng
+    </button>
+    <button type="button" class="nav-tab-item @(activeTab == "email" ? "active" : "")" onclick="switchTab('tab-email', this)">
+        <i class="bi bi-envelope-at me-1"></i> Cấu hình SMTP / Email
+    </button>
+    <button type="button" class="nav-tab-item @(activeTab == "payments" ? "active" : "")" onclick="switchTab('tab-payments', this)">
+        <i class="bi bi-credit-card-2-front me-1"></i> Cổng thanh toán
+    </button>
+    <button type="button" class="nav-tab-item @(activeTab == "seo" ? "active" : "")" onclick="switchTab('tab-seo', this)">
+        <i class="bi bi-search me-1"></i> Cấu hình SEO & Website
+    </button>
+    <button type="button" class="nav-tab-item @(activeTab == "security" ? "active" : "")" onclick="switchTab('tab-security', this)">
+        <i class="bi bi-shield-lock me-1"></i> Bảo mật & Phân quyền
+    </button>
+</div>
+
+<form method="post" asp-action="SaveSettings">
+    @Html.AntiForgeryToken()
+
+    <!-- ==================== TAB 1: CỔNG THANH TOÁN (ACTIVE BY DEFAULT) ==================== -->
+    <div class="tab-pane-content" id="tab-payments" style="@(activeTab == "payments" ? "display: block;" : "display: none;")">
+        <div class="row g-4 mb-4">
+            <!-- 1. Thanh toán COD -->
+            <div class="col-md-6">
+                <div class="admin-card h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-cash-stack text-success fs-5"></i>
+                            <h6 class="text-white fw-bold mb-0">Phương thức thanh toán khi nhận hàng (COD)</h6>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded" style="background-color: var(--bg-card-subtle);">
+                        <span class="text-secondary small fw-medium">Kích hoạt thanh toán COD khi giao hàng</span>
+                        <label class="admin-switch">
+                            <input type="checkbox" asp-for="EnableCod" />
+                            <span class="admin-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Cổng thanh toán VNPAY -->
+            <div class="col-md-6">
+                <div class="admin-card h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-qr-code-scan text-primary fs-5"></i>
+                            <h6 class="text-white fw-bold mb-0">Cổng thanh toán VNPAY</h6>
+                        </div>
+                        <label class="admin-switch">
+                            <input type="checkbox" asp-for="EnableVnPay" />
+                            <span class="admin-slider"></span>
+                        </label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-dark">Mã website (TmnCode)</label>
+                        <input type="text" asp-for="VnPayTmnCode" class="form-control-dark" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-dark">Chuỗi bí mật (HashKey)</label>
+                        <input type="password" asp-for="VnPayHashKey" class="form-control-dark" />
+                    </div>
+                    <div>
+                        <label class="form-label-dark">URL thanh toán (Sandbox/Production)</label>
+                        <input type="text" asp-for="VnPayUrl" class="form-control-dark" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Chuyển khoản Ngân hàng (VietQR) -->
+            <div class="col-md-6">
+                <div class="admin-card h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-bank2 text-info fs-5"></i>
+                            <h6 class="text-white fw-bold mb-0">Chuyển khoản Ngân hàng (VietQR)</h6>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-dark">Tên ngân hàng</label>
+                        <select asp-for="VietQrBankName" class="form-select-dark">
+                            <option value="MB Bank (Ngân hàng Quân Đội)">MB Bank (Ngân hàng Quân Đội)</option>
+                            <option value="Vietcombank (Ngoại thương Việt Nam)">Vietcombank (Ngoại thương Việt Nam)</option>
+                            <option value="Techcombank (Kỹ thương Việt Nam)">Techcombank (Kỹ thương Việt Nam)</option>
+                            <option value="VPBank (Việt Nam Thịnh Vượng)">VPBank (Việt Nam Thịnh Vượng)</option>
+                            <option value="ACB (Á Châu)">ACB (Á Châu)</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label-dark">Số tài khoản</label>
+                            <input type="text" asp-for="VietQrAccountNumber" class="form-control-dark" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark">Tên chủ tài khoản</label>
+                            <input type="text" asp-for="VietQrAccountHolder" class="form-control-dark" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label-dark">Mã QR ngân hàng</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <button type="button" class="btn btn-sm btn-secondary-custom" onclick="alert('Đã tải hình ảnh mã QR ngân hàng lên máy chủ!')">
+                                <i class="bi bi-cloud-arrow-up"></i> Tải ngân hàng
+                            </button>
+                            <span class="text-muted small">vietqr_mbbank.png</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Ví điện tử MoMo -->
+            <div class="col-md-6">
+                <div class="admin-card h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-wallet2 text-danger fs-5"></i>
+                            <h6 class="text-white fw-bold mb-0">Ví điện tử MoMo</h6>
+                        </div>
+                        <label class="admin-switch">
+                            <input type="checkbox" asp-for="EnableMoMo" />
+                            <span class="admin-slider"></span>
+                        </label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-dark">Partner Code</label>
+                        <input type="text" asp-for="MoMoPartnerCode" class="form-control-dark" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-dark">Access Key</label>
+                        <input type="password" asp-for="MoMoAccessKey" class="form-control-dark" />
+                    </div>
+                    <div>
+                        <label class="form-label-dark">Secret Key</label>
+                        <input type="password" asp-for="MoMoSecretKey" class="form-control-dark" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Cổng thanh toán ZaloPay -->
+            <div class="col-md-6">
+                <div class="admin-card h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-chat-square-dots text-primary fs-5"></i>
+                            <h6 class="text-white fw-bold mb-0">Cổng thanh toán ZaloPay</h6>
+                        </div>
+                        <label class="admin-switch">
+                            <input type="checkbox" asp-for="EnableZaloPay" />
+                            <span class="admin-slider"></span>
+                        </label>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label-dark">App ID</label>
+                            <input type="text" asp-for="ZaloPayAppId" class="form-control-dark" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark">Key 1</label>
+                            <input type="password" asp-for="ZaloPayKey1" class="form-control-dark" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 2: THÔNG TIN CỬA HÀNG ==================== -->
+    <div class="tab-pane-content" id="tab-store" style="@(activeTab == "store" ? "display: block;" : "display: none;")">
+        <div class="admin-card mb-4" style="max-width: 800px;">
+            <div class="admin-card-header">
+                <h5 class="card-title-text"><i class="bi bi-info-circle text-primary"></i> Thông tin cửa hàng Laptop World</h5>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-dark">Tên thương hiệu / Cửa hàng</label>
+                <input type="text" asp-for="StoreName" class="form-control-dark" />
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label-dark">Hotline hỗ trợ khách hàng</label>
+                    <input type="text" asp-for="Hotline" class="form-control-dark" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label-dark">Email liên hệ / hỗ trợ</label>
+                    <input type="email" asp-for="SupportEmail" class="form-control-dark" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-dark">Địa chỉ trụ sở chính</label>
+                <input type="text" asp-for="StoreAddress" class="form-control-dark" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label-dark">Mã số thuế doanh nghiệp</label>
+                <input type="text" asp-for="TaxId" class="form-control-dark" />
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 3: CẤU HÌNH SMTP / EMAIL ==================== -->
+    <div class="tab-pane-content" id="tab-email" style="@(activeTab == "email" ? "display: block;" : "display: none;")">
+        <div class="admin-card mb-4" style="max-width: 800px;">
+            <div class="admin-card-header">
+                <h5 class="card-title-text"><i class="bi bi-envelope-gear text-primary"></i> Máy chủ gửi mail thông báo (SMTP)</h5>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <label class="form-label-dark">Máy chủ SMTP</label>
+                    <input type="text" class="form-control-dark" value="smtp.gmail.com" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label-dark">Cổng SMTP</label>
+                    <input type="number" class="form-control-dark" value="587" />
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label-dark">Tài khoản gửi mail (Username)</label>
+                    <input type="email" class="form-control-dark" value="no-reply@laptopworld.vn" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label-dark">Mật khẩu ứng dụng (App Password)</label>
+                    <input type="password" class="form-control-dark" value="••••••••••••••••" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 4: SEO & WEBSITE ==================== -->
+    <div class="tab-pane-content" id="tab-seo" style="@(activeTab == "seo" ? "display: block;" : "display: none;")">
+        <div class="admin-card mb-4" style="max-width: 800px;">
+            <div class="admin-card-header">
+                <h5 class="card-title-text"><i class="bi bi-globe2 text-primary"></i> Tối ưu hóa công cụ tìm kiếm (SEO)</h5>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-dark">Tiêu đề trang chủ (Title tag)</label>
+                <input type="text" class="form-control-dark" value="Laptop World - Hệ thống phân phối Laptop chính hãng giá tốt nhất Việt Nam" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label-dark">Thẻ mô tả (Meta Description)</label>
+                <textarea class="form-control-dark" rows="3">Mua laptop gaming, văn phòng, đồ họa chính hãng ASUS, Dell, Apple, Lenovo tại Laptop World. Bảo hành 24 tháng, trả góp 0%.</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 5: BẢO MẬT & PHÂN QUYỀN ==================== -->
+    <div class="tab-pane-content" id="tab-security" style="@(activeTab == "security" ? "display: block;" : "display: none;")">
+        <div class="admin-card mb-4" style="max-width: 800px;">
+            <div class="admin-card-header">
+                <h5 class="card-title-text"><i class="bi bi-shield-lock text-primary"></i> Chính sách bảo mật quản trị</h5>
+            </div>
+            <div class="d-flex align-items-center justify-content-between p-3 rounded mb-3" style="background-color: var(--bg-card-subtle);">
+                <div>
+                    <div class="fw-semibold text-white">Xác thực hai yếu tố (2FA) cho tài khoản Admin</div>
+                    <div class="text-muted small">Yêu cầu mã OTP qua ứng dụng Google Authenticator khi đăng nhập</div>
+                </div>
+                <label class="admin-switch">
+                    <input type="checkbox" checked />
+                    <span class="admin-slider"></span>
+                </label>
+            </div>
+            <div class="d-flex align-items-center justify-content-between p-3 rounded" style="background-color: var(--bg-card-subtle);">
+                <div>
+                    <div class="fw-semibold text-white">Tự động ngắt phiên đăng nhập (Session Timeout)</div>
+                    <div class="text-muted small">Khóa phiên làm việc sau 30 phút không có thao tác</div>
+                </div>
+                <label class="admin-switch">
+                    <input type="checkbox" checked />
+                    <span class="admin-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM ACTIONS -->
+    <div class="d-flex align-items-center justify-content-end gap-3 mt-4 pt-3 border-top border-secondary">
+        <button type="submit" class="btn-primary-custom px-4">
+            <i class="bi bi-check2-circle"></i> Lưu thay đổi
+        </button>
+        <a href="/Admin" class="btn-secondary-custom px-3">
+            Hủy
+        </a>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        function switchTab(tabId, el) {
+            // Ẩn tất cả các tab
+            document.querySelectorAll('.tab-pane-content').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.nav-tab-item').forEach(b => b.classList.remove('active'));
+
+            // Hiển thị tab được chọn
+            document.getElementById(tabId).style.display = 'block';
+            el.classList.add('active');
+        }
+    </script>
+}

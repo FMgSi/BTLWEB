@@ -3,71 +3,170 @@
     ViewData["Title"] = "Thêm sản phẩm mới";
 }
 
-<div class="container py-4" style="max-width: 800px;">
-    <h4 class="mb-3">Thêm sản phẩm mới</h4>
-
-    <form asp-action="Create" method="post" enctype="multipart/form-data">
-        @Html.AntiForgeryToken()
-
-        <div class="mb-3">
-            <label asp-for="ProductName" class="form-label fw-bold"></label>
-            <input asp-for="ProductName" class="form-control" />
-            <span asp-validation-for="ProductName" class="text-danger small"></span>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label asp-for="BrandId" class="form-label fw-bold"></label>
-                <select asp-for="BrandId" class="form-select" asp-items="ViewBag.Brands"></select>
-                <span asp-validation-for="BrandId" class="text-danger small"></span>
-            </div>
-            <div class="col-md-6">
-                <label asp-for="CategoryId" class="form-label fw-bold"></label>
-                <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories"></select>
-                <span asp-validation-for="CategoryId" class="text-danger small"></span>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <label asp-for="Price" class="form-label fw-bold"></label>
-                <input asp-for="Price" type="number" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger small"></span>
-            </div>
-            <div class="col-md-4">
-                <label asp-for="DiscountPrice" class="form-label fw-bold"></label>
-                <input asp-for="DiscountPrice" type="number" class="form-control" />
-            </div>
-            <div class="col-md-4">
-                <label asp-for="StockQuantity" class="form-label fw-bold"></label>
-                <input asp-for="StockQuantity" type="number" class="form-control" />
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="UploadedImage" class="form-label fw-bold"></label>
-            <input asp-for="UploadedImage" type="file" class="form-control" accept="image/*" />
-        </div>
-
-        <!-- Tích hợp TinyMCE Textarea -->
-        <div class="mb-3">
-            <label asp-for="Description" class="form-label fw-bold"></label>
-            <textarea asp-for="Description" id="editor" class="form-control" rows="5"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-success px-4">Lưu lại</button>
-        <a asp-action="Index" class="btn btn-secondary ms-2">Hủy</a>
-    </form>
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Thêm sản phẩm mới</h2>
+        <p class="text-muted small mb-0">Nhập đầy đủ thông tin sản phẩm, cấu hình chi tiết và ảnh minh họa</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" class="btn-secondary-custom">
+            <i class="bi bi-arrow-left"></i> Trở lại danh sách
+        </a>
+    </div>
 </div>
 
+<form asp-action="Create" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-4">
+        <!-- ==================== CỘT TRÁI: THÔNG TIN SẢN PHẨM ==================== -->
+        <div class="col-lg-6">
+            <div class="admin-card h-100">
+                <div class="admin-card-header">
+                    <h5 class="card-title-text">
+                        <i class="bi bi-info-circle text-primary"></i> Thông tin sản phẩm
+                    </h5>
+                </div>
+
+                <!-- Tên sản phẩm -->
+                <div class="mb-3">
+                    <label asp-for="ProductName" class="form-label-dark">Tên sản phẩm *</label>
+                    <input asp-for="ProductName" class="form-control-dark" placeholder="VD: ASUS ROG Strix G16 G614JV" />
+                    <span asp-validation-for="ProductName" class="text-danger small"></span>
+                </div>
+
+                <!-- Thương hiệu & Phân khúc -->
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label asp-for="BrandId" class="form-label-dark">Thương hiệu *</label>
+                        <select asp-for="BrandId" class="form-select-dark" asp-items="ViewBag.Brands">
+                            <option value="">-- Chọn thương hiệu --</option>
+                        </select>
+                        <span asp-validation-for="BrandId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6">
+                        <label asp-for="CategoryId" class="form-label-dark">Phân khúc *</label>
+                        <select asp-for="CategoryId" class="form-select-dark" asp-items="ViewBag.Categories">
+                            <option value="">-- Chọn phân khúc --</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <!-- Giá bán & Số lượng -->
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label asp-for="Price" class="form-label-dark">Giá bán (VNĐ) *</label>
+                        <input asp-for="Price" type="number" class="form-control-dark" placeholder="35500000" />
+                        <span asp-validation-for="Price" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6">
+                        <label asp-for="StockQuantity" class="form-label-dark">Số lượng kho *</label>
+                        <input asp-for="StockQuantity" type="number" class="form-control-dark" placeholder="15" value="10" />
+                        <span asp-validation-for="StockQuantity" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <!-- Giá khuyến mãi (tùy chọn) -->
+                <div class="mb-3">
+                    <label asp-for="DiscountPrice" class="form-label-dark">Giá khuyến mãi (VNĐ - tùy chọn)</label>
+                    <input asp-for="DiscountPrice" type="number" class="form-control-dark" placeholder="Để trống nếu không giảm giá" />
+                </div>
+
+                <!-- Mô tả sản phẩm -->
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label-dark">Mô tả sản phẩm</label>
+                    <textarea asp-for="Description" class="form-control-dark" rows="5" placeholder="Nhập mô tả tính năng nổi bật, thiết kế, màn hình của máy..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CỘT PHẢI: CẤU HÌNH & HÌNH ẢNH ==================== -->
+        <div class="col-lg-6">
+            <div class="admin-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="admin-card-header">
+                        <h5 class="card-title-text">
+                            <i class="bi bi-cpu text-primary"></i> Cấu hình & Hình ảnh
+                        </h5>
+                    </div>
+
+                    <!-- 1. Cấu hình chi tiết -->
+                    <h6 class="text-white fw-bold mb-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-motherboard text-info me-1"></i> Cấu hình chi tiết
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="form-label-dark">Vi xử lý (CPU)</label>
+                            <input asp-for="CPU" class="form-control-dark" placeholder="VD: Intel Core i7-13650HX" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark">Bộ nhớ (RAM)</label>
+                            <input asp-for="RAM" class="form-control-dark" placeholder="VD: 16GB DDR5 4800MHz" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark">Ổ cứng (SSD/HDD)</label>
+                            <input asp-for="Storage" class="form-control-dark" placeholder="VD: 512GB SSD NVMe Gen 4" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark">Card đồ họa (VGA)</label>
+                            <input asp-for="GPU" class="form-control-dark" placeholder="VD: NVIDIA RTX 4060 8GB" />
+                        </div>
+                    </div>
+
+                    <!-- 2. Hình ảnh sản phẩm -->
+                    <h6 class="text-white fw-bold mb-2" style="font-size: 0.9rem;">
+                        <i class="bi bi-image text-warning me-1"></i> Hình ảnh sản phẩm
+                    </h6>
+                    <div class="admin-dropzone" onclick="document.getElementById('imageFileInput').click()">
+                        <input asp-for="UploadedImage" id="imageFileInput" type="file" class="d-none" accept="image/*" onchange="previewImage(this)" />
+                        <div id="dropzoneContent">
+                            <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+                            <div class="dropzone-title">Kéo thả ảnh vào đây hoặc nhấp để chọn</div>
+                            <div class="dropzone-sub">Hỗ trợ định dạng JPG, PNG, WEBP, tối đa 5MB</div>
+                        </div>
+                        <div id="previewContainer" class="d-none text-center">
+                            <img id="imagePreview" src="#" alt="Preview" style="max-height: 120px; max-width: 100%; object-fit: contain; border-radius: 8px;" class="mb-2" />
+                            <div class="text-primary small fw-semibold" id="fileNameDisplay"></div>
+                            <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none mt-1 p-0" onclick="removeImage(event)">
+                                <i class="bi bi-x-circle"></i> Đổi ảnh khác
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Action Buttons -->
+                <div class="d-flex align-items-center justify-content-end gap-3 mt-4 pt-3 border-top border-secondary">
+                    <a asp-action="Index" class="btn-secondary-custom px-4">Hủy</a>
+                    <button type="submit" class="btn-primary-custom px-4">
+                        <i class="bi bi-check-lg"></i> Thêm sản phẩm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
 @section Scripts {
-    <!-- CDN TinyMCE editor miễn phí -->
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script>
-        tinymce.init({
-            selector: '#editor',
-            plugins: 'lists link image code table',
-            toolbar: 'undo redo | bold italic underline | bullist numlist | link image | code'
-        });
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('fileNameDisplay').innerText = input.files[0].name;
+                    document.getElementById('dropzoneContent').classList.add('d-none');
+                    document.getElementById('previewContainer').classList.remove('d-none');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeImage(e) {
+            e.stopPropagation();
+            document.getElementById('imageFileInput').value = '';
+            document.getElementById('previewContainer').classList.add('d-none');
+            document.getElementById('dropzoneContent').classList.remove('d-none');
+        }
     </script>
 }

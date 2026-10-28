@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace LaptopStore.Models;
 
 /// <summary>
-/// Đại diện cho một sản phẩm Laptop trong cơ sở dữ liệu MySQL
+/// Đại diện cho một sản phẩm Laptop trong cơ sở dữ liệu Microsoft SQL Server
 /// Bảng ánh xạ: Products
 /// </summary>
 public class Product

@@ -1,87 +1,196 @@
-@*
-    View: Index.cshtml
-    Mục đích: Giao diện chính của Trang Quản trị Sản phẩm (Admin)
-    Các tính năng:
-    1. Hiển thị thông báo Session (LastAction) khi vừa Thêm/Sửa thành công.
-    2. Ô tìm kiếm theo tên và Dropdown lọc theo Danh mục.
-    3. AJAX Pagination và Search (tải lại bảng dữ liệu mà không f5 trang).
-    4. Xóa sản phẩm bằng AJAX với xác nhận popup.
-*@
 @model IEnumerable<LaptopStore.Models.Product>
 @{
     ViewData["Title"] = "Quản lý sản phẩm";
+    string currentKeyword = ViewBag.Keyword ?? "";
+    int? currentBrandId = ViewBag.BrandId;
+    int? currentCategoryId = ViewBag.CategoryId;
+    string currentStatus = ViewBag.Status ?? "all";
+    string currentPriceRange = ViewBag.PriceRange ?? "all";
 }
 
-<div class="container py-4">
-    <!-- Tiêu đề và nút Thêm mới -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Quản lý sản phẩm</h3>
-        <a asp-action="Create" class="btn btn-success">+ Thêm mới</a>
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Quản lý sản phẩm</h2>
+        <p class="text-muted small mb-0">Quản lý kho hàng laptop, giá bán niêm yết, thông số kỹ thuật và thương hiệu</p>
     </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn-primary-custom">
+            <i class="bi bi-plus-lg"></i> Thêm sản phẩm mới
+        </a>
+        <a href="/Admin/ExportProducts" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-excel"></i> Nhập/Xuất Excel
+        </a>
+    </div>
+</div>
 
-    <!-- Hiển thị thông báo Flash Message từ Session nếu có -->
-    @if (Context.Session.GetString("LastAction") != null)
-    {
-        <div class="alert alert-info alert-dismissible fade show">
-            @Context.Session.GetString("LastAction")
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+@if (TempData["Success"] != null || Context.Session.GetString("LastAction") != null)
+{
+    var msg = TempData["Success"]?.ToString() ?? Context.Session.GetString("LastAction");
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+        <i class="bi bi-check-circle-fill me-2"></i> @msg
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    </div>
+}
 
-    <!-- Thanh tìm kiếm & lọc theo danh mục -->
-    <div class="row g-2 mb-3">
-        <div class="col-md-4">
-            <input type="text" id="keyword" class="form-control" placeholder="Tìm theo tên..." />
-        </div>
-        <div class="col-md-3">
-            <select id="categoryId" class="form-select" asp-items="ViewBag.Categories">
-                <option value="">-- Tất cả danh mục --</option>
+<!-- FILTER BAR CARD (Matching Page 2 Screen 1) -->
+<div class="admin-card mb-3">
+    <div class="row g-2 align-items-center">
+        <!-- Thương hiệu -->
+        <div class="col-lg-2 col-md-4 col-6">
+            <label class="form-label-dark mb-1">Thương hiệu</label>
+            <select id="filterBrand" class="form-select-dark" onchange="triggerFilter()">
+                <option value="">Dell, Asus, Macbook, HP...</option>
+                @if (ViewBag.Brands != null)
+                {
+                    if (ViewBag.Brands is SelectList selectBrands)
+                    {
+                        foreach (var item in selectBrands)
+                        {
+                            <option value="@item.Value" selected="@(item.Selected ? "selected" : null)">@item.Text</option>
+                        }
+                    }
+                    else if (ViewBag.Brands is IEnumerable<LaptopStore.Models.Brand> brandList)
+                    {
+                        foreach (var b in brandList)
+                        {
+                            <option value="@b.BrandId" selected="@(ViewBag.BrandId != null && (int)ViewBag.BrandId == b.BrandId ? "selected" : null)">@b.BrandName</option>
+                        }
+                    }
+                }
             </select>
         </div>
-        <div class="col-md-2">
-            <button class="btn btn-dark w-100" onclick="loadPage(1)">Tìm kiếm</button>
+
+        <!-- Phân khúc -->
+        <div class="col-lg-3 col-md-4 col-6">
+            <label class="form-label-dark mb-1">Phân khúc</label>
+            <select id="filterCategory" class="form-select-dark" onchange="triggerFilter()">
+                <option value="">Gaming, Văn phòng, Đồ hoạ...</option>
+                @if (ViewBag.Categories != null)
+                {
+                    if (ViewBag.Categories is SelectList selectCats)
+                    {
+                        foreach (var item in selectCats)
+                        {
+                            <option value="@item.Value" selected="@(item.Selected ? "selected" : null)">@item.Text</option>
+                        }
+                    }
+                    else if (ViewBag.Categories is IEnumerable<LaptopStore.Models.Category> catList)
+                    {
+                        foreach (var c in catList)
+                        {
+                            <option value="@c.CategoryId" selected="@(ViewBag.CategoryId != null && (int)ViewBag.CategoryId == c.CategoryId ? "selected" : null)">@c.CategoryName</option>
+                        }
+                    }
+                }
+            </select>
+        </div>
+
+        <!-- Trạng thái -->
+        <div class="col-lg-2 col-md-4 col-6">
+            <label class="form-label-dark mb-1">Trạng thái</label>
+            <select id="filterStatus" class="form-select-dark" onchange="triggerFilter()">
+                <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Còn hàng, Hết hàng</option>
+                <option value="instock" selected="@(currentStatus == "instock" ? "selected" : null)">Còn hàng</option>
+                <option value="lowstock" selected="@(currentStatus == "lowstock" ? "selected" : null)">Sắp hết hàng</option>
+                <option value="outofstock" selected="@(currentStatus == "outofstock" ? "selected" : null)">Hết hàng</option>
+            </select>
+        </div>
+
+        <!-- Khoảng giá -->
+        <div class="col-lg-2 col-md-6 col-6">
+            <label class="form-label-dark mb-1">Khoảng giá</label>
+            <select id="filterPrice" class="form-select-dark" onchange="triggerFilter()">
+                <option value="all" selected="@(currentPriceRange == "all" ? "selected" : null)">Khoảng giá</option>
+                <option value="under15" selected="@(currentPriceRange == "under15" ? "selected" : null)">Dưới 15 triệu</option>
+                <option value="15to25" selected="@(currentPriceRange == "15to25" ? "selected" : null)">15 - 25 triệu</option>
+                <option value="above25" selected="@(currentPriceRange == "above25" ? "selected" : null)">Trên 25 triệu</option>
+            </select>
+        </div>
+
+        <!-- Tìm kiếm từ khóa -->
+        <div class="col-lg-3 col-md-6 col-12">
+            <label class="form-label-dark mb-1">Tìm kiếm</label>
+            <div class="position-relative">
+                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                <input type="text" id="filterKeyword" value="@currentKeyword" class="form-control-dark ps-5" 
+                       placeholder="Tìm kiếm tên sản phẩm..." onkeyup="debounceFilter()" />
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Vùng chứa bảng dữ liệu (được cập nhật động thông qua Javascript AJAX) -->
-    <div id="tableContainer">
+<!-- PRODUCT TABLE CONTAINER (AJAX RELOADABLE) -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="card-title-text">
+            <i class="bi bi-pc-display text-primary"></i> Bảng danh sách sản phẩm
+        </h5>
+        <span class="text-muted small">Cập nhật tự động AJAX</span>
+    </div>
+
+    <div id="productTableContainer">
         @await Html.PartialAsync("_ProductTablePartial", Model)
     </div>
 </div>
 
+@Html.AntiForgeryToken()
+
 @section Scripts {
     <script>
-        // Hàm tải dữ liệu phân trang và tìm kiếm bằng AJAX
-        function loadPage(page) {
-            const kw = document.getElementById('keyword').value;
-            const cat = document.getElementById('categoryId').value;
+        let searchTimer = null;
+        function debounceFilter() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(triggerFilter, 300);
+        }
 
-            // Gửi request kèm header 'X-Requested-With' để Controller biết đây là AJAX request
-            fetch(`/Product/Index?keyword=${encodeURIComponent(kw)}&categoryId=${cat}&page=${page}`, {
+        function triggerFilter() {
+            loadProductPage(1);
+        }
+
+        function loadProductPage(page) {
+            const kw = document.getElementById('filterKeyword').value;
+            const brand = document.getElementById('filterBrand').value;
+            const cat = document.getElementById('filterCategory').value;
+            const status = document.getElementById('filterStatus').value;
+            const price = document.getElementById('filterPrice').value;
+
+            const url = `/Product/Index?keyword=${encodeURIComponent(kw)}&brandId=${brand}&categoryId=${cat}&status=${status}&priceRange=${price}&page=${page}`;
+
+            fetch(url, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(res => res.text())
             .then(html => {
-                // Thay thế nội dung cũ trong #tableContainer bằng HTML mới trả về từ PartialView
-                document.getElementById('tableContainer').innerHTML = html;
+                document.getElementById('productTableContainer').innerHTML = html;
             });
         }
 
-        // Hàm xóa sản phẩm bằng AJAX
         function deleteProduct(id) {
-            if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
+            if (!confirm(`Bạn có chắc chắn muốn xóa sản phẩm #SP${String(id).padStart(3, '0')} khỏi hệ thống?`)) return;
 
-            fetch(`/Product/Delete/${id}`, { method: 'POST' })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
-                        // Xóa trực tiếp hàng trong bảng trên giao diện mà không cần tải lại trang
-                        const row = document.getElementById(`row-${id}`);
-                        if (row) row.remove();
-                    } else {
-                        alert('Lỗi: ' + res.message);
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            fetch(`/Product/Delete/${id}`, { 
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    const row = document.getElementById(`row-${id}`);
+                    if (row) {
+                        row.style.transition = 'all 0.3s ease';
+                        row.style.opacity = '0';
+                        row.style.transform = 'scale(0.95)';
+                        setTimeout(() => row.remove(), 300);
                     }
-                });
+                } else {
+                    alert('Lỗi: ' + res.message);
+                }
+            });
         }
     </script>
 }

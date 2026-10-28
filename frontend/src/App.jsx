@@ -66,6 +66,26 @@ export default function App() {
     } catch (e) {}
   }, [cartItems]);
 
+  // Đồng bộ phiên đăng nhập từ Backend Session (/api/auth/me)
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.success && data.user) {
+          setCurrentUser(data.user);
+          try {
+            localStorage.setItem('pcstore_user', JSON.stringify(data.user));
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+
+
+
+
+
   // States cho các bộ lọc
   const [activeTag, setActiveTag] = useState("Tất cả sản phẩm");
   const [sortBy, setSortBy] = useState("newest");
@@ -388,7 +408,7 @@ export default function App() {
   // Xử lý Đăng xuất
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5148/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {}
     setCurrentUser(null);
     try {

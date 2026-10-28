@@ -159,11 +159,11 @@ export default function TopHeader({
 
                     {currentUser.role === 'Admin' && (
                       <a 
-                        className="d-flex align-items-center gap-2 px-2 py-2 text-danger text-decoration-none rounded hover-bg-light small fw-bold"
-                        href="http://localhost:5148/Product/Index" 
+                        className="d-flex align-items-center gap-2 px-2 py-2 text-primary text-decoration-none rounded hover-bg-light small fw-bold"
+                        href="http://localhost:5148/Admin" 
                         target="_blank" 
                         rel="noreferrer"
-                        style={{ backgroundColor: '#fff5f5' }}
+                        style={{ backgroundColor: '#eff6ff' }}
                       >
                         <i className="bi bi-shield-lock-fill"></i>
                         Vào trang Quản trị (Admin MVC)

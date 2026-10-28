@@ -1,0 +1,80 @@
+@{
+    ViewData["Title"] = "Báo cáo & Thống kê";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Báo cáo & Thống kê</h2>
+        <p class="text-muted small mb-0">Biểu đồ phân tích hiệu suất bán hàng, lưu lượng truy cập và chỉ số tài chính</p>
+    </div>
+    <div class="page-actions">
+        <a href="/Admin/ExportProducts" class="btn-primary-custom">
+            <i class="bi bi-download"></i> Tải báo cáo PDF / Excel
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Tổng sản phẩm kinh doanh</span>
+                <span class="metric-badge metric-badge-success">+100%</span>
+            </div>
+            <div class="metric-value text-white">@ViewBag.ProductCount sản phẩm</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Thương hiệu đối tác</span>
+                <span class="metric-badge metric-badge-success">Đã xác minh</span>
+            </div>
+            <div class="metric-value text-white">@ViewBag.BrandCount hãng</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Phân khúc danh mục</span>
+                <span class="metric-badge metric-badge-success">Hoạt động</span>
+            </div>
+            <div class="metric-value text-white">@ViewBag.CategoryCount nhóm</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="card-title-text"><i class="bi bi-bar-chart-fill text-primary"></i> Tăng trưởng doanh thu 12 tháng</h5>
+    </div>
+    <div style="height: 320px;">
+        <canvas id="annualChart"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const ctx = document.getElementById('annualChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
+                datasets: [{
+                    label: 'Doanh thu (Triệu VNĐ)',
+                    data: [850, 920, 1100, 1050, 1250, 1400, 1380, 1600, 1550, 1450, 1750, 2100],
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+    </script>
+}

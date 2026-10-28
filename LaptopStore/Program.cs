@@ -1,4 +1,6 @@
 using LaptopStore.Data;
+using LaptopStore.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 // Tự động định vị ContentRootPath và WebRootPath kể cả khi chạy trực tiếp file .exe từ bin\Debug
@@ -37,33 +39,58 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 // 1. CẤU HÌNH CÁC DỊCH VỤ (DEPENDENCY INJECTION - DI SERVICES)
 // =========================================================================
 
-// 1.1. Kết nối Cơ sở dữ liệu MySQL qua Entity Framework Core
+// 1.1. Kết nối Cơ sở dữ liệu Microsoft SQL Server qua Entity Framework Core
 var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseMySql(connStr, new MySqlServerVersion(new Version(8, 0, 36)), mySqlOptions =>
-        mySqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
+    opt.UseSqlServer(connStr, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(2),
             errorNumbersToAdd: null)));
 
-// 1.2. Kích hoạt mô hình ASP.NET Core MVC (hỗ trợ cả Razor Views và Web API Controllers)
+// 1.2. Đăng ký các Service tầng nghiệp vụ (Clean MVC / Service Layer Pattern)
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
+// 1.3. Kích hoạt mô hình ASP.NET Core MVC (hỗ trợ cả Razor Views và Web API Controllers)
 builder.Services.AddControllersWithViews();
 
-// 1.3. Cấu hình Session (dùng để lưu thông báo tạm thời sau khi Thêm/Sửa/Xóa sản phẩm)
+// 1.4. Cấu hình Xác thực bằng Cookie cho Trang Quản trị Admin
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Admin/Login";
+        options.AccessDeniedPath = "/Admin/AccessDenied";
+        options.LogoutPath = "/Admin/Logout";
+        options.Cookie.Name = "LaptopStore_Admin_Auth";
+        options.Cookie.HttpOnly = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+        options.SlidingExpiration = true;
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+});
+
+// 1.5. Cấu hình Session
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(opt =>
 {
-    opt.IdleTimeout = TimeSpan.FromMinutes(30);
+    opt.IdleTimeout = TimeSpan.FromMinutes(60);
     opt.Cookie.HttpOnly = true;
     opt.Cookie.IsEssential = true;
 });
 
-// 1.4. Cấu hình chính sách CORS (Cross-Origin Resource Sharing) để React Frontend (port 3000) có thể gọi API
+// 1.6. Cấu hình chính sách CORS để React Frontend (port 3000) có thể gọi API kèm Credentials
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("AllowReactApp", p =>
     {
-        p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        p.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173")
+         .AllowAnyHeader()
+         .AllowAnyMethod()
+         .AllowCredentials();
     });
 });
 
@@ -78,7 +105,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        // Tự động kiểm tra tạo bảng và nạp 100+ laptop mẫu nếu database còn trống
+        // Tự động kiểm tra tạo bảng và nạp dữ liệu mẫu ban đầu một cách an toàn
         DbInitializer.Initialize(context);
     }
     catch (Exception ex)
@@ -87,13 +114,13 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Lỗi khi tự động khởi tạo cơ sở dữ liệu.");
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine("=================================================================");
-        Console.WriteLine("[LỖI KẾT NỐI CSDL MYSQL]");
+        Console.WriteLine("[LỖI KẾT NỐI CSDL SQL SERVER]");
         Console.WriteLine("Chi tiết lỗi: " + ex.Message);
         if (ex.InnerException != null)
         {
             Console.WriteLine("Nguyên nhân: " + ex.InnerException.Message);
         }
-        Console.WriteLine("Vui lòng kiểm tra lại: MySQL đang chạy trên cổng 3306 và tài khoản root/root!");
+        Console.WriteLine("Vui lòng kiểm tra lại SQL Server (.\\SQLEXPRESS hoặc LocalDB) và chuỗi kết nối trong appsettings.json!");
         Console.WriteLine("=================================================================");
         Console.ResetColor();
     }
@@ -120,7 +147,8 @@ app.UseCors("AllowReactApp");
 // Kích hoạt Session
 app.UseSession();
 
-// Kích hoạt xác thực và phân quyền
+// Kích hoạt Xác thực (Authentication) trước Phân quyền (Authorization)
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Định tuyến mặc định cho trang Quản trị Admin MVC (/Product/Index)
@@ -128,7 +156,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Product}/{action=Index}/{id?}");
 
-// Định tuyến cho các Web API Controllers (/api/products)
+// Định tuyến cho các Web API Controllers (/api/products, /api/orders, /api/auth)
 app.MapControllers();
 
 // =========================================================================

@@ -83,38 +83,73 @@ export default function CartPage({
     setTimeout(() => setCopiedKey(''), 2000);
   };
 
-  // Xử lý khi nhấn nút Hoàn tất đặt hàng
-  const handleConfirmOrder = (e) => {
+  // Xử lý khi nhấn nút Hoàn tất đặt hàng - Kết nối Backend API
+  const handleConfirmOrder = async (e) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
       alert('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
       return;
     }
 
-    const orderId = 'PC' + Math.floor(100000 + Math.random() * 900000);
-    const orderData = {
-      orderId,
-      name: customerName,
-      phone: customerPhone,
-      address: customerAddress,
-      notes: orderNotes,
-      total: totalPayable,
-      items: [...checkedItems],
-      paymentMethod: paymentMethod === 'cod' ? 'Thanh toán tiền mặt khi nhận hàng (COD)' : `Chuyển khoản VietQR (${bankAccount.bankId})`,
-    };
+    try {
+      // 1. Tạo payload gửi lên Backend ASP.NET Core
+      const orderPayload = {
+        customerName: customerName.trim(),
+        phoneNumber: customerPhone.trim(),
+        email: currentUser?.email || '',
+        shippingAddress: customerAddress.trim(),
+        notes: orderNotes.trim(),
+        paymentMethod: paymentMethod === 'cod' ? 'COD' : 'VietQR',
+        items: checkedItems.map((item) => ({
+          productId: item.productId || item.id,
+          quantity: item.quantity || 1,
+          selectedSpecs: item.specs || (item.ram ? `RAM: ${item.ram} • ${item.storage}` : 'Cấu hình tiêu chuẩn'),
+        })),
+      };
 
-    setShowCheckoutModal(false);
-
-    // Nếu chọn chuyển khoản ngân hàng -> Mở modal quét mã VietQR
-    if (paymentMethod === 'banking') {
-      setPendingOrder(orderData);
-      setShowQrModal(true);
-    } else {
-      // Nếu chọn COD -> Hoàn tất đặt hàng trực tiếp
-      checkedItems.forEach((item) => {
-        onRemoveItem(item.cartItemId || item.id);
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(orderPayload),
       });
-      setOrderSuccess(orderData);
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.message || 'Đặt hàng thất bại. Vui lòng kiểm tra lại tồn kho sản phẩm!');
+        return;
+      }
+
+      const realOrderCode = data.orderCode || data.order?.orderCode || ('PC' + Math.floor(100000 + Math.random() * 900000));
+
+      const orderData = {
+        orderId: realOrderCode,
+        name: customerName,
+        phone: customerPhone,
+        address: customerAddress,
+        notes: orderNotes,
+        total: totalPayable,
+        items: [...checkedItems],
+        paymentMethod: paymentMethod === 'cod' ? 'Thanh toán tiền mặt khi nhận hàng (COD)' : `Chuyển khoản VietQR (${bankAccount.bankId})`,
+      };
+
+      setShowCheckoutModal(false);
+
+      // Nếu chọn chuyển khoản ngân hàng -> Mở modal quét mã VietQR kèm mã đơn thật
+      if (paymentMethod === 'banking') {
+        setPendingOrder(orderData);
+        setShowQrModal(true);
+      } else {
+        // Nếu chọn COD -> Hoàn tất đặt hàng trực tiếp và xóa các món đã mua khỏi giỏ
+        checkedItems.forEach((item) => {
+          onRemoveItem(item.cartItemId || item.id);
+        });
+        setOrderSuccess(orderData);
+      }
+    } catch (err) {
+      console.warn('Lỗi gọi API /api/orders:', err);
+      alert('Không thể kết nối đến máy chủ để tạo đơn hàng. Vui lòng thử lại sau!');
     }
   };
 
@@ -209,118 +244,119 @@ export default function CartPage({
           </div>
         ) : (
           /* Giao diện danh sách sản phẩm trong giỏ hàng */
-          <div className="row g-3">
+          <div className="row g-4">
             <div className="col-12 col-lg-8">
-              <div className="cart-header-bar">
-                <label className="cart-check-all">
-                  <input
-                    type="checkbox"
-                    checked={isAllChecked}
-                    onChange={(e) => onToggleAll(e.target.checked)}
-                  />
-                  <span>Chọn tất cả ({cartItems.length} sản phẩm)</span>
-                </label>
+              <div className="cart-items-card">
+                <div className="cart-header-row">
+                  <label className="cart-check-all">
+                    <input
+                      type="checkbox"
+                      className="cart-checkbox"
+                      checked={isAllChecked}
+                      onChange={(e) => onToggleAll(e.target.checked)}
+                    />
+                    <span>Chọn tất cả ({cartItems.length} sản phẩm)</span>
+                  </label>
 
-                <button
-                  type="button"
-                  className="cart-clear-btn"
-                  onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
-                      onClearCart();
-                    }
-                  }}
-                >
-                  <i className="bi bi-trash3 me-1"></i> Xóa tất cả
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className="cart-clear-btn"
+                    onClick={() => {
+                      if (window.confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
+                        onClearCart();
+                      }
+                    }}
+                  >
+                    <i className="bi bi-trash3 me-1"></i> Xóa tất cả
+                  </button>
+                </div>
 
-              <div className="cart-items-list">
-                {cartItems.map((item) => {
-                  const itemTotal = (item.price || 0) * (item.quantity || 1);
-                  const isChecked = item.checked !== false;
+                <div className="cart-items-list">
+                  {cartItems.map((item) => {
+                    const itemTotal = (item.price || 0) * (item.quantity || 1);
+                    const isChecked = item.checked !== false;
 
-                  return (
-                    <div className="cart-item-card" key={item.cartItemId || item.id}>
-                      <div className="cart-item-check">
+                    return (
+                      <div className="cart-item-row" key={item.cartItemId || item.id}>
                         <input
                           type="checkbox"
+                          className="cart-checkbox"
                           checked={isChecked}
                           onChange={() => onToggleCheck(item.cartItemId || item.id)}
                         />
-                      </div>
 
-                      <div
-                        className="cart-item-thumb-wrap"
-                        onClick={() => onSelectProduct && onSelectProduct(item.id)}
-                        title="Xem chi tiết sản phẩm"
-                      >
-                        <img
-                          src={item.image || '/images/default.png'}
-                          alt={item.name}
-                          className="cart-item-thumb"
-                        />
-                      </div>
-
-                      <div className="cart-item-info">
                         <div
-                          className="cart-item-name"
+                          className="cart-item-thumb"
                           onClick={() => onSelectProduct && onSelectProduct(item.id)}
-                          title={item.name}
+                          title="Xem chi tiết sản phẩm"
                         >
-                          {item.name}
+                          <img
+                            src={item.image || '/images/default.png'}
+                            alt={item.name}
+                          />
                         </div>
 
-                        {(item.selectedRam || item.selectedStorage) && (
-                          <div className="cart-item-variant">
-                            <i className="bi bi-cpu me-1"></i>
-                            {item.selectedRam && <span>RAM: {item.selectedRam}</span>}
-                            {item.selectedRam && item.selectedStorage && <span className="mx-1">•</span>}
-                            {item.selectedStorage && <span>Ổ cứng: {item.selectedStorage}</span>}
+                        <div className="cart-item-info">
+                          <div
+                            className="cart-item-title"
+                            onClick={() => onSelectProduct && onSelectProduct(item.id)}
+                            title={item.name}
+                          >
+                            {item.name}
                           </div>
-                        )}
 
-                        <div className="cart-item-price-row">
-                          <span className="cart-item-price">{formatVND(item.price)}</span>
-                          {item.originalPrice && item.originalPrice > item.price && (
-                            <span className="cart-item-orig-price">{formatVND(item.originalPrice)}</span>
+                          {(item.selectedRam || item.selectedStorage) && (
+                            <div className="cart-item-spec-tag">
+                              <i className="bi bi-cpu me-1"></i>
+                              {item.selectedRam && <span>RAM: {item.selectedRam}</span>}
+                              {item.selectedRam && item.selectedStorage && <span className="mx-1">•</span>}
+                              {item.selectedStorage && <span>Ổ cứng: {item.selectedStorage}</span>}
+                            </div>
                           )}
-                        </div>
-                      </div>
 
-                      <div className="cart-item-actions">
-                        <div className="cart-qty-control">
-                          <button
-                            type="button"
-                            className="cart-qty-btn"
-                            disabled={(item.quantity || 1) <= 1}
-                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, -1)}
-                          >
-                            -
-                          </button>
-                          <span className="cart-qty-val">{item.quantity || 1}</span>
-                          <button
-                            type="button"
-                            className="cart-qty-btn"
-                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, 1)}
-                          >
-                            +
-                          </button>
+                          <div className="cart-item-price-row">
+                            <span className="cart-price-current">{formatVND(item.price)}</span>
+                            {item.originalPrice && item.originalPrice > item.price && (
+                              <span className="cart-price-original">{formatVND(item.originalPrice)}</span>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="cart-item-total">{formatVND(itemTotal)}</div>
+                        <div className="cart-item-actions">
+                          <div className="cart-qty-ctrl">
+                            <button
+                              type="button"
+                              className="cart-qty-btn"
+                              disabled={(item.quantity || 1) <= 1}
+                              onClick={() => onUpdateQuantity(item.cartItemId || item.id, -1)}
+                            >
+                              -
+                            </button>
+                            <span className="cart-qty-val">{item.quantity || 1}</span>
+                            <button
+                              type="button"
+                              className="cart-qty-btn"
+                              onClick={() => onUpdateQuantity(item.cartItemId || item.id, 1)}
+                            >
+                              +
+                            </button>
+                          </div>
 
-                        <button
-                          type="button"
-                          className="cart-item-del-btn"
-                          title="Xóa sản phẩm"
-                          onClick={() => onRemoveItem(item.cartItemId || item.id)}
-                        >
-                          <i className="bi bi-trash3"></i>
-                        </button>
+                          <div className="cart-item-total">{formatVND(itemTotal)}</div>
+
+                          <button
+                            type="button"
+                            className="cart-remove-btn"
+                            title="Xóa sản phẩm"
+                            onClick={() => onRemoveItem(item.cartItemId || item.id)}
+                          >
+                            <i className="bi bi-trash3"></i>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -330,7 +366,7 @@ export default function CartPage({
                 <h6 className="cart-summary-title">Thông tin đơn hàng</h6>
 
                 <div className="cart-summary-line">
-                  <span>Tổng tiền</span>
+                  <span>Tổng tiền hàng</span>
                   <span className="fw-semibold text-dark">{formatVND(totalOriginal)}</span>
                 </div>
 
@@ -350,8 +386,23 @@ export default function CartPage({
                   disabled={checkedItems.length === 0}
                   onClick={() => setShowCheckoutModal(true)}
                 >
-                  Xác nhận đơn ({checkedItems.length})
+                  <i className="bi bi-shield-check me-1"></i> Xác nhận đơn ({checkedItems.length})
                 </button>
+
+                <div className="cart-reassurance-box">
+                  <div className="cart-reassurance-item">
+                    <i className="bi bi-shield-fill-check"></i>
+                    <span>Bảo hành chính hãng 12 - 24 tháng</span>
+                  </div>
+                  <div className="cart-reassurance-item">
+                    <i className="bi bi-truck"></i>
+                    <span>Giao hàng hỏa tốc toàn quốc</span>
+                  </div>
+                  <div className="cart-reassurance-item">
+                    <i className="bi bi-arrow-repeat"></i>
+                    <span>Lỗi 1 đổi 1 trong vòng 30 ngày</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

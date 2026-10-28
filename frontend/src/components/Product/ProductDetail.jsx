@@ -203,28 +203,16 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
 
   // Danh sách tùy chọn RAM kèm chi phí phụ thu
   const ramOptions = [
-    { label: `${baseRamGB} GB`, extra: 0, ramGB: baseRamGB, isBase: true },
-    { 
-      label: `${baseRamGB >= 32 ? 64 : baseRamGB * 2} GB`, 
-      extra: baseRamGB <= 8 ? 800000 : baseRamGB <= 16 ? 1500000 : 3000000, 
-      ramGB: baseRamGB >= 32 ? 64 : baseRamGB * 2,
-      isBase: false 
-    }
+    { label: `${baseRamGB} GB (Cấu hình chuẩn)`, extra: 0, ramGB: baseRamGB, isBase: true }
   ];
 
-  // Danh sách tùy chọn Ổ cứng kèm chi phí phụ thu
+  // Danh sách tùy chọn Ổ cứng chuẩn của máy từ CSDL
   const storageOptions = [
     { 
-      label: `${baseStorageGB >= 1000 ? (baseStorageGB / 1000) + ' TB' : baseStorageGB + ' GB'} SSD`, 
+      label: `${baseStorageGB >= 1000 ? (baseStorageGB / 1000) + ' TB' : baseStorageGB + ' GB'} SSD (Cấu hình chuẩn)`, 
       extra: 0, 
       storageGB: baseStorageGB, 
       isBase: true 
-    },
-    { 
-      label: `${baseStorageGB < 512 ? '512 GB' : baseStorageGB < 1000 ? '1 TB' : '2 TB'} SSD`, 
-      extra: baseStorageGB < 512 ? 600000 : baseStorageGB < 1000 ? 1200000 : 2500000, 
-      storageGB: baseStorageGB < 512 ? 512 : baseStorageGB < 1000 ? 1024 : 2048, 
-      isBase: false 
     }
   ];
 

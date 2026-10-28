@@ -1,0 +1,220 @@
+@model IEnumerable<LaptopStore.ViewModels.OrderResponseDto>
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+    var currentStatus = ViewBag.Status as string ?? "all";
+    var currentSearch = ViewBag.Search as string ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Quản lý đơn hàng</h2>
+        <p class="text-muted small mb-0">Theo dõi trạng thái đơn hàng thời gian thực, hóa đơn và quy trình xử lý giao hàng</p>
+    </div>
+    <div class="page-actions">
+        <a href="/Admin/ExportProducts" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-excel"></i> Xuất dữ liệu
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- FILTER BAR -->
+<div class="admin-card mb-4 p-3">
+    <form method="get" asp-action="Orders" class="row g-3 align-items-center">
+        <div class="col-md-5">
+            <div class="position-relative">
+                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã đơn, tên khách, số điện thoại..." />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select-dark" onchange="this.form.submit()">
+                <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
+                <option value="Đang xử lý" selected="@(currentStatus == "Đang xử lý" ? "selected" : null)">Đang xử lý</option>
+                <option value="Đã xác nhận" selected="@(currentStatus == "Đã xác nhận" ? "selected" : null)">Đã xác nhận</option>
+                <option value="Đang giao" selected="@(currentStatus == "Đang giao" ? "selected" : null)">Đang giao</option>
+                <option value="Hoàn thành" selected="@(currentStatus == "Hoàn thành" ? "selected" : null)">Hoàn thành</option>
+                <option value="Đã hủy" selected="@(currentStatus == "Đã hủy" ? "selected" : null)">Đã hủy</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn-primary-custom w-100">
+                <i class="bi bi-funnel"></i> Lọc đơn
+            </button>
+            @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
+            {
+                <a href="/Admin/Orders" class="btn-secondary-custom">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title-text mb-0"><i class="bi bi-box-seam text-primary me-2"></i> Danh sách tất cả đơn hàng (@(ViewBag.TotalCount ?? Model.Count()))</h5>
+    </div>
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Chi tiết sản phẩm</th>
+                    <th>Tổng tiền</th>
+                    <th>Thanh toán</th>
+                    <th>Trạng thái đơn</th>
+                    <th>Ngày đặt</th>
+                    <th class="text-end">Cập nhật</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var o in Model)
+                    {
+                        var statusClass = o.OrderStatus switch
+                        {
+                            "Hoàn thành" => "badge-paid",
+                            "Đang xử lý" => "badge-processing",
+                            "Đã xác nhận" => "badge-confirmed",
+                            "Đã hủy" => "badge-out-of-stock",
+                            _ => "badge-low-stock"
+                        };
+
+                        var paymentBadgeClass = o.PaymentStatus == "Đã thanh toán" ? "badge-in-stock" : "badge-low-stock";
+
+                        <tr>
+                            <td class="fw-bold text-primary">#@o.OrderCode</td>
+                            <td>
+                                <div class="text-white fw-semibold">@o.CustomerName</div>
+                                <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@o.PhoneNumber</div>
+                                <div class="text-secondary small text-truncate" style="max-width: 180px;" title="@o.ShippingAddress">
+                                    <i class="bi bi-geo-alt me-1"></i>@o.ShippingAddress
+                                </div>
+                            </td>
+                            <td>
+                                @if (o.Items != null && o.Items.Any())
+                                {
+                                    foreach (var item in o.Items.Take(2))
+                                    {
+                                        <div class="text-white small fw-medium">
+                                            @item.ProductName <span class="text-primary">x@item.Quantity</span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(item.SelectedSpecs))
+                                        {
+                                            <div class="text-muted" style="font-size: 0.72rem;">@item.SelectedSpecs</div>
+                                        }
+                                    }
+                                    @if (o.Items.Count > 2)
+                                    {
+                                        <div class="text-secondary small fst-italic">+@(o.Items.Count - 2) sản phẩm khác</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Chưa có chi tiết</span>
+                                }
+                            </td>
+                            <td class="fw-bold text-white text-nowrap">
+                                @string.Format("{0:N0}đ", o.TotalAmount)
+                            </td>
+                            <td>
+                                <div class="text-white small fw-medium">@o.PaymentMethod</div>
+                                <span class="badge-status @paymentBadgeClass" style="font-size: 0.72rem;">
+                                    @o.PaymentStatus
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge-status @statusClass">
+                                    @o.OrderStatus
+                                </span>
+                            </td>
+                            <td class="text-muted small text-nowrap">
+                                @o.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-secondary-custom" 
+                                        data-bs-toggle="modal" data-bs-target="#modal-order-@o.OrderId">
+                                    <i class="bi bi-pencil-square"></i> Xử lý
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- MODAL CẬP NHẬT TRẠNG THÁI CHO TỪNG ĐƠN HÀNG -->
+                        <div class="modal fade" id="modal-order-@o.OrderId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-dark text-white border border-secondary">
+                                    <div class="modal-header border-secondary">
+                                        <h5 class="modal-title fs-6">
+                                            <i class="bi bi-box-seam text-primary me-2"></i>Đơn hàng #@o.OrderCode
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="post" asp-action="UpdateOrderStatus">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@o.OrderId" />
+                                        <div class="modal-body text-start">
+                                            <div class="mb-3 p-3 rounded" style="background: rgba(255,255,255,0.05);">
+                                                <div class="small text-secondary mb-1">Khách hàng: <strong class="text-white">@o.CustomerName</strong> (@o.PhoneNumber)</div>
+                                                <div class="small text-secondary mb-1">Địa chỉ: <span class="text-white">@o.ShippingAddress</span></div>
+                                                <div class="small text-secondary mb-1">Tổng tiền: <strong class="text-success">@string.Format("{0:N0}đ", o.TotalAmount)</strong> (@o.PaymentMethod)</div>
+                                                <div class="small text-secondary">Trạng thái hiện tại: <span class="badge-status @statusClass">@o.OrderStatus</span></div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Chuyển sang trạng thái mới *</label>
+                                                <select name="status" class="form-select-dark">
+                                                    <option value="Đang xử lý" selected="@(o.OrderStatus == "Đang xử lý" ? "selected" : null)">1. Đang xử lý (Mới nhận đơn)</option>
+                                                    <option value="Đã xác nhận" selected="@(o.OrderStatus == "Đã xác nhận" ? "selected" : null)">2. Đã xác nhận (Đã duyệt thông tin / tiền đã về)</option>
+                                                    <option value="Đang giao" selected="@(o.OrderStatus == "Đang giao" ? "selected" : null)">3. Đang giao hàng (Đã gửi shipper)</option>
+                                                    <option value="Hoàn thành" selected="@(o.OrderStatus == "Hoàn thành" ? "selected" : null)">4. Hoàn thành (Khách đã nhận máy & thanh toán)</option>
+                                                    <option value="Đã hủy" selected="@(o.OrderStatus == "Đã hủy" ? "selected" : null)">5. Hủy đơn hàng (Hoàn lại kho)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Ghi chú xử lý đơn</label>
+                                                <input type="text" name="note" class="form-control-dark" placeholder="VD: Khách hẹn giao sau 18h..." />
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-secondary">
+                                            <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Đóng</button>
+                                            <button type="submit" class="btn-primary-custom">
+                                                <i class="bi bi-check2-circle"></i> Lưu cập nhật
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            Không có đơn hàng nào phù hợp với điều kiện tìm kiếm.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

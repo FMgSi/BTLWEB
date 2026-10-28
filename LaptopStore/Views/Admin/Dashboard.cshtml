@@ -1,0 +1,327 @@
+@model LaptopStore.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Dashboard</h2>
+        <p class="text-muted small mb-0">Tổng quan tình hình kinh doanh và chỉ số hoạt động của Laptop World</p>
+    </div>
+    <div class="page-actions">
+        <a href="/Product/Create" class="btn-primary-custom">
+            <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+        </a>
+        <a href="/Admin/ExportProducts" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-arrow-down"></i> Xuất báo cáo
+        </a>
+    </div>
+</div>
+
+<!-- 4 TOP METRIC CARDS -->
+<div class="row g-3 mb-4">
+    <!-- Card 1: Doanh thu tháng này -->
+    <div class="col-xl-3 col-md-6">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Doanh thu tháng này</span>
+                <span class="metric-badge metric-badge-success">
+                    <i class="bi bi-arrow-up-short"></i> +@Model.RevenueGrowth%
+                </span>
+            </div>
+            <div class="metric-value text-white">
+                @string.Format("{0:N0}đ", Model.MonthlyRevenue)
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Đơn hàng mới -->
+    <div class="col-xl-3 col-md-6">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Đơn hàng mới</span>
+                <span class="metric-badge metric-badge-success">
+                    <i class="bi bi-arrow-up-short"></i> +8.5%
+                </span>
+            </div>
+            <div class="metric-value text-white">
+                @Model.NewOrdersCount đơn
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Laptop đã bán -->
+    <div class="col-xl-3 col-md-6">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Laptop đã bán</span>
+                <span class="metric-badge metric-badge-success">
+                    <i class="bi bi-arrow-up-short"></i> +@Model.SalesGrowth%
+                </span>
+            </div>
+            <div class="metric-value text-white">
+                @Model.LaptopsSoldCount chiếc
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Sản phẩm sắp hết hàng -->
+    <div class="col-xl-3 col-md-6">
+        <div class="metric-card">
+            <div class="metric-header">
+                <span class="metric-label">Sản phẩm sắp hết hàng</span>
+                <span class="metric-badge" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <i class="bi bi-exclamation-triangle"></i> Cảnh báo kho
+                </span>
+            </div>
+            <div class="metric-value text-warning">
+                @Model.LowStockCount chiếc
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MIDDLE CHARTS ROW -->
+<div class="row g-3 mb-4">
+    <!-- Left: Xu hướng doanh thu (Line Chart) -->
+    <div class="col-lg-8">
+        <div class="admin-card h-100">
+            <div class="admin-card-header">
+                <h5 class="card-title-text">
+                    <i class="bi bi-graph-up text-primary"></i> Xu hướng doanh thu
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-secondary-custom py-1 px-2" style="font-size: 0.78rem;">
+                        <i class="bi bi-plus"></i> Thêm đối tượng
+                    </button>
+                    <select class="form-select-dark py-1 px-2" style="width: auto; font-size: 0.78rem;">
+                        <option>Tháng này</option>
+                        <option>Quý này</option>
+                        <option>Năm nay</option>
+                    </select>
+                </div>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Tỷ lệ phân khúc Laptop bán chạy (Donut Chart) -->
+    <div class="col-lg-4">
+        <div class="admin-card h-100">
+            <div class="admin-card-header">
+                <h5 class="card-title-text">
+                    <i class="bi bi-pie-chart text-primary"></i> Tỷ lệ phân khúc Laptop bán chạy
+                </h5>
+            </div>
+            <div style="position: relative; height: 180px;" class="mb-3">
+                <canvas id="categoryDonutChart"></canvas>
+            </div>
+            <!-- Custom Legend matching design -->
+            <div class="d-flex flex-column gap-2 px-2">
+                @foreach (var c in Model.CategoryShares)
+                {
+                    <div class="d-flex align-items-center justify-content-between" style="font-size: 0.82rem;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: @c.Color; display: inline-block;"></span>
+                            <span class="text-secondary">@c.CategoryName</span>
+                        </div>
+                        <span class="fw-semibold text-white">@c.Percentage%</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOTTOM ROW: ĐƠN HÀNG MỚI NHẤT & SẢN PHẨM BÁN CHẠY -->
+<div class="row g-3">
+    <!-- Left: Đơn hàng mới nhất -->
+    <div class="col-lg-8">
+        <div class="admin-card h-100 mb-0">
+            <div class="admin-card-header">
+                <h5 class="card-title-text">
+                    <i class="bi bi-receipt text-primary"></i> Đơn hàng mới nhất
+                </h5>
+                <a href="/Admin/Orders" class="btn btn-sm btn-link text-primary text-decoration-none p-0" style="font-size: 0.8rem;">
+                    Xem tất cả <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+            <div class="admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Khách hàng</th>
+                            <th>Sản phẩm</th>
+                            <th>Ngày đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in Model.RecentOrders)
+                        {
+                            <tr>
+                                <td class="fw-semibold text-primary">#@o.OrderCode</td>
+                                <td class="text-white">@o.CustomerName</td>
+                                <td class="text-secondary small">@o.ProductName</td>
+                                <td class="text-muted small">@o.OrderDate</td>
+                                <td class="fw-bold text-white">@string.Format("{0:N0}đ", o.TotalAmount)</td>
+                                <td>
+                                    <span class="badge-status @o.StatusBadgeClass">
+                                        @o.Status
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Sản phẩm bán chạy -->
+    <div class="col-lg-4">
+        <div class="admin-card h-100 mb-0">
+            <div class="admin-card-header">
+                <h5 class="card-title-text">
+                    <i class="bi bi-trophy text-warning"></i> Sản phẩm bán chạy
+                </h5>
+                <a href="/Product" class="btn btn-sm btn-link text-primary text-decoration-none p-0" style="font-size: 0.8rem;">
+                    Chi tiết <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                @if (Model.TopSellingProducts.Any())
+                {
+                    @foreach (var prod in Model.TopSellingProducts)
+                    {
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-card-subtle);">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="@prod.ThumbnailUrl" onerror="this.src='/images/default.png'" 
+                                     style="width: 44px; height: 44px; object-fit: contain; background: #0f172a; border-radius: 6px; padding: 2px;" />
+                                <div>
+                                    <div class="fw-semibold text-white small" style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        @prod.ProductName
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        @prod.BrandName • <span class="text-primary fw-semibold">@prod.SoldCount đã bán</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="fw-bold text-white small text-end">
+                                @string.Format("{0:N0}đ", prod.Price)
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4 small">Chưa có sản phẩm nào</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 1. Chart.js: Xu hướng doanh thu (Line Chart)
+        const ctxRevenue = document.getElementById('revenueTrendChart').getContext('2d');
+        
+        // Gradient fill dưới đường biểu đồ
+        const gradientRevenue = ctxRevenue.createLinearGradient(0, 0, 0, 240);
+        gradientRevenue.addColorStop(0, 'rgba(37, 99, 235, 0.45)');
+        gradientRevenue.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
+        new Chart(ctxRevenue, {
+            type: 'line',
+            data: {
+                labels: ['Ngày 1', 'Ngày 7', 'Ngày 11', 'Ngày 15', 'Ngày 17', 'Ngày 25', 'Ngày 29'],
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: [350000, 480000, 420000, 710000, 650000, 890000, 1050000],
+                    borderColor: '#3b82f6',
+                    backgroundColor: gradientRevenue,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#cbd5e1',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toLocaleString('vi-VN') + 'đ';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: { color: '#94a3b8', font: { size: 11 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 11 },
+                            callback: function(value) {
+                                return value.toLocaleString('vi-VN') + 'đ';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Chart.js: Tỷ lệ phân khúc Laptop (Donut Chart)
+        const ctxDonut = document.getElementById('categoryDonutChart').getContext('2d');
+        new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Laptop Gaming', 'Laptop Văn phòng', 'MacBook', 'Ultrabook'],
+                datasets: [{
+                    data: [45, 28, 17, 10],
+                    backgroundColor: ['#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b'],
+                    borderColor: '#151f32',
+                    borderWidth: 3,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

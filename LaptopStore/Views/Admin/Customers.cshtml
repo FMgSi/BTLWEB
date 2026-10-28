@@ -1,0 +1,228 @@
+@model IEnumerable<LaptopStore.ViewModels.CustomerDto>
+@{
+    ViewData["Title"] = "Quản lý khách hàng";
+    string currentStatus = ViewBag.Status ?? "all";
+    string currentTier = ViewBag.Tier ?? "all";
+    string currentSearch = ViewBag.Search ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Quản lý khách hàng</h2>
+        <p class="text-muted small mb-0">Theo dõi thông tin khách hàng, phân hạng thành viên và trạng thái tài khoản</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+            <i class="bi bi-person-plus-fill"></i> Thêm khách hàng
+        </button>
+        <a href="/Admin/ExportCustomers" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-excel"></i> Xuất file Excel
+        </a>
+    </div>
+</div>
+
+<!-- FILTER CARD -->
+<div class="admin-card mb-3">
+    <form method="get" action="/Admin/Customers" id="filterForm">
+        <div class="row g-3 align-items-center">
+            <!-- Search Input -->
+            <div class="col-lg-4 col-md-12">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                    <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" 
+                           placeholder="Tìm kiếm khách hàng (Tên, SĐT, Email...)" onchange="this.form.submit()" />
+                </div>
+            </div>
+
+            <!-- Trạng thái hoạt động -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-semibold text-nowrap">Trạng thái:</span>
+                    <input type="hidden" name="status" id="statusInput" value="@currentStatus" />
+                    <div class="filter-btn-group">
+                        <button type="button" class="filter-btn-item @(currentStatus == "all" ? "active" : "")" onclick="setStatus('all')">Tất cả</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "active" ? "active" : "")" onclick="setStatus('active')">Hoạt động</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "locked" ? "active" : "")" onclick="setStatus('locked')">Bị khóa</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hạng thành viên -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-semibold text-nowrap">Hạng thành viên:</span>
+                    <input type="hidden" name="tier" id="tierInput" value="@currentTier" />
+                    <div class="filter-btn-group">
+                        <button type="button" class="filter-btn-item @(currentTier == "all" ? "active" : "")" onclick="setTier('all')">Tất cả</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "dong" ? "active" : "")" onclick="setTier('dong')">Đồng</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "bac" ? "active" : "")" onclick="setTier('bac')">Bạc</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "vang" ? "active" : "")" onclick="setTier('vang')">Vàng</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "kimcuong" ? "active" : "")" onclick="setTier('kimcuong')">Kim cương</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- CUSTOMER TABLE CARD -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="card-title-text">
+            <i class="bi bi-people text-primary"></i> Bảng dữ liệu khách hàng
+        </h5>
+        <span class="text-muted small">Cập nhật theo thời gian thực</span>
+    </div>
+
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" class="custom-checkbox" /></th>
+                    <th>Mã KH</th>
+                    <th>Khách hàng</th>
+                    <th>Số điện thoại</th>
+                    <th>Email</th>
+                    <th>Tổng đơn hàng</th>
+                    <th>Tổng chi tiêu</th>
+                    <th>Hạng</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr id="row-@c.CustomerCode">
+                        <td><input type="checkbox" class="custom-checkbox" /></td>
+                        <td class="fw-semibold text-primary">@c.CustomerCode</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="sidebar-user-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                    @c.FullName.Substring(0, 1)
+                                </div>
+                                <span class="fw-semibold text-white">@c.FullName</span>
+                            </div>
+                        </td>
+                        <td class="text-secondary">@c.PhoneNumber</td>
+                        <td class="text-secondary small">@c.Email</td>
+                        <td class="text-white">@c.TotalOrders đơn</td>
+                        <td class="fw-bold text-white">@string.Format("{0:N0}đ", c.TotalSpent)</td>
+                        <td>
+                            <span class="badge-status @c.TierBadgeClass">
+                                @c.MembershipTier
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-status @(c.IsActive ? "badge-in-stock" : "badge-out-of-stock")" id="status-badge-@c.CustomerCode">
+                                @(c.IsActive ? "Hoạt động" : "Bị khóa")
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm @(c.IsActive ? "btn-action-delete" : "btn-action-edit")" 
+                                    id="btn-lock-@c.CustomerCode" onclick="toggleLock('@c.CustomerCode')">
+                                <i class="bi @(c.IsActive ? "bi-lock" : "bi-unlock")"></i>
+                                <span id="btn-text-@c.CustomerCode">@(c.IsActive ? "Khóa" : "Mở khóa")</span>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="admin-pagination-wrap">
+        <div class="pagination-info">
+            Hiển thị 1-5 trong tổng số @ViewBag.TotalCount khách hàng
+        </div>
+        <ul class="admin-pagination">
+            <li class="admin-page-item disabled"><a href="javascript:void(0)"><i class="bi bi-chevron-left"></i> Trước</a></li>
+            <li class="admin-page-item active"><a href="javascript:void(0)">1</a></li>
+            <li class="admin-page-item"><a href="javascript:void(0)">2</a></li>
+            <li class="admin-page-item"><a href="javascript:void(0)">3</a></li>
+            <li class="admin-page-item"><a href="javascript:void(0)">Sau <i class="bi bi-chevron-right"></i></a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- MODAL THÊM KHÁCH HÀNG -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-person-plus text-primary me-2"></i>Thêm khách hàng mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label-dark">Họ và tên *</label>
+                    <input type="text" class="form-control-dark" placeholder="Nguyễn Văn B" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label-dark">Số điện thoại *</label>
+                    <input type="text" class="form-control-dark" placeholder="0912345678" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label-dark">Địa chỉ Email *</label>
+                    <input type="email" class="form-control-dark" placeholder="email@gmail.com" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label-dark">Hạng thành viên</label>
+                    <select class="form-select-dark">
+                        <option>Đồng</option>
+                        <option>Bạc</option>
+                        <option>Vàng</option>
+                        <option>Kim cương</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn-primary-custom" data-bs-dismiss="modal" onclick="alert('Đã thêm khách hàng thành công!')">Thêm mới</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setStatus(val) {
+            document.getElementById('statusInput').value = val;
+            document.getElementById('filterForm').submit();
+        }
+
+        function setTier(val) {
+            document.getElementById('tierInput').value = val;
+            document.getElementById('filterForm').submit();
+        }
+
+        function toggleLock(code) {
+            fetch('/Admin/ToggleCustomerLock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `customerCode=${encodeURIComponent(code)}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const badge = document.getElementById(`status-badge-${code}`);
+                    const btn = document.getElementById(`btn-lock-${code}`);
+                    const btnText = document.getElementById(`btn-text-${code}`);
+
+                    if (data.isActive) {
+                        badge.className = 'badge-status badge-in-stock';
+                        badge.innerText = 'Hoạt động';
+                        btn.className = 'btn btn-sm btn-action-delete';
+                        btn.innerHTML = `<i class="bi bi-lock"></i> <span id="btn-text-${code}">Khóa</span>`;
+                    } else {
+                        badge.className = 'badge-status badge-out-of-stock';
+                        badge.innerText = 'Bị khóa';
+                        btn.className = 'btn btn-sm btn-action-edit';
+                        btn.innerHTML = `<i class="bi bi-unlock"></i> <span id="btn-text-${code}">Mở khóa</span>`;
+                    }
+                }
+            });
+        }
+    </script>
+}
