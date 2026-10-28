@@ -28,27 +28,27 @@
                         <td class="fw-semibold text-primary">SP@(item.ProductId.ToString("D3"))</td>
                         <td>
                             <img src="@item.ThumbnailUrl" onerror="this.src='/images/default.png'" 
-                                 style="width: 44px; height: 44px; object-fit: contain; background: #0f172a; border-radius: 6px; padding: 2px;" 
-                                 class="border border-secondary" />
+                                 style="width: 44px; height: 44px; object-fit: contain; background: #ffffff; border-radius: 6px; padding: 2px;" 
+                                 class="border" />
                         </td>
                         <td>
-                            <div class="fw-semibold text-white">@item.ProductName</div>
+                            <div class="fw-semibold text-dark">@item.ProductName</div>
                             <div class="text-muted" style="font-size: 0.75rem;">
                                 @(item.Category?.CategoryName ?? "Laptop")
                             </div>
                         </td>
                         <td class="text-secondary">@(item.Brand?.BrandName ?? "-")</td>
-                        <td class="fw-bold text-white">
+                        <td class="fw-bold text-dark">
                             @string.Format("{0:N0}đ", item.DiscountPrice ?? item.Price)
                         </td>
-                        <td class="text-white">@item.StockQuantity</td>
+                        <td class="fw-medium text-dark">@item.StockQuantity</td>
                         <td>
                             <span class="badge-status @statusClass">
                                 @statusText
                             </span>
                         </td>
                         <td class="text-end">
-                            <a asp-action="Details" asp-route-id="@item.ProductId" class="btn-action-view me-1 text-decoration-none" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.8rem; border: 1px solid rgba(59, 130, 246, 0.3);">
+                            <a asp-action="Details" asp-route-id="@item.ProductId" class="btn-action-view me-1 text-decoration-none">
                                 <i class="bi bi-eye"></i> Xem
                             </a>
                             <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn-action-edit me-1 text-decoration-none">

@@ -102,7 +102,7 @@
                         <tr>
                             <td class="fw-bold text-primary">#@o.OrderCode</td>
                             <td>
-                                <div class="text-white fw-semibold">@o.CustomerName</div>
+                                <div class="text-dark fw-semibold">@o.CustomerName</div>
                                 <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@o.PhoneNumber</div>
                                 <div class="text-secondary small text-truncate" style="max-width: 180px;" title="@o.ShippingAddress">
                                     <i class="bi bi-geo-alt me-1"></i>@o.ShippingAddress
@@ -113,7 +113,7 @@
                                 {
                                     foreach (var item in o.Items.Take(2))
                                     {
-                                        <div class="text-white small fw-medium">
+                                        <div class="text-dark small fw-medium">
                                             @item.ProductName <span class="text-primary">x@item.Quantity</span>
                                         </div>
                                         @if (!string.IsNullOrEmpty(item.SelectedSpecs))
@@ -131,11 +131,11 @@
                                     <span class="text-muted small">Chưa có chi tiết</span>
                                 }
                             </td>
-                            <td class="fw-bold text-white text-nowrap">
+                            <td class="fw-bold text-dark text-nowrap">
                                 @string.Format("{0:N0}đ", o.TotalAmount)
                             </td>
                             <td>
-                                <div class="text-white small fw-medium">@o.PaymentMethod</div>
+                                <div class="text-dark small fw-medium">@o.PaymentMethod</div>
                                 <span class="badge-status @paymentBadgeClass" style="font-size: 0.72rem;">
                                     @o.PaymentStatus
                                 </span>
@@ -159,20 +159,20 @@
                         <!-- MODAL CẬP NHẬT TRẠNG THÁI CHO TỪNG ĐƠN HÀNG -->
                         <div class="modal fade" id="modal-order-@o.OrderId" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content bg-dark text-white border border-secondary">
-                                    <div class="modal-header border-secondary">
-                                        <h5 class="modal-title fs-6">
+                                <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
+                                    <div class="modal-header border-bottom bg-light">
+                                        <h5 class="modal-title fs-6 fw-bold">
                                             <i class="bi bi-box-seam text-primary me-2"></i>Đơn hàng #@o.OrderCode
                                         </h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <form method="post" asp-action="UpdateOrderStatus">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="orderId" value="@o.OrderId" />
                                         <div class="modal-body text-start">
-                                            <div class="mb-3 p-3 rounded" style="background: rgba(255,255,255,0.05);">
-                                                <div class="small text-secondary mb-1">Khách hàng: <strong class="text-white">@o.CustomerName</strong> (@o.PhoneNumber)</div>
-                                                <div class="small text-secondary mb-1">Địa chỉ: <span class="text-white">@o.ShippingAddress</span></div>
+                                            <div class="mb-3 p-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                                <div class="small text-secondary mb-1">Khách hàng: <strong class="text-dark">@o.CustomerName</strong> (@o.PhoneNumber)</div>
+                                                <div class="small text-secondary mb-1">Địa chỉ: <span class="text-dark">@o.ShippingAddress</span></div>
                                                 <div class="small text-secondary mb-1">Tổng tiền: <strong class="text-success">@string.Format("{0:N0}đ", o.TotalAmount)</strong> (@o.PaymentMethod)</div>
                                                 <div class="small text-secondary">Trạng thái hiện tại: <span class="badge-status @statusClass">@o.OrderStatus</span></div>
                                             </div>
@@ -193,7 +193,7 @@
                                                 <input type="text" name="note" class="form-control-dark" placeholder="VD: Khách hẹn giao sau 18h..." />
                                             </div>
                                         </div>
-                                        <div class="modal-footer border-secondary">
+                                        <div class="modal-footer border-top bg-light">
                                             <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Đóng</button>
                                             <button type="submit" class="btn-primary-custom">
                                                 <i class="bi bi-check2-circle"></i> Lưu cập nhật

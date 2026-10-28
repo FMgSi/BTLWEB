@@ -90,8 +90,8 @@
                     </div>
 
                     <!-- 1. Cấu hình chi tiết -->
-                    <h6 class="text-white fw-bold mb-3" style="font-size: 0.9rem;">
-                        <i class="bi bi-motherboard text-info me-1"></i> Cấu hình chi tiết
+                    <h6 class="text-dark fw-bold mb-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-motherboard text-primary me-1"></i> Cấu hình chi tiết
                     </h6>
                     <div class="row g-3 mb-4">
                         <div class="col-6">
@@ -113,18 +113,18 @@
                     </div>
 
                     <!-- 2. Hình ảnh sản phẩm -->
-                    <h6 class="text-white fw-bold mb-2" style="font-size: 0.9rem;">
+                    <h6 class="text-dark fw-bold mb-2" style="font-size: 0.9rem;">
                         <i class="bi bi-image text-warning me-1"></i> Hình ảnh sản phẩm
                     </h6>
 
                     @if (!string.IsNullOrEmpty(Model.ExistingThumbnail))
                     {
-                        <div class="p-2 mb-3 rounded d-flex align-items-center gap-3" style="background: var(--bg-card-subtle);">
+                        <div class="p-2 mb-3 rounded d-flex align-items-center gap-3 border" style="background: #f8fafc;">
                             <img src="@Model.ExistingThumbnail" onerror="this.src='/images/default.png'" 
-                                 style="width: 50px; height: 50px; object-fit: contain; background: #0f172a; border-radius: 6px;" />
+                                 style="width: 50px; height: 50px; object-fit: contain; background: #ffffff; border-radius: 6px;" class="border" />
                             <div>
                                 <span class="text-secondary small d-block">Ảnh đại diện hiện tại</span>
-                                <span class="text-white small fw-semibold">Đang sử dụng</span>
+                                <span class="text-dark small fw-semibold">Đang sử dụng</span>
                             </div>
                         </div>
                     }

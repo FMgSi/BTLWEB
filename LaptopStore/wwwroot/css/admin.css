@@ -1,53 +1,65 @@
 /* ==========================================================================
-   LAPTOP WORLD ADMIN - Modern Dark Tech Design System
+   LAPTOP WORLD ADMIN - Staff & Employee Back-Office Theme (Tông màu Nhân viên)
+   Theme: Clean, modern, high-contrast Enterprise Management Portal
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --bg-page: #0b111e;
-    --bg-sidebar: #0e1726;
-    --bg-topbar: #0e1726;
-    --bg-card: #151f32;
-    --bg-card-subtle: #19243a;
-    --bg-card-hover: #1c2942;
-    --bg-input: #0d1525;
+    /* Page & Structure Backgrounds */
+    --bg-page: #f1f5f9;              /* Slate-100: Nền trang sáng, dịu mắt chuẩn văn phòng */
+    --bg-sidebar: #0f172a;           /* Slate-900: Thanh điều hướng trái màu Navy đậm chuẩn SB Admin / Staff Portal */
+    --bg-sidebar-hover: rgba(255, 255, 255, 0.08);
+    --bg-sidebar-active: #2563eb;    /* Xanh dương thương hiệu nổi bật */
+    --bg-topbar: #ffffff;            /* Thanh trên cùng màu trắng sáng */
     
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-subtle: rgba(255, 255, 255, 0.05);
-    --border-focus: rgba(59, 130, 246, 0.5);
+    /* Card & Container Backgrounds */
+    --bg-card: #ffffff;              /* Thẻ nội dung màu trắng tinh khôi */
+    --bg-card-subtle: #f8fafc;       /* Slate-50: Tiêu đề bảng / header phụ */
+    --bg-card-hover: #f8fafc;        /* Hiệu ứng rê chuột trên hàng bảng */
+    --bg-input: #ffffff;             /* Ô nhập liệu nền trắng */
     
-    --primary-blue: #2563eb;
-    --primary-blue-hover: #1d4ed8;
-    --primary-blue-light: rgba(37, 99, 235, 0.15);
-    --primary-glow: rgba(37, 99, 235, 0.35);
+    /* Borders & Dividers */
+    --border-color: #e2e8f0;         /* Slate-200: Viền xám nhạt tinh tế */
+    --border-subtle: #f1f5f9;        /* Slate-100: Đường kẻ phân cách */
+    --border-focus: #3b82f6;         /* Xanh focus khi gõ phím */
+    
+    /* Brand Accent Colors */
+    --primary-blue: #2563eb;         /* Blue-600 */
+    --primary-blue-hover: #1d4ed8;   /* Blue-700 */
+    --primary-blue-light: #eff6ff;   /* Blue-50 */
+    --primary-glow: rgba(37, 99, 235, 0.2);
 
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    /* Text Colors (Độ tương phản cao, dễ đọc cho nhân viên làm việc) */
+    --text-primary: #0f172a;         /* Slate-900: Tiêu đề và nội dung chính */
+    --text-secondary: #334155;       /* Slate-700: Nhãn mô tả phụ */
+    --text-muted: #64748b;           /* Slate-500: Chú thích mờ */
 
-    --badge-green-bg: rgba(16, 185, 129, 0.18);
-    --badge-green-text: #34d399;
-    --badge-green-border: rgba(16, 185, 129, 0.3);
+    /* Badges (Pastel dịu mắt, chữ đậm nét chuyên nghiệp) */
+    --badge-green-bg: #dcfce7;
+    --badge-green-text: #15803d;
+    --badge-green-border: #bbf7d0;
 
-    --badge-red-bg: rgba(239, 68, 68, 0.18);
-    --badge-red-text: #f87171;
-    --badge-red-border: rgba(239, 68, 68, 0.3);
+    --badge-red-bg: #fee2e2;
+    --badge-red-text: #b91c1c;
+    --badge-red-border: #fecaca;
 
-    --badge-orange-bg: rgba(245, 158, 11, 0.18);
-    --badge-orange-text: #fbbf24;
-    --badge-orange-border: rgba(245, 158, 11, 0.3);
+    --badge-orange-bg: #fef3c7;
+    --badge-orange-text: #b45309;
+    --badge-orange-border: #fde68a;
 
-    --badge-blue-bg: rgba(59, 130, 246, 0.18);
-    --badge-blue-text: #60a5fa;
-    --badge-blue-border: rgba(59, 130, 246, 0.3);
+    --badge-blue-bg: #dbeafe;
+    --badge-blue-text: #1d4ed8;
+    --badge-blue-border: #bfdbfe;
 
-    --badge-purple-bg: rgba(168, 85, 247, 0.18);
-    --badge-purple-text: #c084fc;
-    --badge-purple-border: rgba(168, 85, 247, 0.3);
+    --badge-purple-bg: #f3e8ff;
+    --badge-purple-text: #7e22ce;
+    --badge-purple-border: #e9d5ff;
 
-    --sidebar-width: 250px;
+    --sidebar-width: 260px;
     --topbar-height: 64px;
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+    --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
 }
 
 /* Base resets & typography */
@@ -76,12 +88,14 @@ a {
     min-height: 100vh;
 }
 
-/* Sidebar Styles */
+/* ==========================================================================
+   SIDEBAR (Thanh điều hướng dành cho nhân viên / cán bộ quản lý)
+   ========================================================================== */
 .admin-sidebar {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
     background-color: var(--bg-sidebar);
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -97,8 +111,9 @@ a {
     display: flex;
     align-items: center;
     padding: 0 1.25rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     gap: 0.75rem;
+    background-color: #0b1120;
 }
 
 .brand-icon-box {
@@ -111,7 +126,7 @@ a {
     justify-content: center;
     color: #ffffff;
     font-size: 1.2rem;
-    box-shadow: 0 4px 12px var(--primary-glow);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
 .brand-title-wrap {
@@ -131,7 +146,7 @@ a {
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 1.5px;
-    color: #60a5fa;
+    color: #93c5fd;
     text-transform: uppercase;
 }
 
@@ -148,7 +163,7 @@ a {
     width: 4px;
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
 }
 
@@ -158,7 +173,7 @@ a {
     gap: 0.75rem;
     padding: 0.65rem 0.9rem;
     border-radius: 8px;
-    color: var(--text-secondary);
+    color: #94a3b8;
     font-size: 0.88rem;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -168,25 +183,24 @@ a {
 
 .nav-link-custom i {
     font-size: 1.1rem;
-    color: #94a3b8;
+    color: #64748b;
     transition: color 0.2s ease;
 }
 
 .nav-link-custom:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
+    background-color: var(--bg-sidebar-hover);
+    color: #f8fafc;
 }
 
 .nav-link-custom:hover i {
-    color: #ffffff;
+    color: #93c5fd;
 }
 
 .nav-link-custom.active {
     background-color: var(--primary-blue);
     color: #ffffff;
     font-weight: 600;
-    box-shadow: 0 4px 14px var(--primary-glow);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .nav-link-custom.active i {
@@ -206,22 +220,22 @@ a {
 .sidebar-submenu a {
     padding: 0.45rem 0.75rem;
     border-radius: 6px;
-    color: var(--text-muted);
+    color: #94a3b8;
     font-size: 0.82rem;
     transition: all 0.2s ease;
 }
 
 .sidebar-submenu a:hover,
 .sidebar-submenu a.active {
-    color: #60a5fa;
-    background-color: rgba(37, 99, 235, 0.08);
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Sidebar User Footer */
 .sidebar-footer {
     padding: 0.9rem 0.85rem;
-    border-top: 1px solid var(--border-color);
-    background-color: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: #0b1120;
 }
 
 .sidebar-user-card {
@@ -234,7 +248,7 @@ a {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -242,7 +256,6 @@ a {
     font-weight: 700;
     font-size: 0.9rem;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-user-info {
@@ -261,15 +274,15 @@ a {
 
 .sidebar-user-role {
     font-size: 0.72rem;
-    color: var(--text-muted);
+    color: #94a3b8;
 }
 
 .btn-sidebar-logout {
     padding: 0.35rem 0.6rem;
     font-size: 0.75rem;
     color: #f87171;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
     border-radius: 6px;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -282,7 +295,9 @@ a {
     color: #fca5a5;
 }
 
-/* Main Content Wrapper */
+/* ==========================================================================
+   MAIN CONTENT WRAPPER & TOPBAR (Trắng sáng, sạch sẽ)
+   ========================================================================== */
 .admin-main {
     margin-left: var(--sidebar-width);
     flex: 1;
@@ -290,6 +305,7 @@ a {
     flex-direction: column;
     min-width: 0;
     min-height: 100vh;
+    background-color: var(--bg-page);
 }
 
 /* Topbar */
@@ -297,6 +313,7 @@ a {
     height: var(--topbar-height);
     background-color: var(--bg-topbar);
     border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -322,7 +339,7 @@ a {
 
 .topbar-search-input {
     width: 100%;
-    background-color: var(--bg-input);
+    background-color: #f8fafc;
     border: 1px solid var(--border-color);
     border-radius: 20px;
     padding: 0.45rem 1rem 0.45rem 2.5rem;
@@ -334,14 +351,14 @@ a {
 .topbar-search-input:focus {
     outline: none;
     border-color: var(--border-focus);
-    background-color: #111a2e;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
 .btn-topbar-link {
@@ -350,16 +367,18 @@ a {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.4rem 0.8rem;
+    padding: 0.4rem 0.85rem;
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.04);
+    background: #f8fafc;
     border: 1px solid var(--border-color);
     transition: all 0.2s ease;
+    font-weight: 500;
 }
 
 .btn-topbar-link:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary-blue);
+    background: #eff6ff;
+    border-color: #bfdbfe;
 }
 
 .topbar-notification {
@@ -376,8 +395,8 @@ a {
 }
 
 .topbar-notification:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--primary-blue);
+    background: #f1f5f9;
 }
 
 .notification-badge {
@@ -388,43 +407,46 @@ a {
     height: 8px;
     background-color: #ef4444;
     border-radius: 50%;
-    box-shadow: 0 0 6px #ef4444;
 }
 
 .topbar-user {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 0.88rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     padding: 0.35rem 0.75rem;
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.03);
+    background: #f8fafc;
     border: 1px solid var(--border-color);
     transition: all 0.2s ease;
 }
 
 .topbar-user:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: #f1f5f9;
+    border-color: #cbd5e1;
 }
 
 .topbar-user-avatar {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 700;
+    color: #ffffff;
 }
 
-/* Page Body Container */
+/* ==========================================================================
+   PAGE BODY CONTENT & CARDS (Giao diện nội dung chuẩn nhân viên)
+   ========================================================================== */
 .admin-content {
-    padding: 1.75rem;
+    padding: 1.5rem 1.75rem;
     flex: 1;
 }
 
@@ -441,7 +463,7 @@ a {
 .page-title {
     font-size: 1.45rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -451,13 +473,13 @@ a {
     gap: 0.75rem;
 }
 
-/* Modern Admin Cards */
+/* Modern Clean Admin Cards */
 .admin-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1.25rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--card-shadow);
     margin-bottom: 1.25rem;
 }
 
@@ -472,15 +494,15 @@ a {
 
 .card-title-text {
     font-size: 1rem;
-    font-weight: 600;
-    color: #ffffff;
+    font-weight: 700;
+    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-/* Metric / Stat Cards (Dashboard) */
+/* Metric / Stat KPI Cards (Dashboard) */
 .metric-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -490,12 +512,14 @@ a {
     flex-direction: column;
     justify-content: space-between;
     min-height: 108px;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .metric-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: var(--card-shadow-hover);
+    border-color: #cbd5e1;
 }
 
 .metric-header {
@@ -507,14 +531,14 @@ a {
 
 .metric-label {
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
 }
 
 .metric-value {
     font-size: 1.55rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary) !important;
     letter-spacing: -0.5px;
     line-height: 1.2;
 }
@@ -535,12 +559,30 @@ a {
     border: 1px solid var(--badge-green-border);
 }
 
-/* Form Controls in Dark Mode */
+.metric-badge-danger {
+    background-color: var(--badge-red-bg);
+    color: var(--badge-red-text);
+    border: 1px solid var(--badge-red-border);
+}
+
+.metric-badge-warning {
+    background-color: var(--badge-orange-bg);
+    color: var(--badge-orange-text);
+    border: 1px solid var(--badge-orange-border);
+}
+
+/* ==========================================================================
+   FORM CONTROLS (Thanh thoát, chữ rõ ràng, viền xám tiêu chuẩn)
+   ========================================================================== */
 .form-control-dark,
-.form-select-dark {
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+.form-select-dark,
+.admin-card input[type="text"],
+.admin-card input[type="number"],
+.admin-card select,
+.admin-card textarea {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: var(--text-primary) !important;
     border-radius: 8px;
     padding: 0.55rem 0.85rem;
     font-size: 0.88rem;
@@ -549,16 +591,19 @@ a {
 }
 
 .form-control-dark:focus,
-.form-select-dark:focus {
-    outline: none;
-    border-color: var(--border-focus);
-    background-color: #111a2e;
-    color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+.form-select-dark:focus,
+.admin-card input:focus,
+.admin-card select:focus,
+.admin-card textarea:focus {
+    outline: none !important;
+    border-color: var(--border-focus) !important;
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
 }
 
 .form-control-dark::placeholder {
-    color: var(--text-muted);
+    color: #94a3b8;
 }
 
 .form-label-dark {
@@ -578,10 +623,14 @@ a {
     border-radius: 4px;
 }
 
-/* Tables */
+/* ==========================================================================
+   TABLES (Bảng dữ liệu quản trị sắc nét, dòng xen kẽ nhẹ nhàng)
+   ========================================================================== */
 .admin-table-container {
     overflow-x: auto;
     border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: #ffffff;
 }
 
 .admin-table {
@@ -590,11 +639,12 @@ a {
     border-spacing: 0;
     color: var(--text-primary);
     font-size: 0.88rem;
+    margin-bottom: 0;
 }
 
 .admin-table th {
-    background-color: var(--bg-card-subtle);
-    color: var(--text-secondary);
+    background-color: #f8fafc;
+    color: #475569;
     font-weight: 600;
     font-size: 0.78rem;
     text-transform: uppercase;
@@ -616,7 +666,8 @@ a {
     padding: 0.85rem 1rem;
     border-bottom: 1px solid var(--border-subtle);
     vertical-align: middle;
-    background-color: var(--bg-card);
+    background-color: #ffffff;
+    color: var(--text-primary);
 }
 
 .admin-table tbody tr {
@@ -624,14 +675,16 @@ a {
 }
 
 .admin-table tbody tr:hover td {
-    background-color: var(--bg-card-hover);
+    background-color: #f8fafc;
 }
 
 .admin-table tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Badges */
+/* ==========================================================================
+   BADGES (Nhãn trạng thái màu pastel chuẩn doanh nghiệp)
+   ========================================================================== */
 .badge-status {
     display: inline-flex;
     align-items: center;
@@ -688,27 +741,29 @@ a {
 
 .badge-tier-gold {
     background-color: var(--badge-orange-bg);
-    color: #fcd34d;
-    border: 1px solid rgba(251, 191, 36, 0.4);
+    color: #b45309;
+    border: 1px solid var(--badge-orange-border);
 }
 
 .badge-tier-silver {
-    background-color: rgba(148, 163, 184, 0.18);
-    color: #cbd5e1;
-    border: 1px solid rgba(148, 163, 184, 0.35);
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
 }
 
 .badge-tier-bronze {
-    background-color: rgba(217, 119, 6, 0.18);
-    color: #fb923c;
-    border: 1px solid rgba(217, 119, 6, 0.35);
+    background-color: #ffedd5;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
 }
 
-/* Action Buttons */
+/* ==========================================================================
+   ACTION BUTTONS (Nút bấm sắc nét, hiện đại)
+   ========================================================================== */
 .btn-primary-custom {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff !important;
+    border: 1px solid #1d4ed8;
     border-radius: 8px;
     padding: 0.5rem 1rem;
     font-size: 0.88rem;
@@ -718,45 +773,65 @@ a {
     gap: 0.4rem;
     transition: all 0.2s ease;
     cursor: pointer;
-    box-shadow: 0 4px 12px var(--primary-glow);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
 }
 
 .btn-primary-custom:hover {
     background: linear-gradient(135deg, #1d4ed8, #1e40af);
-    color: #ffffff;
-    box-shadow: 0 6px 16px var(--primary-glow);
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
     transform: translateY(-1px);
 }
 
 .btn-secondary-custom {
-    background: #1e293b;
-    color: #e2e8f0;
-    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
     padding: 0.5rem 0.95rem;
     font-size: 0.88rem;
-    font-weight: 500;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     transition: all 0.2s ease;
     cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary-custom:hover {
-    background: #27354f;
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.15);
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.btn-action-view {
+    color: #1d4ed8 !important;
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 6px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.2s ease;
+}
+
+.btn-action-view:hover {
+    background: #dbeafe !important;
+    color: #1e40af !important;
 }
 
 .btn-action-edit {
-    color: #60a5fa;
-    background: rgba(37, 99, 235, 0.1);
-    border: 1px solid rgba(37, 99, 235, 0.25);
+    color: #0369a1 !important;
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
     border-radius: 6px;
-    padding: 0.3rem 0.6rem;
+    padding: 0.3rem 0.65rem;
     font-size: 0.78rem;
-    font-weight: 500;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
@@ -764,30 +839,33 @@ a {
 }
 
 .btn-action-edit:hover {
-    background: rgba(37, 99, 235, 0.25);
-    color: #93c5fd;
+    background: #e0f2fe !important;
+    color: #0284c7 !important;
 }
 
 .btn-action-delete {
-    color: #f87171;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #b91c1c !important;
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
     border-radius: 6px;
-    padding: 0.3rem 0.6rem;
+    padding: 0.3rem 0.65rem;
     font-size: 0.78rem;
-    font-weight: 500;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .btn-action-delete:hover {
-    background: rgba(239, 68, 68, 0.25);
-    color: #fca5a5;
+    background: #fee2e2 !important;
+    color: #991b1b !important;
 }
 
-/* Pagination */
+/* ==========================================================================
+   PAGINATION (Phân trang phong cách văn phòng)
+   ========================================================================== */
 .admin-pagination-wrap {
     display: flex;
     align-items: center;
@@ -818,30 +896,31 @@ a {
     height: 34px;
     padding: 0 0.5rem;
     border-radius: 7px;
-    background: #19243a;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
     font-size: 0.83rem;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.2s ease;
 }
 
 .admin-page-item a:hover {
-    background: #253350;
-    color: #ffffff;
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
 }
 
 .admin-page-item.active a {
     background: var(--primary-blue);
     border-color: var(--primary-blue);
-    color: #ffffff;
-    box-shadow: 0 2px 8px var(--primary-glow);
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 
 /* Dropzone Upload */
 .admin-dropzone {
-    border: 2px dashed rgba(59, 130, 246, 0.4);
-    background: rgba(37, 99, 235, 0.03);
+    border: 2px dashed #93c5fd;
+    background: #f8fafc;
     border-radius: 10px;
     padding: 2.25rem 1.5rem;
     text-align: center;
@@ -851,20 +930,20 @@ a {
 }
 
 .admin-dropzone:hover {
-    border-color: #60a5fa;
-    background: rgba(37, 99, 235, 0.08);
+    border-color: #2563eb;
+    background: #eff6ff;
 }
 
 .dropzone-icon {
     font-size: 2.5rem;
-    color: #3b82f6;
+    color: #2563eb;
     margin-bottom: 0.6rem;
 }
 
 .dropzone-title {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #e2e8f0;
+    color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
 
@@ -894,7 +973,7 @@ a {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #334155;
+    background-color: #cbd5e1;
     transition: .3s;
     border-radius: 24px;
 }
@@ -909,6 +988,7 @@ a {
     background-color: white;
     transition: .3s;
     border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 input:checked + .admin-slider {
@@ -923,10 +1003,10 @@ input:checked + .admin-slider:before {
 .admin-nav-tabs {
     display: flex;
     gap: 0.5rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
     margin-bottom: 1.5rem;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-bottom: 0;
 }
 
 .admin-nav-tabs .nav-tab-item {
@@ -935,27 +1015,28 @@ input:checked + .admin-slider:before {
     font-size: 0.88rem;
     font-weight: 600;
     border-radius: 8px 8px 0 0;
-    border-bottom: 2px solid transparent;
+    border-bottom: 3px solid transparent;
     transition: all 0.2s ease;
     white-space: nowrap;
     cursor: pointer;
+    margin-bottom: -2px;
 }
 
 .admin-nav-tabs .nav-tab-item:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.03);
+    color: var(--primary-blue);
+    background: #f8fafc;
 }
 
 .admin-nav-tabs .nav-tab-item.active {
-    color: #60a5fa;
-    border-bottom-color: #3b82f6;
-    background: rgba(37, 99, 235, 0.08);
+    color: var(--primary-blue);
+    border-bottom-color: var(--primary-blue);
+    background: #ffffff;
 }
 
-/* Filter buttons group (Quản lý khách hàng, Mã giảm giá) */
+/* Filter buttons group */
 .filter-btn-group {
     display: inline-flex;
-    background: #0d1525;
+    background: #f1f5f9;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 3px;
@@ -965,7 +1046,7 @@ input:checked + .admin-slider:before {
 .filter-btn-item {
     border: none;
     background: transparent;
-    color: var(--text-secondary);
+    color: #475569;
     font-size: 0.8rem;
     font-weight: 500;
     padding: 0.35rem 0.75rem;
@@ -975,13 +1056,65 @@ input:checked + .admin-slider:before {
 }
 
 .filter-btn-item:hover {
-    color: #ffffff;
+    color: var(--primary-blue);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .filter-btn-item.active {
-    background: #1e293b;
-    color: #60a5fa;
+    background: #ffffff;
+    color: var(--primary-blue);
     font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Bootstrap Table integration */
+.table {
+    --bs-table-bg: #ffffff;
+    --bs-table-color: #0f172a;
+    --bs-table-border-color: #e2e8f0;
+    --bs-table-hover-bg: #f8fafc;
+    --bs-table-hover-color: #0f172a;
+}
+
+.table thead th {
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.card {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+}
+
+/* Safeguard for elements originally marked text-white in dark mode */
+.admin-main .text-white:not(.btn):not(.badge):not(.alert):not(.bg-primary):not(.bg-danger):not(.bg-success):not(.bg-warning):not(.bg-dark):not(.sidebar-user-avatar):not(.modal-header):not(.brand-icon-box) {
+    color: var(--text-primary) !important;
+}
+
+/* Modal styling */
+.modal-content {
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 12px;
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-color) !important;
+    background-color: #f8fafc;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color) !important;
 }
 
 /* Responsive adjustments */

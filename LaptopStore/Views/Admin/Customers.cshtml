@@ -101,13 +101,13 @@
                                 <div class="sidebar-user-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">
                                     @c.FullName.Substring(0, 1)
                                 </div>
-                                <span class="fw-semibold text-white">@c.FullName</span>
+                                <span class="fw-semibold text-dark">@c.FullName</span>
                             </div>
                         </td>
                         <td class="text-secondary">@c.PhoneNumber</td>
                         <td class="text-secondary small">@c.Email</td>
-                        <td class="text-white">@c.TotalOrders đơn</td>
-                        <td class="fw-bold text-white">@string.Format("{0:N0}đ", c.TotalSpent)</td>
+                        <td class="text-dark">@c.TotalOrders đơn</td>
+                        <td class="fw-bold text-dark">@string.Format("{0:N0}đ", c.TotalSpent)</td>
                         <td>
                             <span class="badge-status @c.TierBadgeClass">
                                 @c.MembershipTier

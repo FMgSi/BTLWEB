@@ -26,9 +26,9 @@
 @if (TempData["Success"] != null || Context.Session.GetString("LastAction") != null)
 {
     var msg = TempData["Success"]?.ToString() ?? Context.Session.GetString("LastAction");
-    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+    <div class="alert alert-success alert-dismissible fade show mb-3 shadow-sm" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i> @msg
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 

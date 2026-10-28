@@ -29,7 +29,7 @@
                     <i class="bi bi-arrow-up-short"></i> +@Model.RevenueGrowth%
                 </span>
             </div>
-            <div class="metric-value text-white">
+            <div class="metric-value text-dark">
                 @string.Format("{0:N0}đ", Model.MonthlyRevenue)
             </div>
         </div>
@@ -44,7 +44,7 @@
                     <i class="bi bi-arrow-up-short"></i> +8.5%
                 </span>
             </div>
-            <div class="metric-value text-white">
+            <div class="metric-value text-dark">
                 @Model.NewOrdersCount đơn
             </div>
         </div>
@@ -59,7 +59,7 @@
                     <i class="bi bi-arrow-up-short"></i> +@Model.SalesGrowth%
                 </span>
             </div>
-            <div class="metric-value text-white">
+            <div class="metric-value text-dark">
                 @Model.LaptopsSoldCount chiếc
             </div>
         </div>
@@ -127,7 +127,7 @@
                             <span style="width: 10px; height: 10px; border-radius: 50%; background-color: @c.Color; display: inline-block;"></span>
                             <span class="text-secondary">@c.CategoryName</span>
                         </div>
-                        <span class="fw-semibold text-white">@c.Percentage%</span>
+                        <span class="fw-semibold text-dark">@c.Percentage%</span>
                     </div>
                 }
             </div>
@@ -165,10 +165,10 @@
                         {
                             <tr>
                                 <td class="fw-semibold text-primary">#@o.OrderCode</td>
-                                <td class="text-white">@o.CustomerName</td>
+                                <td class="text-dark fw-medium">@o.CustomerName</td>
                                 <td class="text-secondary small">@o.ProductName</td>
                                 <td class="text-muted small">@o.OrderDate</td>
-                                <td class="fw-bold text-white">@string.Format("{0:N0}đ", o.TotalAmount)</td>
+                                <td class="fw-bold text-dark">@string.Format("{0:N0}đ", o.TotalAmount)</td>
                                 <td>
                                     <span class="badge-status @o.StatusBadgeClass">
                                         @o.Status
@@ -201,9 +201,9 @@
                         <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-card-subtle);">
                             <div class="d-flex align-items-center gap-3">
                                 <img src="@prod.ThumbnailUrl" onerror="this.src='/images/default.png'" 
-                                     style="width: 44px; height: 44px; object-fit: contain; background: #0f172a; border-radius: 6px; padding: 2px;" />
+                                     style="width: 44px; height: 44px; object-fit: contain; background: #ffffff; border-radius: 6px; padding: 2px;" class="border" />
                                 <div>
-                                    <div class="fw-semibold text-white small" style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <div class="fw-semibold text-dark small" style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                         @prod.ProductName
                                     </div>
                                     <div class="text-muted" style="font-size: 0.75rem;">
@@ -211,7 +211,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="fw-bold text-white small text-end">
+                            <div class="fw-bold text-dark small text-end">
                                 @string.Format("{0:N0}đ", prod.Price)
                             </div>
                         </div>
