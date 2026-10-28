@@ -25,21 +25,64 @@ public class AdminController : Controller
     private readonly IProductService _productService;
     private readonly IWebHostEnvironment _env;
 
-    // Bộ nhớ cấu hình tạm thời mô phỏng cơ sở dữ liệu cấu hình
-    private static SystemSettingsViewModel _systemSettings = new();
+    private string SettingsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "systemsettings.json");
+    private string DiscountsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "discounts.json");
 
-    // Dữ liệu khách hàng mẫu hiển thị bổ sung nếu CSDL chưa có nhiều
-    private static List<CustomerDto> _mockCustomers = new()
+    private SystemSettingsViewModel LoadSettings()
     {
-        new CustomerDto { CustomerCode = "KH001", FullName = "Nguyễn An Bình", PhoneNumber = "0901234567", Email = "anbinh@gmail.com", TotalOrders = 12, TotalSpent = 145000000m, MembershipTier = "Kim cương", TierBadgeClass = "badge-tier-diamond", IsActive = true },
-        new CustomerDto { CustomerCode = "KH002", FullName = "Trần Thị Hoa", PhoneNumber = "0987654321", Email = "thithoa@yahoo.com", TotalOrders = 5, TotalSpent = 48200000m, MembershipTier = "Vàng", TierBadgeClass = "badge-tier-gold", IsActive = true },
-        new CustomerDto { CustomerCode = "KH003", FullName = "Lê Hoàng Nam", PhoneNumber = "0912345678", Email = "namle@gmail.com", TotalOrders = 1, TotalSpent = 12500000m, MembershipTier = "Đồng", TierBadgeClass = "badge-tier-bronze", IsActive = true },
-        new CustomerDto { CustomerCode = "KH004", FullName = "Phạm Văn Đức", PhoneNumber = "0933445566", Email = "ducpham@gmail.com", TotalOrders = 3, TotalSpent = 32000000m, MembershipTier = "Bạc", TierBadgeClass = "badge-tier-silver", IsActive = false },
-        new CustomerDto { CustomerCode = "KH005", FullName = "Vũ Mỹ Linh", PhoneNumber = "0977889900", Email = "mylinh@gmail.com", TotalOrders = 8, TotalSpent = 78900000m, MembershipTier = "Vàng", TierBadgeClass = "badge-tier-gold", IsActive = true }
-    };
+        try
+        {
+            if (System.IO.File.Exists(SettingsFilePath))
+            {
+                var json = System.IO.File.ReadAllText(SettingsFilePath);
+                var settings = System.Text.Json.JsonSerializer.Deserialize<SystemSettingsViewModel>(json);
+                if (settings != null) return settings;
+            }
+        }
+        catch { }
+        return new SystemSettingsViewModel();
+    }
 
-    // Dữ liệu mã giảm giá mẫu
-    private static List<DiscountDto> _mockDiscounts = new()
+    private void SaveSettingsToFile(SystemSettingsViewModel settings)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(SettingsFilePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            System.IO.File.WriteAllText(SettingsFilePath, json);
+        }
+        catch { }
+    }
+
+    private List<DiscountDto> LoadDiscounts()
+    {
+        try
+        {
+            if (System.IO.File.Exists(DiscountsFilePath))
+            {
+                var json = System.IO.File.ReadAllText(DiscountsFilePath);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<DiscountDto>>(json);
+                if (list != null && list.Count > 0) return list;
+            }
+        }
+        catch { }
+        return GetDefaultDiscounts();
+    }
+
+    private void SaveDiscountsToFile(List<DiscountDto> list)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(DiscountsFilePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            var json = System.Text.Json.JsonSerializer.Serialize(list, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            System.IO.File.WriteAllText(DiscountsFilePath, json);
+        }
+        catch { }
+    }
+
+    private static List<DiscountDto> GetDefaultDiscounts() => new()
     {
         new DiscountDto { Code = "LAPTOPMOI", Title = "Giảm giá laptop mới", DiscountType = "Giảm theo %", DiscountValueText = "5% (Tối đa 500k)", ConditionText = "Đơn từ 15tr", UsageText = "45 / 100", ExpiryText = "15/10/2026 - 30/11/2026", Status = "Đang hoạt động", StatusBadgeClass = "badge-in-stock" },
         new DiscountDto { Code = "TRIAN99", Title = "Tri ân khách hàng", DiscountType = "Giảm số tiền", DiscountValueText = "200.000đ", ConditionText = "Đơn từ 10tr", UsageText = "89 / 200", ExpiryText = "01/10/2026 - 31/10/2026", Status = "Đang hoạt động", StatusBadgeClass = "badge-in-stock" },
@@ -93,33 +136,15 @@ public class AdminController : Controller
         var user = await _db.Users.FirstOrDefaultAsync(u =>
             u.Username.ToLower() == normalizedInput || u.Email.ToLower() == normalizedInput);
 
-        bool isValid = false;
-        if (user != null)
-        {
-            isValid = PasswordHelper.VerifyPassword(password, user.PasswordHash);
-            // Tiện ích cho môi trường đồ án: Chấp nhận cả mật khẩu "Admin@123" hoặc "admin" cho tài khoản quản trị
-            if (!isValid && (password == "Admin@123" || password == "admin") && user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase))
-            {
-                isValid = true;
-            }
-        }
-        else if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && (password == "Admin@123" || password == "admin"))
-        {
-            // Dự phòng nếu bảng Users chưa có bản ghi
-            user = new User
-            {
-                UserId = 1,
-                Username = "admin",
-                Email = "admin@pcstore.vn",
-                FullName = "Quản Trị Viên",
-                Role = "Admin"
-            };
-            isValid = true;
-        }
-
-        if (!isValid || user == null)
+        if (user == null || !PasswordHelper.VerifyPassword(password, user.PasswordHash))
         {
             ViewBag.Error = "Tên đăng nhập hoặc mật khẩu không chính xác.";
+            return View();
+        }
+
+        if (!user.IsActive)
+        {
+            ViewBag.Error = "Tài khoản quản trị của bạn đã bị tạm khóa. Vui lòng liên hệ quản lý cấp cao.";
             return View();
         }
 
@@ -265,30 +290,22 @@ public class AdminController : Controller
             string membershipTier = totalSpent >= 100000000 ? "Kim cương" : (totalSpent >= 50000000 ? "Vàng" : (totalSpent >= 20000000 ? "Bạc" : "Đồng"));
             string tierClass = membershipTier == "Kim cương" ? "badge-tier-diamond" : (membershipTier == "Vàng" ? "badge-tier-gold" : "badge-tier-silver");
 
+            var phone = !string.IsNullOrWhiteSpace(u.PhoneNumber)
+                ? u.PhoneNumber
+                : (userOrders.OrderByDescending(o => o.CreatedAt).FirstOrDefault()?.PhoneNumber ?? "Chưa cập nhật");
+
             dtoList.Add(new CustomerDto
             {
                 CustomerCode = $"KH{u.UserId:D3}",
                 FullName = string.IsNullOrWhiteSpace(u.FullName) ? u.Username : u.FullName,
-                PhoneNumber = "098" + (1000000 + u.UserId),
+                PhoneNumber = phone,
                 Email = u.Email,
                 TotalOrders = userOrders.Count,
                 TotalSpent = totalSpent,
                 MembershipTier = membershipTier,
                 TierBadgeClass = tierClass,
-                IsActive = true
+                IsActive = u.IsActive
             });
-        }
-
-        // Ghép thêm mock mẫu nếu mới setup CSDL
-        if (dtoList.Count < _mockCustomers.Count)
-        {
-            foreach (var m in _mockCustomers)
-            {
-                if (!dtoList.Any(d => d.CustomerCode == m.CustomerCode))
-                {
-                    dtoList.Add(m);
-                }
-            }
         }
 
         var query = dtoList.AsQueryable();
@@ -296,7 +313,18 @@ public class AdminController : Controller
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.ToLower().Trim();
-            query = query.Where(c => c.FullName.ToLower().Contains(s) || c.Email.ToLower().Contains(s) || c.CustomerCode.ToLower().Contains(s));
+            query = query.Where(c => c.FullName.ToLower().Contains(s) || c.Email.ToLower().Contains(s) || c.CustomerCode.ToLower().Contains(s) || c.PhoneNumber.Contains(s));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        {
+            if (status == "active") query = query.Where(c => c.IsActive);
+            else if (status == "locked") query = query.Where(c => !c.IsActive);
+        }
+
+        if (!string.IsNullOrWhiteSpace(tier) && tier != "all")
+        {
+            query = query.Where(c => c.MembershipTier.Equals(tier, StringComparison.OrdinalIgnoreCase));
         }
 
         var list = query.ToList();
@@ -312,18 +340,26 @@ public class AdminController : Controller
 
     /// <summary>
     /// POST: /Admin/ToggleCustomerLock
+    /// Khóa / Mở khóa tài khoản khách hàng thật trong cơ sở dữ liệu
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult ToggleCustomerLock(string customerCode)
+    public async Task<IActionResult> ToggleCustomerLock(string customerCode)
     {
-        var cust = _mockCustomers.FirstOrDefault(c => c.CustomerCode == customerCode);
-        if (cust != null)
+        int userId = 0;
+        if (customerCode.StartsWith("KH", StringComparison.OrdinalIgnoreCase) && int.TryParse(customerCode[2..], out int parsed))
         {
-            cust.IsActive = !cust.IsActive;
-            return Json(new { success = true, isActive = cust.IsActive, message = cust.IsActive ? "Đã mở khóa khách hàng thành công" : "Đã khóa khách hàng thành công" });
+            userId = parsed;
         }
-        return Json(new { success = false, message = "Không tìm thấy khách hàng" });
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId || u.Username == customerCode || u.Email == customerCode);
+        if (user != null)
+        {
+            user.IsActive = !user.IsActive;
+            await _db.SaveChangesAsync();
+            return Json(new { success = true, isActive = user.IsActive, message = user.IsActive ? "Đã mở khóa tài khoản khách hàng thành công" : "Đã khóa tài khoản khách hàng thành công" });
+        }
+        return Json(new { success = false, message = "Không tìm thấy khách hàng trong cơ sở dữ liệu" });
     }
 
     /// <summary>
@@ -332,7 +368,8 @@ public class AdminController : Controller
     /// </summary>
     public IActionResult Discounts(string? search, string? status, string? discountType, int page = 1)
     {
-        var query = _mockDiscounts.AsQueryable();
+        var discounts = LoadDiscounts();
+        var query = discounts.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -364,7 +401,8 @@ public class AdminController : Controller
             return RedirectToAction(nameof(Discounts));
         }
 
-        _mockDiscounts.Insert(0, new DiscountDto
+        var discounts = LoadDiscounts();
+        discounts.Insert(0, new DiscountDto
         {
             Code = code.ToUpper().Trim(),
             Title = title,
@@ -376,6 +414,7 @@ public class AdminController : Controller
             Status = "Đang hoạt động",
             StatusBadgeClass = "badge-in-stock"
         });
+        SaveDiscountsToFile(discounts);
 
         TempData["Success"] = $"Đã tạo mã giảm giá {code.ToUpper()} thành công!";
         return RedirectToAction(nameof(Discounts));
@@ -388,10 +427,12 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult DeleteDiscount(string code)
     {
-        var item = _mockDiscounts.FirstOrDefault(d => d.Code == code);
+        var discounts = LoadDiscounts();
+        var item = discounts.FirstOrDefault(d => d.Code == code);
         if (item != null)
         {
-            _mockDiscounts.Remove(item);
+            discounts.Remove(item);
+            SaveDiscountsToFile(discounts);
             return Json(new { success = true, message = "Đã xóa mã giảm giá thành công" });
         }
         return Json(new { success = false, message = "Không tìm thấy mã giảm giá" });
@@ -404,7 +445,7 @@ public class AdminController : Controller
     public IActionResult Settings(string activeTab = "payments")
     {
         ViewBag.ActiveTab = activeTab;
-        return View(_systemSettings);
+        return View(LoadSettings());
     }
 
     /// <summary>
@@ -414,7 +455,7 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult SaveSettings(SystemSettingsViewModel model, string activeTab = "payments")
     {
-        _systemSettings = model;
+        SaveSettingsToFile(model);
         TempData["Success"] = "Đã lưu toàn bộ cấu hình hệ thống thành công!";
         return RedirectToAction(nameof(Settings), new { activeTab });
     }

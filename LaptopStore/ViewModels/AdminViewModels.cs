@@ -98,7 +98,7 @@ public class SystemSettingsViewModel
     // VietQR
     public string VietQrBankName { get; set; } = "MB Bank (Ngân hàng Quân Đội)";
     public string VietQrAccountNumber { get; set; } = "098877665544";
-    public string VietQrAccountHolder { get; set; } = "NGUYEN VAN A";
+    public string VietQrAccountHolder { get; set; } = "LAPTOP WORLD VIỆT NAM";
 
     // MoMo
     public bool EnableMoMo { get; set; } = false;

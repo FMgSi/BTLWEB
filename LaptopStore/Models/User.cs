@@ -53,5 +53,12 @@ public class User
     [StringLength(255)]
     public string? AvatarUrl { get; set; }
 
+    [StringLength(20)]
+    [Display(Name = "Số điện thoại")]
+    public string? PhoneNumber { get; set; }
+
+    [Display(Name = "Trạng thái kích hoạt")]
+    public bool IsActive { get; set; } = true;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

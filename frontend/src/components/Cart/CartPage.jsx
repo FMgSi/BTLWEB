@@ -1,18 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './CartPage.css';
-
-// Danh sách ngân hàng phổ biến tại Việt Nam hỗ trợ tạo mã VietQR
-const POPULAR_BANKS = [
-  { id: 'MB', name: 'MBBank (Ngân hàng Quân Đội)' },
-  { id: 'VCB', name: 'Vietcombank (Ngoại Thương)' },
-  { id: 'TCB', name: 'Techcombank (Kỹ Thương)' },
-  { id: 'VPB', name: 'VPBank (Việt Nam Thịnh Vượng)' },
-  { id: 'ACB', name: 'ACB (Á Châu)' },
-  { id: 'TPB', name: 'TPBank (Tiên Phong)' },
-  { id: 'BIDV', name: 'BIDV (Đầu tư và Phát triển)' },
-  { id: 'ICB', name: 'VietinBank (Công Thương)' },
-  { id: 'VBA', name: 'Agribank (Nông Nghiệp)' },
-];
 
 export default function CartPage({
   cartItems = [],
@@ -38,28 +25,13 @@ export default function CartPage({
   const [orderNotes, setOrderNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('banking');
 
-  // Thông tin tài khoản nhận tiền (cho phép tùy chỉnh tài khoản nhận của bạn)
-  const [bankAccount, setBankAccount] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pcstore_bank_account');
-      return saved
-        ? JSON.parse(saved)
-        : {
-            bankId: 'MB',
-            bankName: 'MBBank (Ngân hàng Quân Đội)',
-            accountNo: '0987654321',
-            accountName: 'NGUYEN VAN A',
-          };
-    } catch (e) {
-      return {
-        bankId: 'MB',
-        bankName: 'MBBank (Ngân hàng Quân Đội)',
-        accountNo: '0987654321',
-        accountName: 'NGUYEN VAN A',
-      };
-    }
-  });
-  const [showBankEdit, setShowBankEdit] = useState(false);
+  // Thông tin tài khoản ngân hàng nhận tiền chính thức của Cửa hàng
+  const STORE_BANK_ACCOUNT = {
+    bankId: 'MB',
+    bankName: 'MBBank (Ngân hàng Quân Đội)',
+    accountNo: '0988668866',
+    accountName: 'HE THONG LAPTOP WORLD',
+  };
 
   // Định dạng số tiền sang chuẩn Việt Nam Đồng (VND)
   const formatVND = (num) => (num ? num.toLocaleString('vi-VN') + 'đ' : '0đ');
@@ -121,7 +93,12 @@ export default function CartPage({
         return;
       }
 
-      const realOrderCode = data.orderCode || data.order?.orderCode || ('PC' + Math.floor(100000 + Math.random() * 900000));
+      const realOrderCode = data.orderCode || data.order?.orderCode || 'PC000000';
+
+      // Lấy chính xác tổng tiền đã được máy chủ Backend kiểm tra và chốt từ CSDL
+      const confirmedTotal = (data.order && typeof data.order.totalAmount === 'number')
+        ? data.order.totalAmount
+        : (typeof data.totalAmount === 'number' ? data.totalAmount : totalPayable);
 
       const orderData = {
         orderId: realOrderCode,
@@ -129,9 +106,17 @@ export default function CartPage({
         phone: customerPhone,
         address: customerAddress,
         notes: orderNotes,
-        total: totalPayable,
-        items: [...checkedItems],
-        paymentMethod: paymentMethod === 'cod' ? 'Thanh toán tiền mặt khi nhận hàng (COD)' : `Chuyển khoản VietQR (${bankAccount.bankId})`,
+        total: confirmedTotal,
+        items: (data.order?.items && data.order.items.length > 0)
+          ? data.order.items.map((i) => ({
+              ...i,
+              name: i.productName,
+              price: i.unitPrice,
+              specs: i.selectedSpecs,
+              image: i.thumbnailUrl,
+            }))
+          : [...checkedItems],
+        paymentMethod: paymentMethod === 'cod' ? 'Thanh toán tiền mặt khi nhận hàng (COD)' : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
       };
 
       setShowCheckoutModal(false);
@@ -165,18 +150,9 @@ export default function CartPage({
     setShowQrModal(false);
   };
 
-  // Lưu thông tin tài khoản ngân hàng của bạn vào bộ nhớ trình duyệt
-  const handleSaveBankAccount = (e) => {
-    e.preventDefault();
-    try {
-      localStorage.setItem('pcstore_bank_account', JSON.stringify(bankAccount));
-    } catch (err) {}
-    setShowBankEdit(false);
-  };
-
-  // Đường link tạo mã QR VietQR tự động theo số tiền và mã đơn hàng
+  // Đường link tạo mã QR VietQR tự động theo số tiền đã chốt từ máy chủ và mã đơn hàng
   const qrImageUrl = pendingOrder
-    ? `https://img.vietqr.io/image/${bankAccount.bankId}-${bankAccount.accountNo}-compact2.png?amount=${pendingOrder.total}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(bankAccount.accountName)}`
+    ? `https://img.vietqr.io/image/${STORE_BANK_ACCOUNT.bankId}-${STORE_BANK_ACCOUNT.accountNo}-compact2.png?amount=${pendingOrder.total}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(STORE_BANK_ACCOUNT.accountName)}`
     : '';
 
   return (
@@ -579,18 +555,18 @@ export default function CartPage({
                 <div className="bg-light p-3 rounded-3 text-start small border mb-3">
                   <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
                     <span className="text-muted">Ngân hàng:</span>
-                    <strong className="text-dark">{bankAccount.bankName}</strong>
+                    <strong className="text-dark">{STORE_BANK_ACCOUNT.bankName}</strong>
                   </div>
 
                   <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
                     <span className="text-muted">Số tài khoản:</span>
                     <div className="d-flex align-items-center gap-2">
-                      <strong className="text-danger fs-6">{bankAccount.accountNo}</strong>
+                      <strong className="text-danger fs-6">{STORE_BANK_ACCOUNT.accountNo}</strong>
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-secondary py-0 px-2"
                         style={{ fontSize: '11px' }}
-                        onClick={() => handleCopy(bankAccount.accountNo, 'acc')}
+                        onClick={() => handleCopy(STORE_BANK_ACCOUNT.accountNo, 'acc')}
                       >
                         {copiedKey === 'acc' ? '✓ Đã chép' : 'Sao chép'}
                       </button>
@@ -599,7 +575,7 @@ export default function CartPage({
 
                   <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
                     <span className="text-muted">Chủ tài khoản:</span>
-                    <strong className="text-dark">{bankAccount.accountName}</strong>
+                    <strong className="text-dark">{STORE_BANK_ACCOUNT.accountName}</strong>
                   </div>
 
                   <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
@@ -631,71 +607,6 @@ export default function CartPage({
                       </button>
                     </div>
                   </div>
-                </div>
-
-                {/* Tùy chọn thay đổi thông tin STK của bạn */}
-                <div className="text-start mb-3">
-                  <button
-                    type="button"
-                    className="btn btn-link btn-sm text-decoration-none p-0 text-secondary"
-                    style={{ fontSize: '12px' }}
-                    onClick={() => setShowBankEdit(!showBankEdit)}
-                  >
-                    <i className="bi bi-gear me-1"></i>
-                    {showBankEdit ? 'Ẩn cài đặt tài khoản nhận' : 'Thay đổi số tài khoản nhận tiền của bạn'}
-                  </button>
-
-                  {showBankEdit && (
-                    <form onSubmit={handleSaveBankAccount} className="bg-white p-3 rounded-3 border mt-2">
-                      <div className="mb-2">
-                        <label className="form-label text-muted" style={{ fontSize: '11px' }}>Chọn Ngân hàng:</label>
-                        <select
-                          className="form-select form-select-sm"
-                          value={bankAccount.bankId}
-                          onChange={(e) => {
-                            const b = POPULAR_BANKS.find((item) => item.id === e.target.value);
-                            setBankAccount({
-                              ...bankAccount,
-                              bankId: e.target.value,
-                              bankName: b ? b.name : e.target.value,
-                            });
-                          }}
-                        >
-                          {POPULAR_BANKS.map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="mb-2">
-                        <label className="form-label text-muted" style={{ fontSize: '11px' }}>Số tài khoản nhận tiền:</label>
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          value={bankAccount.accountNo}
-                          onChange={(e) => setBankAccount({ ...bankAccount, accountNo: e.target.value })}
-                          required
-                        />
-                      </div>
-
-                      <div className="mb-2">
-                        <label className="form-label text-muted" style={{ fontSize: '11px' }}>Tên chủ tài khoản (IN HOA KHÔNG DẤU):</label>
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          value={bankAccount.accountName}
-                          onChange={(e) => setBankAccount({ ...bankAccount, accountName: e.target.value.toUpperCase() })}
-                          required
-                        />
-                      </div>
-
-                      <button type="submit" className="btn btn-sm btn-dark w-100 mt-1">
-                        Lưu thông tin tài khoản
-                      </button>
-                    </form>
-                  )}
                 </div>
 
                 {/* Nút hoàn tất xác nhận thanh toán */}

@@ -399,89 +399,36 @@ public class ProductService : IProductService
 
     public async Task<bool> CreateProductAsync(ProductEditViewModel vm)
     {
-        using var tx = await _db.Database.BeginTransactionAsync();
-        try
+        var strategy = _db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            string? imgPath = null;
-            if (vm.UploadedImage != null && vm.UploadedImage.Length > 0)
+            using var tx = await _db.Database.BeginTransactionAsync();
+            try
             {
-                imgPath = await SaveImageFileAsync(vm.UploadedImage);
-            }
-
-            var product = new Product
-            {
-                ProductName = vm.ProductName.Trim(),
-                BrandId = vm.BrandId,
-                CategoryId = vm.CategoryId,
-                Price = vm.Price,
-                DiscountPrice = vm.DiscountPrice,
-                StockQuantity = vm.StockQuantity,
-                Description = vm.Description,
-                ThumbnailUrl = imgPath ?? "/images/default.png",
-                IsActive = true
-            };
-
-            // Phân tích RAM và Storage
-            var (ramGb, storageGb, storageType) = ParseSpecs(vm.RAM, vm.Storage);
-
-            product.Specification = new ProductSpecification
-            {
-                CPU = vm.CPU,
-                RamGB = ramGb,
-                StorageGB = storageGb,
-                StorageType = storageType,
-                GPU = vm.GPU,
-                ScreenSizeInch = vm.ScreenSizeInch ?? 15.6m,
-                RefreshRateHz = vm.RefreshRateHz ?? 144,
-                WeightKg = vm.WeightKg ?? 1.9m,
-                BatteryWh = vm.BatteryWh ?? 60,
-                OS = !string.IsNullOrWhiteSpace(vm.OS) ? vm.OS : "Windows 11 Home"
-            };
-
-            _db.Products.Add(product);
-            await _db.SaveChangesAsync();
-            await tx.CommitAsync();
-            return true;
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            return false;
-        }
-    }
-
-    public async Task<bool> UpdateProductAsync(ProductEditViewModel vm)
-    {
-        using var tx = await _db.Database.BeginTransactionAsync();
-        try
-        {
-            var p = await _db.Products
-                .Include(p => p.Specification)
-                .FirstOrDefaultAsync(p => p.ProductId == vm.ProductId);
-
-            if (p == null) return false;
-
-            if (vm.UploadedImage != null && vm.UploadedImage.Length > 0)
-            {
-                var newImg = await SaveImageFileAsync(vm.UploadedImage);
-                p.ThumbnailUrl = newImg;
-            }
-
-            p.ProductName = vm.ProductName.Trim();
-            p.BrandId = vm.BrandId;
-            p.CategoryId = vm.CategoryId;
-            p.Price = vm.Price;
-            p.DiscountPrice = vm.DiscountPrice;
-            p.StockQuantity = vm.StockQuantity;
-            p.Description = vm.Description;
-
-            var (ramGb, storageGb, storageType) = ParseSpecs(vm.RAM, vm.Storage);
-
-            if (p.Specification == null)
-            {
-                p.Specification = new ProductSpecification
+                string? imgPath = null;
+                if (vm.UploadedImage != null && vm.UploadedImage.Length > 0)
                 {
-                    ProductId = p.ProductId,
+                    imgPath = await SaveImageFileAsync(vm.UploadedImage);
+                }
+
+                var product = new Product
+                {
+                    ProductName = vm.ProductName.Trim(),
+                    BrandId = vm.BrandId,
+                    CategoryId = vm.CategoryId,
+                    Price = vm.Price,
+                    DiscountPrice = vm.DiscountPrice,
+                    StockQuantity = vm.StockQuantity,
+                    Description = vm.Description,
+                    ThumbnailUrl = imgPath ?? "/images/default.png",
+                    IsActive = true
+                };
+
+                // Phân tích RAM và Storage
+                var (ramGb, storageGb, storageType) = ParseSpecs(vm.RAM, vm.Storage);
+
+                product.Specification = new ProductSpecification
+                {
                     CPU = vm.CPU,
                     RamGB = ramGb,
                     StorageGB = storageGb,
@@ -493,32 +440,93 @@ public class ProductService : IProductService
                     BatteryWh = vm.BatteryWh ?? 60,
                     OS = !string.IsNullOrWhiteSpace(vm.OS) ? vm.OS : "Windows 11 Home"
                 };
-                _db.ProductSpecifications.Add(p.Specification);
+
+                _db.Products.Add(product);
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
             }
-            else
+            catch
             {
-                p.Specification.CPU = vm.CPU;
-                p.Specification.RamGB = ramGb;
-                p.Specification.StorageGB = storageGb;
-                p.Specification.StorageType = storageType;
-                p.Specification.GPU = vm.GPU;
-
-                if (vm.ScreenSizeInch.HasValue) p.Specification.ScreenSizeInch = vm.ScreenSizeInch.Value;
-                if (vm.RefreshRateHz.HasValue) p.Specification.RefreshRateHz = vm.RefreshRateHz.Value;
-                if (vm.WeightKg.HasValue) p.Specification.WeightKg = vm.WeightKg.Value;
-                if (vm.BatteryWh.HasValue) p.Specification.BatteryWh = vm.BatteryWh.Value;
-                if (!string.IsNullOrWhiteSpace(vm.OS)) p.Specification.OS = vm.OS;
+                await tx.RollbackAsync();
+                return false;
             }
+        });
+    }
 
-            await _db.SaveChangesAsync();
-            await tx.CommitAsync();
-            return true;
-        }
-        catch
+    public async Task<bool> UpdateProductAsync(ProductEditViewModel vm)
+    {
+        var strategy = _db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            await tx.RollbackAsync();
-            return false;
-        }
+            using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var p = await _db.Products
+                    .Include(p => p.Specification)
+                    .FirstOrDefaultAsync(p => p.ProductId == vm.ProductId);
+
+                if (p == null) return false;
+
+                if (vm.UploadedImage != null && vm.UploadedImage.Length > 0)
+                {
+                    var newImg = await SaveImageFileAsync(vm.UploadedImage);
+                    p.ThumbnailUrl = newImg;
+                }
+
+                p.ProductName = vm.ProductName.Trim();
+                p.BrandId = vm.BrandId;
+                p.CategoryId = vm.CategoryId;
+                p.Price = vm.Price;
+                p.DiscountPrice = vm.DiscountPrice;
+                p.StockQuantity = vm.StockQuantity;
+                p.Description = vm.Description;
+
+                var (ramGb, storageGb, storageType) = ParseSpecs(vm.RAM, vm.Storage);
+
+                if (p.Specification == null)
+                {
+                    p.Specification = new ProductSpecification
+                    {
+                        ProductId = p.ProductId,
+                        CPU = vm.CPU,
+                        RamGB = ramGb,
+                        StorageGB = storageGb,
+                        StorageType = storageType,
+                        GPU = vm.GPU,
+                        ScreenSizeInch = vm.ScreenSizeInch ?? 15.6m,
+                        RefreshRateHz = vm.RefreshRateHz ?? 144,
+                        WeightKg = vm.WeightKg ?? 1.9m,
+                        BatteryWh = vm.BatteryWh ?? 60,
+                        OS = !string.IsNullOrWhiteSpace(vm.OS) ? vm.OS : "Windows 11 Home"
+                    };
+                    _db.ProductSpecifications.Add(p.Specification);
+                }
+                else
+                {
+                    p.Specification.CPU = vm.CPU;
+                    p.Specification.RamGB = ramGb;
+                    p.Specification.StorageGB = storageGb;
+                    p.Specification.StorageType = storageType;
+                    p.Specification.GPU = vm.GPU;
+
+                    if (vm.ScreenSizeInch.HasValue) p.Specification.ScreenSizeInch = vm.ScreenSizeInch.Value;
+                    if (vm.RefreshRateHz.HasValue) p.Specification.RefreshRateHz = vm.RefreshRateHz.Value;
+                    if (vm.WeightKg.HasValue) p.Specification.WeightKg = vm.WeightKg.Value;
+                    if (vm.BatteryWh.HasValue) p.Specification.BatteryWh = vm.BatteryWh.Value;
+                    if (!string.IsNullOrWhiteSpace(vm.OS)) p.Specification.OS = vm.OS;
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        });
     }
 
     public async Task<bool> DeleteProductAsync(int id)
@@ -526,9 +534,23 @@ public class ProductService : IProductService
         var p = await _db.Products.FindAsync(id);
         if (p == null) return false;
 
-        _db.Products.Remove(p);
-        await _db.SaveChangesAsync();
-        return true;
+        // Kiểm tra ràng buộc toàn vẹn: Không xóa sản phẩm đã phát sinh chi tiết đơn hàng
+        var hasOrders = await _db.OrderItems.AnyAsync(oi => oi.ProductId == id);
+        if (hasOrders)
+        {
+            return false;
+        }
+
+        try
+        {
+            _db.Products.Remove(p);
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException)
+        {
+            return false;
+        }
     }
 
     private async Task<string> SaveImageFileAsync(IFormFile file)

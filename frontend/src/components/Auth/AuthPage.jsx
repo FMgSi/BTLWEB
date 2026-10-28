@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './AuthPage.css';
 
 // SVG Logo chuẩn của Google (4 màu chính thức)
@@ -81,27 +81,8 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
         setErrorMessage(data.message || 'Tài khoản hoặc mật khẩu không chính xác.');
       }
     } catch (err) {
-      console.warn('Lỗi kết nối Backend API, sử dụng chế độ xác thực offline:', err);
-      // Fallback offline nếu backend chưa bật
-      if (
-        (loginInput.includes('admin') && loginPassword === 'Admin@123') ||
-        (loginInput.includes('khachhang') && loginPassword === 'User@123')
-      ) {
-        const isAdmin = loginInput.includes('admin');
-        const fallbackUser = {
-          id: isAdmin ? 1 : 2,
-          username: isAdmin ? 'admin' : 'khachhang',
-          email: isAdmin ? 'admin@pcstore.vn' : 'khachhang@gmail.com',
-          fullName: isAdmin ? 'Quản Trị Viên' : 'Nguyễn Văn A',
-          role: isAdmin ? 'Admin' : 'Customer',
-        };
-        setSuccessMessage('Đăng nhập thành công (Chế độ cục bộ)!');
-        setTimeout(() => {
-          if (onSuccess) onSuccess(fallbackUser);
-        }, 800);
-      } else {
-        setErrorMessage('Tài khoản hoặc mật khẩu không đúng. Vui lòng kiểm tra lại!');
-      }
+      console.error('Lỗi kết nối Backend API khi đăng nhập:', err);
+      setErrorMessage('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau!');
     } finally {
       setIsLoading(false);
     }
@@ -161,19 +142,8 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
         setErrorMessage(data.message || 'Đăng ký không thành công. Vui lòng thử lại!');
       }
     } catch (err) {
-      console.warn('Lỗi kết nối Backend API khi đăng ký:', err);
-      // Offline fallback
-      const newUser = {
-        id: Date.now(),
-        username: regUsername,
-        email: regEmail,
-        fullName: regFullName || regUsername,
-        role: 'Customer',
-      };
-      setSuccessMessage('Đăng ký tài khoản thành công (Cục bộ)!');
-      setTimeout(() => {
-        if (onSuccess) onSuccess(newUser);
-      }, 1000);
+      console.error('Lỗi kết nối Backend API khi đăng ký:', err);
+      setErrorMessage('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau!');
     } finally {
       setIsLoading(false);
     }
@@ -187,7 +157,7 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
     setShowGoogleModal(false);
 
     try {
-      const response = await fetch('http://localhost:5148/api/auth/google', {
+      const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,22 +175,11 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
           if (onSuccess) onSuccess(data.user);
         }, 800);
       } else {
-        setErrorMessage(data.message || 'Đăng nhập Google thất bại.');
+        setErrorMessage(data.message || 'Đăng nhập Google thất bại do tính năng này yêu cầu xác thực OAuth2 từ máy chủ.');
       }
     } catch (err) {
-      console.warn('Google Auth fallback:', err);
-      const fallbackUser = {
-        id: Date.now(),
-        username: googleEmail.split('@')[0],
-        email: googleEmail,
-        fullName: googleName || googleEmail.split('@')[0],
-        role: 'Customer',
-        avatarUrl: 'https://lh3.googleusercontent.com/a/default-user',
-      };
-      setSuccessMessage(`Đăng nhập Google (${googleEmail}) thành công!`);
-      setTimeout(() => {
-        if (onSuccess) onSuccess(fallbackUser);
-      }, 800);
+      console.error('Lỗi kết nối xác thực Google:', err);
+      setErrorMessage('Không thể kết nối đến máy chủ xác thực. Vui lòng thử lại sau!');
     } finally {
       setIsLoading(false);
     }
