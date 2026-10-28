@@ -1,0 +1,46 @@
+[
+  {
+    "Code": "LAPTOPMOI",
+    "Title": "Gi\u1EA3m gi\u00E1 laptop m\u1EDBi",
+    "DiscountType": "Gi\u1EA3m theo %",
+    "DiscountValueText": "5% (T\u1ED1i \u0111a 500k)",
+    "ConditionText": "\u0110\u01A1n t\u1EEB 15tr",
+    "UsageText": "45 / 100",
+    "ExpiryText": "15/10/2026 - 30/11/2026",
+    "Status": "\u0110ang ho\u1EA1t \u0111\u1ED9ng",
+    "StatusBadgeClass": "badge-in-stock"
+  },
+  {
+    "Code": "TRIAN99",
+    "Title": "Tri \u00E2n kh\u00E1ch h\u00E0ng",
+    "DiscountType": "Gi\u1EA3m s\u1ED1 ti\u1EC1n",
+    "DiscountValueText": "200.000\u0111",
+    "ConditionText": "\u0110\u01A1n t\u1EEB 10tr",
+    "UsageText": "89 / 200",
+    "ExpiryText": "01/10/2026 - 31/10/2026",
+    "Status": "\u0110ang ho\u1EA1t \u0111\u1ED9ng",
+    "StatusBadgeClass": "badge-in-stock"
+  },
+  {
+    "Code": "GAMINGX",
+    "Title": "\u0110\u1EA1i ti\u1EC7c Laptop Gaming",
+    "DiscountType": "Gi\u1EA3m s\u1ED1 ti\u1EC1n",
+    "DiscountValueText": "1.000.000\u0111",
+    "ConditionText": "Mua d\u00F2ng Gaming",
+    "UsageText": "10 / 10",
+    "ExpiryText": "10/10/2026 - 15/10/2026",
+    "Status": "H\u1EBFt h\u1EA1n",
+    "StatusBadgeClass": "badge-out-of-stock"
+  },
+  {
+    "Code": "WELCOME",
+    "Title": "Ch\u00E0o m\u1EEBng th\u00E0nh vi\u00EAn m\u1EDBi",
+    "DiscountType": "Gi\u1EA3m theo %",
+    "DiscountValueText": "3% (T\u1ED1i \u0111a 200k)",
+    "ConditionText": "\u0110\u01A1n h\u00E0ng \u0111\u1EA7u ti\u00EAn",
+    "UsageText": "120 / Kh\u00F4ng gi\u1EDBi h\u1EA1n",
+    "ExpiryText": "Kh\u00F4ng gi\u1EDBi h\u1EA1n",
+    "Status": "\u0110ang ho\u1EA1t \u0111\u1ED9ng",
+    "StatusBadgeClass": "badge-in-stock"
+  }
+]
