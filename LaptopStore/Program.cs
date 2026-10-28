@@ -40,8 +40,10 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 // =========================================================================
 
 // 1.1. Kết nối Cơ sở dữ liệu Microsoft SQL Server qua Entity Framework Core
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=(localdb)\\MSSQLLocalDB;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+var configuredConnStr = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
+var connStr = AutoDetectWorkingSqlServer(configuredConnStr);
 
 // Tự động khởi động và phân giải Named Pipe cho (localdb) (kế thừa cơ chế xử lý từ LapTrinhWeb - TvcLesson08Df)
 if (connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
@@ -294,5 +296,88 @@ catch (System.IO.IOException ex) when (ex.Message.Contains("address already in u
     catch
     {
         Console.WriteLine($"[Cảnh báo cổng 5148]: {ex.Message}");
+    }
+}
+
+// =========================================================================
+// TIỆN ÍCH TỰ ĐỘNG PHÁT HIỆN INSTANCE SQL SERVER KHẢ DỤNG TRÊN MÁY KHÁC
+// Hỗ trợ tự động chạy mượt mà trên mọi máy (SQLEXPRESS, LocalDB, localhost, .)
+// =========================================================================
+static string AutoDetectWorkingSqlServer(string initialConnStr)
+{
+    // 1. Nếu chuỗi cấu hình sẵn trong appsettings.json kết nối được ngay -> Sử dụng luôn
+    if (CanConnectToSqlServer(initialConnStr))
+    {
+        return initialConnStr;
+    }
+
+    // 2. Danh sách các instance SQL Server phổ biến trên máy tính Windows học tập/chấm bài
+    var candidateServers = new[]
+    {
+        "Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;",
+        "Server=(localdb)\\MSSQLLocalDB;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;",
+        "Server=localhost;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;",
+        "Server=.;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"
+    };
+
+    foreach (var candidate in candidateServers)
+    {
+        if (candidate.Equals(initialConnStr, StringComparison.OrdinalIgnoreCase)) continue;
+
+        if (candidate.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("sqllocaldb", "start MSSQLLocalDB")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+                p?.WaitForExit(2000);
+            }
+            catch { }
+        }
+
+        if (CanConnectToSqlServer(candidate))
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[*] Tự động phát hiện và kết nối thành công tới SQL Server: {GetServerName(candidate)}");
+            Console.ResetColor();
+            return candidate;
+        }
+    }
+
+    return initialConnStr;
+}
+
+static bool CanConnectToSqlServer(string connectionString)
+{
+    try
+    {
+        var csb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString)
+        {
+            ConnectTimeout = 2,
+            InitialCatalog = "master" // Thử kết nối tới database master của SQL Server
+        };
+        using var conn = new Microsoft.Data.SqlClient.SqlConnection(csb.ConnectionString);
+        conn.Open();
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static string GetServerName(string connectionString)
+{
+    try
+    {
+        var csb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+        return csb.DataSource;
+    }
+    catch
+    {
+        return connectionString;
     }
 }
