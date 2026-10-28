@@ -21,6 +21,18 @@ public class OrderService : IOrderService
             return (false, "Giỏ hàng rỗng, không thể tạo đơn hàng.", null);
         }
 
+        // Chống tạo đơn trùng lặp (Idempotent Request Handling)
+        if (!string.IsNullOrWhiteSpace(req.IdempotencyKey))
+        {
+            var existingOrder = await _db.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.IdempotencyKey == req.IdempotencyKey.Trim());
+            if (existingOrder != null)
+            {
+                return (true, "Đơn hàng đã được tiếp nhận thành công.", MapToResponseDto(existingOrder));
+            }
+        }
+
         // Bọc trong CreateExecutionStrategy để tương thích hoàn toàn với cấu hình EnableRetryOnFailure của SQL Server
         var strategy = _db.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync<(bool Success, string Message, OrderResponseDto? Order)>(async () =>
@@ -125,6 +137,7 @@ public class OrderService : IOrderService
                 var order = new Order
                 {
                     OrderCode = orderCode,
+                    IdempotencyKey = req.IdempotencyKey?.Trim(),
                     UserId = userId,
                     CustomerName = req.CustomerName.Trim(),
                     PhoneNumber = req.PhoneNumber.Trim(),
@@ -254,22 +267,42 @@ public class OrderService : IOrderService
 
                 var oldStatus = order.OrderStatus;
 
-                // 1. Kiểm tra bảng chuyển trạng thái hợp lệ (State Machine):
-                // "Đã hủy" là trạng thái kết thúc (Terminal state), không thể mở lại hay hủy tiếp
-                if (oldStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
-                {
-                    return (false, "Đơn hàng này đã bị hủy trước đó. Không thể thay đổi trạng thái của đơn đã hủy.");
-                }
-
-                // "Hoàn thành" là đơn đã giao thành công, không thể hủy
-                if (oldStatus.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase) && newStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
-                {
-                    return (false, "Đơn hàng đã hoàn thành và giao hàng thành công, không thể hủy đơn.");
-                }
-
                 if (oldStatus.Equals(newStatus, StringComparison.OrdinalIgnoreCase))
                 {
                     return (true, $"Đơn hàng hiện tại đã ở trạng thái '{newStatus}'.");
+                }
+
+                // 1. Kiểm tra máy trạng thái hữu hạn (Finite State Machine) - Chặn chuyển lùi hoặc trạng thái bất hợp lệ
+                var allowedTransitions = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "Chờ xác nhận", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Đang xử lý", "Đang giao", "Đang giao hàng", "Đã hủy" } },
+                    { "Đang xử lý",   new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã hủy" } },
+                    { "Đang giao",    new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Hoàn thành", "Đã hủy" } },
+                    { "Đang giao hàng", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Hoàn thành", "Đã hủy" } },
+                    { "Hoàn thành",   new HashSet<string>(StringComparer.OrdinalIgnoreCase) { } }, // Terminal: Đã giao khách, không thể đổi
+                    { "Đã hủy",       new HashSet<string>(StringComparer.OrdinalIgnoreCase) { } }  // Terminal: Đã hủy, không thể mở lại
+                };
+
+                if (allowedTransitions.TryGetValue(oldStatus, out var nextAllowed) && !nextAllowed.Contains(newStatus))
+                {
+                    return (false, $"Không thể chuyển trạng thái từ '{oldStatus}' sang '{newStatus}'. Luồng xử lý đơn hàng không cho phép thao tác này.");
+                }
+
+                // CHỐNG CONCURRENCY KHI HỦY ĐƠN:
+                // Cập nhật trạng thái có điều kiện trực tiếp tại CSDL để ngăn chặn hai request hủy đồng thời cùng hoàn kho
+                if (_db.Database.IsRelational())
+                {
+                    var updatedRows = await _db.Orders
+                        .Where(o => o.OrderId == orderId && o.OrderStatus == oldStatus && o.OrderStatus != "Đã hủy")
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(o => o.OrderStatus, newStatus)
+                            .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+
+                    if (updatedRows == 0)
+                    {
+                        await tx.RollbackAsync();
+                        return (false, "Trạng thái đơn hàng đã được cập nhật bởi một thao tác khác hoặc đơn đã bị hủy.");
+                    }
                 }
 
                 order.OrderStatus = newStatus;

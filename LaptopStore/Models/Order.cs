@@ -20,6 +20,12 @@ public class Order
     public string OrderCode { get; set; } = string.Empty;
 
     /// <summary>
+    /// Khóa Idempotency chống tạo đơn trùng lặp khi client gửi lại request
+    /// </summary>
+    [StringLength(100)]
+    public string? IdempotencyKey { get; set; }
+
+    /// <summary>
     /// Khóa ngoại liên kết tới tài khoản User (nếu khách đã đăng nhập)
     /// Cho phép null nếu khách mua hàng không đăng nhập (Guest Checkout)
     /// </summary>

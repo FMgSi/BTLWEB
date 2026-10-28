@@ -1,0 +1,356 @@
+/* ==========================================================================
+   LAPTOP WORLD - STOREFRONT CUSTOMER STYLESHEET (BOOTSTRAP 5.3 EXTENSION)
+   ========================================================================== */
+
+:root {
+    --store-primary: #0d6efd;
+    --store-primary-hover: #0b5ed7;
+    --store-accent: #dc3545;
+    --store-bg: #f8f9fa;
+    --store-card-bg: #ffffff;
+    --store-text-main: #212529;
+    --store-text-muted: #6c757d;
+    --store-border: #e9ecef;
+}
+
+body.storefront-body {
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--store-bg);
+    color: var(--store-text-main);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.storefront-main {
+    flex: 1 0 auto;
+}
+
+/* 1. TOP BAR */
+.storefront-topbar {
+    background-color: #f1f3f5;
+    border-bottom: 1px solid #e2e6ea;
+    font-size: 0.8125rem;
+}
+
+.topbar-link {
+    color: #495057;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.topbar-link:hover {
+    color: var(--store-primary);
+}
+
+/* 2. HEADER & LOGO */
+.storefront-logo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0d6efd 0%, #004ecc 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+}
+
+.storefront-logo-text {
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.5px;
+    color: #0b2545;
+    line-height: 1.1;
+    display: block;
+}
+
+.storefront-logo-sub {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--store-primary);
+    display: block;
+}
+
+.storefront-search-form .input-group {
+    border-radius: 50px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.storefront-search-form input:focus {
+    box-shadow: none;
+    border-color: #dee2e6;
+}
+
+/* 3. NAVIGATION PILLS */
+.storefront-nav {
+    border-top: 1px solid #eaedf0;
+    border-bottom: 1px solid #eaedf0;
+}
+
+.storefront-nav-list .nav-link {
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.storefront-nav-list .nav-link:hover {
+    color: var(--store-primary);
+    background-color: #e7f1ff;
+}
+
+.storefront-nav-list .nav-link.active {
+    color: #ffffff;
+    background-color: var(--store-primary);
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.25);
+}
+
+/* 4. PRODUCT CARDS */
+.product-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+    border-color: #b6d4fe;
+}
+
+.product-card-img-wrap {
+    position: relative;
+    padding-top: 70%;
+    background: #fbfbfb;
+    overflow: hidden;
+}
+
+.product-card-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-card-img {
+    transform: scale(1.05);
+}
+
+.product-badge-discount {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #e63946, #d90429);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(217, 4, 41, 0.3);
+}
+
+.product-brand-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--store-primary);
+    letter-spacing: 0.5px;
+}
+
+.product-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.4;
+    height: 2.8em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    color: #1e293b;
+    text-decoration: none;
+}
+
+.product-title:hover {
+    color: var(--store-primary);
+}
+
+.spec-badge {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.45rem;
+    border-radius: 4px;
+}
+
+.product-price-current {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #d90429;
+}
+
+.product-price-old {
+    font-size: 0.825rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+/* 5. FILTER SIDEBAR */
+.filter-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.filter-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #334155;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+}
+
+.filter-chip {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    margin: 0.2rem;
+    border-radius: 20px;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.filter-chip:hover {
+    background: #e2e8f0;
+    color: var(--store-primary);
+}
+
+.filter-chip.active {
+    background: #e7f1ff;
+    color: var(--store-primary);
+    border-color: #b6d4fe;
+}
+
+/* 6. PRODUCT DETAILS PAGE */
+.detail-gallery-main {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.detail-gallery-main img {
+    max-height: 420px;
+    object-fit: contain;
+}
+
+.detail-specs-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+}
+
+.detail-specs-table tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+.detail-price-box {
+    background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+    border: 1px solid #fecdd3;
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+/* 7. ORDER LOOKUP STEPPER */
+.order-stepper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 2rem 0;
+}
+
+.order-stepper::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    right: 40px;
+    height: 3px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+
+.stepper-step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    background: transparent;
+}
+
+.stepper-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-weight: 700;
+    color: #64748b;
+    transition: all 0.3s ease;
+}
+
+.stepper-step.completed .stepper-icon {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+}
+
+.stepper-step.active .stepper-icon {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2);
+}
+
+.stepper-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* 8. FOOTER LINKS */
+.footer-link {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+    color: #ffffff;
+}

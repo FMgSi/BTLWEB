@@ -43,7 +43,7 @@ public class AdminController : Controller
         return new SystemSettingsViewModel();
     }
 
-    private void SaveSettingsToFile(SystemSettingsViewModel settings)
+    private bool SaveSettingsToFile(SystemSettingsViewModel settings)
     {
         try
         {
@@ -51,8 +51,12 @@ public class AdminController : Controller
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
             var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             System.IO.File.WriteAllText(SettingsFilePath, json);
+            return true;
         }
-        catch { }
+        catch
+        {
+            return false;
+        }
     }
 
     private List<DiscountDto> LoadDiscounts()
@@ -63,14 +67,22 @@ public class AdminController : Controller
             {
                 var json = System.IO.File.ReadAllText(DiscountsFilePath);
                 var list = System.Text.Json.JsonSerializer.Deserialize<List<DiscountDto>>(json);
-                if (list != null && list.Count > 0) return list;
+                // Giữ nguyên danh sách đã lưu (kể cả rỗng khi người dùng đã xóa hết, không tự nạp đè)
+                if (list != null) return list;
+            }
+            else
+            {
+                // Chỉ nạp mẫu lần đầu tiên khi chưa có file cấu hình
+                var defaults = GetDefaultDiscounts();
+                SaveDiscountsToFile(defaults);
+                return defaults;
             }
         }
         catch { }
-        return GetDefaultDiscounts();
+        return new List<DiscountDto>();
     }
 
-    private void SaveDiscountsToFile(List<DiscountDto> list)
+    private bool SaveDiscountsToFile(List<DiscountDto> list)
     {
         try
         {
@@ -78,8 +90,12 @@ public class AdminController : Controller
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
             var json = System.Text.Json.JsonSerializer.Serialize(list, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             System.IO.File.WriteAllText(DiscountsFilePath, json);
+            return true;
         }
-        catch { }
+        catch
+        {
+            return false;
+        }
     }
 
     private static List<DiscountDto> GetDefaultDiscounts() => new()
@@ -414,9 +430,14 @@ public class AdminController : Controller
             Status = "Đang hoạt động",
             StatusBadgeClass = "badge-in-stock"
         });
-        SaveDiscountsToFile(discounts);
-
-        TempData["Success"] = $"Đã tạo mã giảm giá {code.ToUpper()} thành công!";
+        if (SaveDiscountsToFile(discounts))
+        {
+            TempData["Success"] = $"Đã tạo mã giảm giá {code.ToUpper()} thành công!";
+        }
+        else
+        {
+            TempData["Error"] = "Không thể ghi tệp mã giảm giá. Vui lòng kiểm tra quyền thư mục App_Data!";
+        }
         return RedirectToAction(nameof(Discounts));
     }
 
@@ -432,8 +453,11 @@ public class AdminController : Controller
         if (item != null)
         {
             discounts.Remove(item);
-            SaveDiscountsToFile(discounts);
-            return Json(new { success = true, message = "Đã xóa mã giảm giá thành công" });
+            if (SaveDiscountsToFile(discounts))
+            {
+                return Json(new { success = true, message = "Đã xóa mã giảm giá thành công" });
+            }
+            return Json(new { success = false, message = "Lỗi khi ghi tệp lưu trữ mã giảm giá" });
         }
         return Json(new { success = false, message = "Không tìm thấy mã giảm giá" });
     }
@@ -455,8 +479,14 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult SaveSettings(SystemSettingsViewModel model, string activeTab = "payments")
     {
-        SaveSettingsToFile(model);
-        TempData["Success"] = "Đã lưu toàn bộ cấu hình hệ thống thành công!";
+        if (SaveSettingsToFile(model))
+        {
+            TempData["Success"] = "Đã lưu toàn bộ cấu hình hệ thống thành công!";
+        }
+        else
+        {
+            TempData["Error"] = "Lỗi khi ghi tệp cấu hình hệ thống. Vui lòng kiểm tra quyền thư mục App_Data!";
+        }
         return RedirectToAction(nameof(Settings), new { activeTab });
     }
 

@@ -25,6 +25,11 @@ public class CreateOrderRequest
     [Required]
     public string PaymentMethod { get; set; } = "COD"; // "COD", "VietQR", "Banking", "VNPAY"
 
+    /// <summary>
+    /// Khóa idempotency từ client chống tạo đơn hàng trùng lặp
+    /// </summary>
+    public string? IdempotencyKey { get; set; }
+
     [Required]
     [MinLength(1, ErrorMessage = "Giỏ hàng phải có ít nhất 1 sản phẩm để đặt hàng")]
     public List<CreateOrderItemRequest> Items { get; set; } = new();

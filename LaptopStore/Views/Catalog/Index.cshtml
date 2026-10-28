@@ -1,0 +1,266 @@
+@model LaptopStore.ViewModels.Storefront.CatalogViewModel
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = !string.IsNullOrEmpty(Model.Category) 
+        ? Model.Category 
+        : (!string.IsNullOrEmpty(Model.Brand) ? $"Laptop {Model.Brand}" : "Tất cả Laptop Chính Hãng");
+}
+
+<div class="container">
+    <!-- Breadcrumb & Tiêu đề -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/Catalog" class="text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Danh mục Laptop</li>
+            @if (!string.IsNullOrEmpty(Model.Brand))
+            {
+                <li class="breadcrumb-item active" aria-current="page">@Model.Brand</li>
+            }
+            @if (!string.IsNullOrEmpty(Model.Category))
+            {
+                <li class="breadcrumb-item active" aria-current="page">@Model.Category</li>
+            }
+        </ol>
+    </nav>
+
+    <!-- Header danh mục với số lượng kết quả -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 bg-white p-3 rounded-3 border">
+        <div>
+            <h1 class="h4 fw-bold mb-1 text-dark">
+                @if (!string.IsNullOrEmpty(Model.Search))
+                {
+                    <span>Kết quả tìm kiếm cho: "@Model.Search"</span>
+                }
+                else if (!string.IsNullOrEmpty(Model.Brand))
+                {
+                    <span>Laptop @Model.Brand</span>
+                }
+                else if (!string.IsNullOrEmpty(Model.Category))
+                {
+                    <span>@Model.Category</span>
+                }
+                else
+                {
+                    <span>Tất cả Laptop Chính Hãng</span>
+                }
+            </h1>
+            <p class="text-muted small mb-0">Tìm thấy <strong>@Model.TotalItems</strong> sản phẩm sẵn sàng giao nhanh</p>
+        </div>
+
+        <!-- Sắp xếp -->
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted text-nowrap fw-semibold">Sắp xếp theo:</label>
+            <form method="get" action="/Catalog" id="sortForm">
+                @if (!string.IsNullOrEmpty(Model.Search)) { <input type="hidden" name="q" value="@Model.Search" /> }
+                @if (!string.IsNullOrEmpty(Model.Brand)) { <input type="hidden" name="brand" value="@Model.Brand" /> }
+                @if (!string.IsNullOrEmpty(Model.Category)) { <input type="hidden" name="category" value="@Model.Category" /> }
+                @if (!string.IsNullOrEmpty(Model.PriceRange)) { <input type="hidden" name="priceRange" value="@Model.PriceRange" /> }
+
+                <select name="sort" class="form-select form-select-sm fw-semibold" onchange="document.getElementById('sortForm').submit()">
+                    <option value="newest" selected="@(Model.SortBy == "newest")">Mới nhất</option>
+                    <option value="price_asc" selected="@(Model.SortBy == "price_asc")">Giá tăng dần</option>
+                    <option value="price_desc" selected="@(Model.SortBy == "price_desc")">Giá giảm dần</option>
+                    <option value="name_asc" selected="@(Model.SortBy == "name_asc")">Tên A - Z</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ==================== CỘT TRÁI: BỘ LỌC TÌM KIẾM ==================== -->
+        <div class="col-12 col-lg-3">
+            <div class="filter-card p-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="filter-title mb-0"><i class="bi bi-funnel-fill text-primary me-1"></i> Bộ lọc tìm kiếm</span>
+                    <a href="/Catalog" class="text-danger small text-decoration-none fw-semibold">Xóa tất cả</a>
+                </div>
+
+                <!-- Lọc Thương hiệu -->
+                <div class="mb-4">
+                    <div class="filter-title">Hãng sản xuất</div>
+                    <div class="d-flex flex-wrap">
+                        @foreach (var brand in Model.AvailableBrands)
+                        {
+                            var isActive = string.Equals(Model.Brand, brand, StringComparison.OrdinalIgnoreCase);
+                            <a href="/Catalog?@(BuildQueryString(Model, newBrand: isActive ? "" : brand))" 
+                               class="filter-chip @(isActive ? "active" : "")">
+                                @brand
+                            </a>
+                        }
+                    </div>
+                </div>
+
+                <!-- Lọc Nhu cầu sử dụng / Danh mục -->
+                <div class="mb-4">
+                    <div class="filter-title">Nhu cầu sử dụng</div>
+                    <div class="d-flex flex-wrap">
+                        @foreach (var cat in Model.AvailableCategories)
+                        {
+                            var isActive = string.Equals(Model.Category, cat, StringComparison.OrdinalIgnoreCase);
+                            <a href="/Catalog?@(BuildQueryString(Model, newCategory: isActive ? "" : cat))" 
+                               class="filter-chip @(isActive ? "active" : "")">
+                                @cat
+                            </a>
+                        }
+                    </div>
+                </div>
+
+                <!-- Lọc Mức giá -->
+                <div>
+                    <div class="filter-title">Mức giá</div>
+                    <div class="d-flex flex-column gap-1">
+                        <a href="/Catalog?@(BuildQueryString(Model, newPriceRange: Model.PriceRange == "under15" ? "" : "under15"))" 
+                           class="filter-chip @(Model.PriceRange == "under15" ? "active" : "")">
+                            Dưới 15 triệu
+                        </a>
+                        <a href="/Catalog?@(BuildQueryString(Model, newPriceRange: Model.PriceRange == "15to20" ? "" : "15to20"))" 
+                           class="filter-chip @(Model.PriceRange == "15to20" ? "active" : "")">
+                            Từ 15 - 20 triệu
+                        </a>
+                        <a href="/Catalog?@(BuildQueryString(Model, newPriceRange: Model.PriceRange == "20to30" ? "" : "20to30"))" 
+                           class="filter-chip @(Model.PriceRange == "20to30" ? "active" : "")">
+                            Từ 20 - 30 triệu
+                        </a>
+                        <a href="/Catalog?@(BuildQueryString(Model, newPriceRange: Model.PriceRange == "over30" ? "" : "over30"))" 
+                           class="filter-chip @(Model.PriceRange == "over30" ? "active" : "")">
+                            Trên 30 triệu
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CỘT PHẢI: LƯỚI SẢN PHẨM ==================== -->
+        <div class="col-12 col-lg-9">
+            @if (Model.Products.Items == null || !Model.Products.Items.Any())
+            {
+                <div class="text-center py-5 bg-white rounded-3 border">
+                    <i class="bi bi-search text-muted display-3 mb-3 d-block"></i>
+                    <h5 class="fw-bold">Không tìm thấy sản phẩm nào phù hợp</h5>
+                    <p class="text-muted small mb-3">Vui lòng thử điều chỉnh lại bộ lọc giá, thương hiệu hoặc từ khóa tìm kiếm.</p>
+                    <a href="/Catalog" class="btn btn-primary px-4 fw-semibold">Xem tất cả laptop</a>
+                </div>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3 mb-4">
+                    @foreach (var product in Model.Products.Items)
+                    {
+                        <div class="col">
+                            <div class="product-card shadow-sm">
+                                <!-- Ảnh sản phẩm -->
+                                <div class="product-card-img-wrap">
+                                    <a href="/Catalog/Details/@product.Id">
+                                        <img src="@(string.IsNullOrEmpty(product.Image) ? "/images/products/placeholder.png" : product.Image)" 
+                                             alt="@product.Name" 
+                                             class="product-card-img" 
+                                             loading="lazy" 
+                                             onerror="this.src='/images/products/placeholder.png'" />
+                                    </a>
+
+                                    @if (product.OriginalPrice.HasValue && product.OriginalPrice > product.Price)
+                                    {
+                                        var discountPercent = (int)Math.Round((1 - (product.Price / product.OriginalPrice.Value)) * 100);
+                                        <span class="product-badge-discount">-@discountPercent%</span>
+                                    }
+                                </div>
+
+                                <!-- Nội dung thông tin -->
+                                <div class="p-3 d-flex flex-column flex-grow-1 justify-content-between">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="product-brand-tag">@product.Brand</span>
+                                            <span class="badge bg-light text-secondary border small">@product.Category</span>
+                                        </div>
+
+                                        <h3 class="h6 mb-2">
+                                            <a href="/Catalog/Details/@product.Id" class="product-title" title="@product.Name">
+                                                @product.Name
+                                            </a>
+                                        </h3>
+
+                                        <!-- Thông số cấu hình tóm tắt -->
+                                        @if (!string.IsNullOrEmpty(product.Specs))
+                                        {
+                                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                                <span class="spec-badge"><i class="bi bi-cpu me-1"></i>@product.Specs</span>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Giá và CTA -->
+                                    <div class="pt-2 border-top">
+                                        <div class="d-flex align-items-baseline gap-2 mb-2">
+                                            <span class="product-price-current">@product.Price.ToString("N0")đ</span>
+                                            @if (product.OriginalPrice.HasValue && product.OriginalPrice > product.Price)
+                                            {
+                                                <span class="product-price-old">@product.OriginalPrice.Value.ToString("N0")đ</span>
+                                            }
+                                        </div>
+
+                                        <div class="d-grid gap-2">
+                                            <a href="/Catalog/Details/@product.Id" class="btn btn-outline-primary btn-sm fw-semibold">
+                                                <i class="bi bi-eye me-1"></i> Xem chi tiết
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Phân trang -->
+                @if (Model.TotalPages > 1)
+                {
+                    <nav aria-label="Page navigation" class="d-flex justify-content-center my-4">
+                        <ul class="pagination pagination-sm">
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="/Catalog?@(BuildQueryString(Model, newPage: Model.CurrentPage - 1))">
+                                    <i class="bi bi-chevron-left"></i> Trước
+                                </a>
+                            </li>
+
+                            @for (int p = 1; p <= Model.TotalPages; p++)
+                            {
+                                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="/Catalog?@(BuildQueryString(Model, newPage: p))">@p</a>
+                                </li>
+                            }
+
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="/Catalog?@(BuildQueryString(Model, newPage: Model.CurrentPage + 1))">
+                                    Sau <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    public static string BuildQueryString(LaptopStore.ViewModels.Storefront.CatalogViewModel model, string? newBrand = null, string? newCategory = null, string? newPriceRange = null, int? newPage = null)
+    {
+        var dict = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(model.Search)) dict["q"] = model.Search;
+
+        var b = newBrand ?? model.Brand;
+        if (!string.IsNullOrEmpty(b)) dict["brand"] = b;
+
+        var c = newCategory ?? model.Category;
+        if (!string.IsNullOrEmpty(c)) dict["category"] = c;
+
+        var pr = newPriceRange ?? model.PriceRange;
+        if (!string.IsNullOrEmpty(pr)) dict["priceRange"] = pr;
+
+        if (!string.IsNullOrEmpty(model.SortBy) && model.SortBy != "newest") dict["sort"] = model.SortBy;
+
+        var p = newPage ?? 1;
+        if (p > 1) dict["page"] = p.ToString();
+
+        return string.Join("&", dict.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
+    }
+}

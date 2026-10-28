@@ -1,0 +1,174 @@
+@model LaptopStore.ViewModels.OrderResponseDto
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Tra cứu đơn hàng";
+    var orderCode = ViewBag.OrderCode as string;
+    var phone = ViewBag.Phone as string;
+    var error = ViewBag.ErrorMessage as string;
+    var isVerified = ViewBag.IsVerified as bool? ?? false;
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <!-- Thẻ tìm kiếm đơn hàng -->
+            <div class="bg-white p-4 rounded-3 border shadow-sm mb-4">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex p-3 rounded-circle bg-primary-subtle text-primary mb-2">
+                        <i class="bi bi-search fs-3"></i>
+                    </div>
+                    <h1 class="h4 fw-bold">Tra cứu tiến độ đơn hàng</h1>
+                    <p class="text-muted small mb-0">Nhập mã đơn hàng và số điện thoại đặt hàng để kiểm tra trạng thái vận chuyển</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                        <div>@error</div>
+                    </div>
+                }
+
+                <form method="get" action="/Catalog/Lookup" class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold">Mã đơn hàng <span class="text-danger">*</span></label>
+                        <input type="text" name="orderCode" class="form-control" placeholder="Ví dụ: PC20261028-1234" value="@orderCode" required />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label small fw-semibold">Số điện thoại nhận hàng</label>
+                        <input type="text" name="phone" class="form-control" placeholder="Nhập để xem đầy đủ địa chỉ nhận" value="@phone" />
+                    </div>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5 fw-semibold">
+                            <i class="bi bi-search me-1"></i> Tra cứu ngay
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Hiển thị kết quả tra cứu đơn hàng -->
+            @if (Model != null)
+            {
+                <div class="bg-white p-4 rounded-3 border shadow-sm mb-4">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 border-bottom pb-3 mb-4">
+                        <div>
+                            <span class="badge bg-primary me-2">Mã đơn: @Model.OrderCode</span>
+                            <span class="text-muted small">Ngày đặt: @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div>
+                            <span class="badge @(Model.OrderStatus == "Hoàn thành" ? "bg-success" : (Model.OrderStatus == "Đã hủy" ? "bg-danger" : "bg-warning text-dark")) fs-6">
+                                @Model.OrderStatus
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Tiến trình xử lý (Stepper) -->
+                    @if (Model.OrderStatus != "Đã hủy")
+                    {
+                        var status = Model.OrderStatus;
+                        var isStep1Done = true;
+                        var isStep2Done = status == "Đang xử lý" || status == "Đang giao" || status == "Đang giao hàng" || status == "Hoàn thành";
+                        var isStep3Done = status == "Đang giao" || status == "Đang giao hàng" || status == "Hoàn thành";
+                        var isStep4Done = status == "Hoàn thành";
+
+                        <div class="order-stepper">
+                            <div class="stepper-step @(isStep1Done ? "completed" : "")">
+                                <div class="stepper-icon"><i class="bi bi-card-checklist"></i></div>
+                                <div class="stepper-title">Chờ xác nhận</div>
+                            </div>
+                            <div class="stepper-step @(isStep2Done ? (status == "Đang xử lý" ? "active" : "completed") : "")">
+                                <div class="stepper-icon"><i class="bi bi-box-seam"></i></div>
+                                <div class="stepper-title">Đang xử lý</div>
+                            </div>
+                            <div class="stepper-step @(isStep3Done ? (status.Contains("giao") ? "active" : "completed") : "")">
+                                <div class="stepper-icon"><i class="bi bi-truck"></i></div>
+                                <div class="stepper-title">Đang giao hàng</div>
+                            </div>
+                            <div class="stepper-step @(isStep4Done ? "completed" : "")">
+                                <div class="stepper-icon"><i class="bi bi-check-circle-fill"></i></div>
+                                <div class="stepper-title">Hoàn thành</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+                            <i class="bi bi-x-circle-fill fs-4 flex-shrink-0"></i>
+                            <div>Đơn hàng này đã bị hủy. Mọi thắc mắc vui lòng liên hệ tổng đài <strong>1900 8888</strong> để được hỗ trợ.</div>
+                        </div>
+                    }
+
+                    <!-- Chi tiết thông tin giao nhận -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 bg-light rounded-3 h-100">
+                                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-person-fill text-primary me-1"></i> Thông tin người nhận</h6>
+                                <div class="small">
+                                    <div><strong>Họ tên:</strong> @(isVerified ? Model.CustomerName : Model.CustomerName.Substring(0, Math.Min(3, Model.CustomerName.Length)) + "****")</div>
+                                    <div><strong>Số điện thoại:</strong> @(isVerified ? Model.PhoneNumber : Model.PhoneNumber.Substring(0, Math.Min(3, Model.PhoneNumber.Length)) + "****" + Model.PhoneNumber.Substring(Math.Max(0, Model.PhoneNumber.Length - 3)))</div>
+                                    <div><strong>Địa chỉ:</strong> @(isVerified ? Model.ShippingAddress : "*** (Vui lòng nhập đúng SĐT để xem)")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 bg-light rounded-3 h-100">
+                                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-credit-card-fill text-success me-1"></i> Thanh toán</h6>
+                                <div class="small">
+                                    <div><strong>Phương thức:</strong> @Model.PaymentMethod</div>
+                                    <div><strong>Trạng thái:</strong> <span class="badge @(Model.PaymentStatus == "Đã thanh toán" ? "bg-success" : "bg-warning text-dark")">@Model.PaymentStatus</span></div>
+                                    <div><strong>Tổng tiền đơn:</strong> <strong class="text-danger fs-6">@Model.TotalAmount.ToString("N0")đ</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách sản phẩm trong đơn -->
+                    <h6 class="fw-bold mb-3"><i class="bi bi-bag-check-fill text-primary me-1"></i> Mặt hàng đã đặt</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-center" style="width: 100px;">Đơn giá</th>
+                                    <th class="text-center" style="width: 80px;">SL</th>
+                                    <th class="text-end" style="width: 120px;">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(item.ThumbnailUrl))
+                                                {
+                                                    <img src="@item.ThumbnailUrl" alt="@item.ProductName" style="width: 45px; height: 35px; object-fit: contain;" />
+                                                }
+                                                <div>
+                                                    <div class="fw-semibold">@item.ProductName</div>
+                                                    @if (!string.IsNullOrEmpty(item.SelectedSpecs))
+                                                    {
+                                                        <div class="text-muted" style="font-size: 0.75rem;">@item.SelectedSpecs</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">@item.UnitPrice.ToString("N0")đ</td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-end fw-bold text-danger">@item.TotalPrice.ToString("N0")đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Tổng thanh toán:</td>
+                                    <td class="text-end fw-bold fs-6 text-danger">@Model.TotalAmount.ToString("N0")đ</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

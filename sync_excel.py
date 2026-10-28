@@ -10,15 +10,20 @@ import xml.etree.ElementTree as ET
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-XLSX_PATH = os.path.join(BASE_DIR, 'frontend', 'public', 'data_laptop.xlsx')
+# Ưu tiên đọc từ data/imports/data_laptop.xlsx, dự phòng frontend/public/data_laptop.xlsx
+XLSX_PATHS = [
+    os.path.join(BASE_DIR, 'data', 'imports', 'data_laptop.xlsx'),
+    os.path.join(BASE_DIR, 'frontend', 'public', 'data_laptop.xlsx')
+]
+XLSX_PATH = next((p for p in XLSX_PATHS if os.path.exists(p)), None)
 WWWROOT_PRODUCTS = os.path.join(BASE_DIR, 'LaptopStore', 'wwwroot', 'images', 'products')
 WWWROOT_BRANDS = os.path.join(BASE_DIR, 'LaptopStore', 'wwwroot', 'images', 'brands')
 REACT_PRODUCTS = os.path.join(BASE_DIR, 'frontend', 'public', 'images', 'products')
 REACT_BRANDS = os.path.join(BASE_DIR, 'frontend', 'public', 'images', 'brands')
-SQL_FILE = os.path.join(BASE_DIR, 'sql-init', 'init-db.sql')
+SQL_FILE = os.path.join(BASE_DIR, 'sql-init', 'import-products.sql')
 
-if not os.path.exists(XLSX_PATH):
-    print(f"❌ Không tìm thấy file: {XLSX_PATH}")
+if not XLSX_PATH:
+    print(f"❌ Không tìm thấy file Excel tại: {XLSX_PATHS}")
     sys.exit(1)
 
 print(f"📊 Đang đọc file Excel: {XLSX_PATH} ...")
@@ -156,71 +161,69 @@ for p in products_list:
 if copied_images > 0:
     print(f"-> Đã tự động tạo {copied_images} ảnh placeholder cho các sản phẩm mới thêm trong Excel.")
 
-# Tạo file SQL
+# Tạo file SQL Server (KHÔNG xóa bảng, KHÔNG dùng cú pháp MySQL)
 sql_lines = [
-    "-- Tự động sinh từ Excel bằng sync_excel.py",
+    "-- =========================================================================",
+    "-- Tự động sinh từ Excel bằng sync_excel.py cho Microsoft SQL Server",
+    "-- Thực thi an toàn: Sử dụng IF NOT EXISTS để nạp bổ sung, KHÔNG xóa dữ liệu",
+    "-- =========================================================================",
     "USE LaptopStoreDb;",
-    "",
-    "SET FOREIGN_KEY_CHECKS = 0;",
-    "DELETE FROM ProductImages;",
-    "DELETE FROM ProductSpecifications;",
-    "DELETE FROM Products;",
-    "DELETE FROM Categories;",
-    "DELETE FROM Brands;",
-    "ALTER TABLE Brands AUTO_INCREMENT = 1;",
-    "ALTER TABLE Categories AUTO_INCREMENT = 1;",
-    "ALTER TABLE Products AUTO_INCREMENT = 1;",
-    "ALTER TABLE ProductSpecifications AUTO_INCREMENT = 1;",
-    "ALTER TABLE ProductImages AUTO_INCREMENT = 1;",
-    "SET FOREIGN_KEY_CHECKS = 1;",
+    "GO",
     "",
     "-- 1. Brands",
-    "INSERT INTO Brands (BrandId, BrandName, LogoUrl, Description) VALUES"
+    "SET IDENTITY_INSERT Brands ON;",
+    "GO"
 ]
 
 def esc(val):
     return str(val or '').replace("'", "''")
 
-b_vals = [f"({b['id']}, '{esc(b['name'])}', '{esc(b['logo'])}', '{esc(b['desc'])}')" for b in brands_list]
-sql_lines.append(",\n".join(b_vals) + ";\n")
+for b in brands_list:
+    sql_lines.append(f"IF NOT EXISTS (SELECT 1 FROM Brands WHERE BrandId = {b['id']})")
+    sql_lines.append(f"    INSERT INTO Brands (BrandId, BrandName, LogoUrl, Description) VALUES ({b['id']}, N'{esc(b['name'])}', N'{esc(b['logo'])}', N'{esc(b['desc'])}');")
+
+sql_lines.append("GO")
+sql_lines.append("SET IDENTITY_INSERT Brands OFF;")
+sql_lines.append("GO")
+sql_lines.append("")
 
 sql_lines.append("-- 2. Categories")
-sql_lines.append("INSERT INTO Categories (CategoryId, CategoryName, Description) VALUES")
-c_vals = [f"({c['id']}, '{esc(c['name'])}', '{esc(c['desc'])}')" for c in categories_list]
-sql_lines.append(",\n".join(c_vals) + ";\n")
+sql_lines.append("SET IDENTITY_INSERT Categories ON;")
+sql_lines.append("GO")
+for c in categories_list:
+    sql_lines.append(f"IF NOT EXISTS (SELECT 1 FROM Categories WHERE CategoryId = {c['id']})")
+    sql_lines.append(f"    INSERT INTO Categories (CategoryId, CategoryName, Description) VALUES ({c['id']}, N'{esc(c['name'])}', N'{esc(c['desc'])}');")
 
-sql_lines.append("-- 3. Products")
-sql_lines.append("INSERT INTO Products (ProductId, ProductName, BrandId, CategoryId, Price, DiscountPrice, StockQuantity, ThumbnailUrl, Description, IsActive) VALUES")
-p_vals = []
+sql_lines.append("GO")
+sql_lines.append("SET IDENTITY_INSERT Categories OFF;")
+sql_lines.append("GO")
+sql_lines.append("")
+
+sql_lines.append("-- 3. Products & Specifications")
+sql_lines.append("SET IDENTITY_INSERT Products ON;")
+sql_lines.append("GO")
 for p in products_list:
     d_p = f"{p['discount_price']:.2f}" if p['discount_price'] else "NULL"
-    p_vals.append(f"({p['id']}, '{esc(p['name'])}', {p['brand_id']}, {p['category_id']}, {p['price']:.2f}, {d_p}, {p['stock']}, '{esc(p['thumbnail'])}', '{esc(p['desc'])}', 1)")
-sql_lines.append(",\n".join(p_vals) + ";\n")
+    sql_lines.append(f"IF NOT EXISTS (SELECT 1 FROM Products WHERE ProductId = {p['id']})")
+    sql_lines.append(f"    INSERT INTO Products (ProductId, ProductName, BrandId, CategoryId, Price, DiscountPrice, StockQuantity, ThumbnailUrl, Description, IsActive) VALUES ({p['id']}, N'{esc(p['name'])}', {p['brand_id']}, {p['category_id']}, {p['price']:.2f}, {d_p}, {p['stock']}, N'{esc(p['thumbnail'])}', N'{esc(p['desc'])}', 1);")
+
+sql_lines.append("GO")
+sql_lines.append("SET IDENTITY_INSERT Products OFF;")
+sql_lines.append("GO")
+sql_lines.append("")
 
 sql_lines.append("-- 4. ProductSpecifications")
-sql_lines.append("INSERT INTO ProductSpecifications (ProductId, CPU, RamGB, StorageGB, StorageType, GPU, ScreenSizeInch, RefreshRateHz, WeightKg, BatteryWh, OS) VALUES")
-s_vals = []
 for p in products_list:
     s = p['spec']
-    s_vals.append(f"({p['id']}, '{esc(s['cpu'])}', {s['ram']}, {s['storage']}, '{esc(s['storageType'])}', '{esc(s['gpu'])}', {s['screen']}, {s['refresh']}, {s['weight']}, {s['battery']}, '{esc(s['os'])}')")
-sql_lines.append(",\n".join(s_vals) + ";\n")
+    sql_lines.append(f"IF NOT EXISTS (SELECT 1 FROM ProductSpecifications WHERE ProductId = {p['id']})")
+    sql_lines.append(f"    INSERT INTO ProductSpecifications (ProductId, CPU, RamGB, StorageGB, StorageType, GPU, ScreenSizeInch, RefreshRateHz, WeightKg, BatteryWh, OS) VALUES ({p['id']}, N'{esc(s['cpu'])}', {s['ram']}, {s['storage']}, N'{esc(s['storageType'])}', N'{esc(s['gpu'])}', {s['screen']}, {s['refresh']}, {s['weight']}, {s['battery']}, N'{esc(s['os'])}');")
+
+sql_lines.append("GO")
 
 sql_content = "\n".join(sql_lines)
 with open(SQL_FILE, 'w', encoding='utf-8') as f:
     f.write(sql_content)
 
-print(f"✔ Đã cập nhật file: {SQL_FILE}")
-
-# Nạp vào MySQL qua Docker container mysql-local
-print("🔄 Đang cập nhật vào MySQL database LaptopStoreDb ...")
-try:
-    cmd = 'docker exec -i mysql-local mysql -u root -proot --default-character-set=utf8mb4'
-    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = proc.communicate(input=sql_content.encode('utf-8'))
-    if proc.returncode == 0:
-        print(f"🎉 THÀNH CÔNG! Đã đồng bộ {len(products_list)} sản phẩm từ Excel vào MySQL Database!")
-    else:
-        print(f"⚠️ Không thể chạy qua docker exec: {stderr.decode('utf-8', errors='ignore')}")
-        print("Bạn có thể nạp thủ công file sql-init/init-db.sql vào MySQL.")
-except Exception as ex:
-    print(f"Lỗi kết nối MySQL: {ex}")
+print(f"✔ Đã tạo file script SQL Server an toàn: {SQL_FILE}")
+print(f"🎉 THÀNH CÔNG! Đã xuất {len(products_list)} sản phẩm từ Excel thành script SQL Server.")
+print("Script sử dụng IF NOT EXISTS và bảo toàn toàn bộ dữ liệu đơn hàng, thanh toán và tài khoản hiện tại.")

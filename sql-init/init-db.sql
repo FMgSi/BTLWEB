@@ -92,13 +92,22 @@ CREATE TABLE Users (
     Email NVARCHAR(100) NOT NULL,
     PasswordHash NVARCHAR(255) NOT NULL,
     FullName NVARCHAR(100) NULL,
+    PhoneNumber NVARCHAR(20) NULL,
     Role NVARCHAR(20) NOT NULL DEFAULT 'Customer',
     GoogleId NVARCHAR(100) NULL,
     AvatarUrl NVARCHAR(255) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     CONSTRAINT IX_Users_Username UNIQUE (Username),
     CONSTRAINT IX_Users_Email UNIQUE (Email)
 );
+GO
+
+-- Nâng cấp an toàn cho database đã tồn tại
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'IsActive')
+    ALTER TABLE Users ADD IsActive BIT NOT NULL DEFAULT 1;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'PhoneNumber')
+    ALTER TABLE Users ADD PhoneNumber NVARCHAR(20) NULL;
 GO
 
 -- 7. Bảng Đơn đặt hàng (Orders)
@@ -118,11 +127,29 @@ CREATE TABLE Orders (
     PaymentMethod NVARCHAR(50) NOT NULL DEFAULT 'COD',
     PaymentStatus NVARCHAR(50) NOT NULL DEFAULT N'Chờ thanh toán',
     OrderStatus NVARCHAR(50) NOT NULL DEFAULT N'Đang xử lý',
+    IdempotencyKey NVARCHAR(100) NULL,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     UpdatedAt DATETIME NULL,
     CONSTRAINT IX_Orders_OrderCode UNIQUE (OrderCode),
     CONSTRAINT FK_Orders_Users_UserId FOREIGN KEY (UserId) REFERENCES Users (UserId) ON DELETE SET NULL
 );
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'IdempotencyKey')
+    ALTER TABLE Orders ADD IdempotencyKey NVARCHAR(100) NULL;
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Orders_IdempotencyKey' AND object_id = OBJECT_ID('Orders'))
+    CREATE NONCLUSTERED INDEX IX_Orders_IdempotencyKey ON Orders (IdempotencyKey) WHERE IdempotencyKey IS NOT NULL;
+GO
+
+-- Ràng buộc CHECK constraints bảo vệ tính toàn vẹn dữ liệu
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_Products_Price')
+    ALTER TABLE Products ADD CONSTRAINT CK_Products_Price CHECK (Price >= 0);
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_Products_StockQuantity')
+    ALTER TABLE Products ADD CONSTRAINT CK_Products_StockQuantity CHECK (StockQuantity >= 0);
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_OrderItems_Quantity')
+    ALTER TABLE OrderItems ADD CONSTRAINT CK_OrderItems_Quantity CHECK (Quantity > 0);
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_OrderItems_UnitPrice')
+    ALTER TABLE OrderItems ADD CONSTRAINT CK_OrderItems_UnitPrice CHECK (UnitPrice >= 0);
 GO
 
 -- 8. Bảng Chi tiết mặt hàng trong đơn (OrderItems)

@@ -1,0 +1,254 @@
+@model LaptopStore.ViewModels.ProductDetailDto
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = Model.Name;
+    var related = ViewBag.RelatedProducts as List<LaptopStore.ViewModels.ProductApiDto> ?? new();
+}
+
+<div class="container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/Catalog" class="text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/Catalog?category=@Uri.EscapeDataString(Model.Category)" class="text-decoration-none">@Model.Category</a></li>
+            <li class="breadcrumb-item"><a href="/Catalog?brand=@Uri.EscapeDataString(Model.Brand)" class="text-decoration-none">@Model.Brand</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <!-- Khối Thông tin chính của Laptop -->
+    <div class="row g-4 mb-5">
+        <!-- Cột trái: Ảnh sản phẩm và Thư viện ảnh -->
+        <div class="col-12 col-lg-6">
+            <div class="detail-gallery-main shadow-sm mb-3">
+                <img id="mainProductImg" 
+                     src="@(string.IsNullOrEmpty(Model.Image) ? "/images/products/placeholder.png" : Model.Image)" 
+                     alt="@Model.Name" 
+                     class="img-fluid" 
+                     onerror="this.src='/images/products/placeholder.png'" />
+            </div>
+
+            @if (Model.Images != null && Model.Images.Count > 1)
+            {
+                <div class="d-flex gap-2 overflow-x-auto pb-2">
+                    @for (int i = 0; i < Model.Images.Count; i++)
+                    {
+                        var imgUrl = Model.Images[i];
+                        <button type="button" class="btn p-1 border rounded @(i == 0 ? "border-primary" : "border-light") bg-white" 
+                                onclick="document.getElementById('mainProductImg').src = '@imgUrl'">
+                            <img src="@imgUrl" alt="Thumbnail @i" style="width: 70px; height: 55px; object-fit: contain;" />
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Cột phải: Giá, Cấu hình nổi bật và Đặt mua -->
+        <div class="col-12 col-lg-6">
+            <div class="bg-white p-4 rounded-3 border shadow-sm">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary">@Model.Brand</span>
+                    <span class="badge bg-light text-secondary border">@Model.Category</span>
+                    @if (Model.StockQuantity > 0)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                            <i class="bi bi-check-circle-fill me-1"></i> Còn @Model.StockQuantity máy
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                            <i class="bi bi-x-circle-fill me-1"></i> Tạm hết hàng
+                        </span>
+                    }
+                </div>
+
+                <h1 class="h4 fw-bold text-dark mb-3">@Model.Name</h1>
+
+                <!-- Hộp giá -->
+                <div class="detail-price-box mb-4">
+                    <div class="d-flex align-items-baseline gap-3">
+                        <span class="fs-2 fw-extrabold text-danger">@Model.Price.ToString("N0")đ</span>
+                        @if (Model.OriginalPrice.HasValue && Model.OriginalPrice > Model.Price)
+                        {
+                            <span class="text-muted text-decoration-line-through fs-5">@Model.OriginalPrice.Value.ToString("N0")đ</span>
+                            <span class="badge bg-danger fs-6">-@Model.DiscountPercent%</span>
+                        }
+                    </div>
+                    <div class="small text-muted mt-1">
+                        <i class="bi bi-shield-check text-success me-1"></i> Đã bao gồm thuế VAT • Bảo hành chính hãng
+                    </div>
+                </div>
+
+                <!-- Cấu hình tóm tắt -->
+                @if (Model.Specification != null)
+                {
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="p-2 border rounded bg-light small">
+                                <div class="text-muted">Vi xử lý (CPU)</div>
+                                <strong class="text-dark">@Model.Specification.CPU</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded bg-light small">
+                                <div class="text-muted">Bộ nhớ RAM</div>
+                                <strong class="text-dark">@Model.Specification.RamGB GB</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded bg-light small">
+                                <div class="text-muted">Ổ cứng lưu trữ</div>
+                                <strong class="text-dark">@Model.Specification.StorageGB GB @Model.Specification.StorageType</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded bg-light small">
+                                <div class="text-muted">Card đồ họa</div>
+                                <strong class="text-dark">@Model.Specification.GPU</strong>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Nút hành động đặt hàng -->
+                <div class="d-grid gap-2 mb-3">
+                    @if (Model.StockQuantity > 0)
+                    {
+                        <a href="/Catalog/Lookup" class="btn btn-danger btn-lg fw-bold py-3 shadow-sm">
+                            <i class="bi bi-cart-plus me-2"></i> ĐẶT MUA NGAY (GIAO TẬN NƠI)
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary btn-lg fw-bold py-3" disabled>
+                            <i class="bi bi-bell me-2"></i> SẢN PHẨM TẠM HẾT HÀNG
+                        </button>
+                    }
+                </div>
+
+                <!-- Thông tin khuyến mãi bổ sung -->
+                <div class="p-3 border rounded bg-light-subtle small">
+                    <div class="fw-bold mb-2 text-primary"><i class="bi bi-gift-fill me-1"></i> Quà tặng & Ưu đãi đặc quyền:</div>
+                    <ul class="mb-0 ps-3 text-muted">
+                        <li>Tặng balo laptop cao cấp chống sốc và chuột không dây chính hãng.</li>
+                        <li>Cài đặt hệ điều hành và phần mềm tiện ích văn phòng miễn phí trọn đời máy.</li>
+                        <li>Vệ sinh máy và tra keo tản nhiệt miễn phí định kỳ trong 2 năm.</li>
+                        <li>Hỗ trợ trả góp lãi suất 0% qua thẻ tín dụng hoặc hồ sơ CMND/CCCD.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng thông số kỹ thuật chi tiết & Mô tả sản phẩm -->
+    <div class="row g-4 mb-5">
+        <!-- Bảng chi tiết cấu hình -->
+        <div class="col-12 col-lg-7">
+            <div class="bg-white p-4 rounded-3 border shadow-sm">
+                <h2 class="h5 fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-sliders text-primary me-2"></i> Thông số kỹ thuật chi tiết
+                </h2>
+
+                @if (Model.Specification != null)
+                {
+                    <table class="table detail-specs-table mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted" style="width: 35%;">CPU (Bộ vi xử lý)</td>
+                                <td class="fw-semibold">@Model.Specification.CPU</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">RAM</td>
+                                <td class="fw-semibold">@Model.Specification.RamGB GB</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Ổ cứng</td>
+                                <td class="fw-semibold">@Model.Specification.StorageGB GB @Model.Specification.StorageType</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Card đồ họa (GPU)</td>
+                                <td class="fw-semibold">@Model.Specification.GPU</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Màn hình</td>
+                                <td class="fw-semibold">@Model.Specification.ScreenSizeInch inch (@Model.Specification.RefreshRateHz Hz)</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Trọng lượng</td>
+                                <td class="fw-semibold">@Model.Specification.WeightKg kg</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Dung lượng Pin</td>
+                                <td class="fw-semibold">@Model.Specification.BatteryWh Wh</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Hệ điều hành</td>
+                                <td class="fw-semibold">@Model.Specification.OS</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">Đang cập nhật thông số chi tiết của sản phẩm...</p>
+                }
+            </div>
+        </div>
+
+        <!-- Mô tả đánh giá sản phẩm -->
+        <div class="col-12 col-lg-5">
+            <div class="bg-white p-4 rounded-3 border shadow-sm">
+                <h2 class="h5 fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-card-text text-primary me-2"></i> Giới thiệu sản phẩm
+                </h2>
+                <div class="small text-secondary lh-lg">
+                    @if (!string.IsNullOrWhiteSpace(Model.Description))
+                    {
+                        <p>@Model.Description</p>
+                    }
+                    else
+                    {
+                        <p>Sản phẩm @Model.Name thuộc thương hiệu @Model.Brand, phân khúc @Model.Category, được trang bị cấu hình tối ưu đáp ứng xuất sắc mọi nhu cầu làm việc, học tập và giải trí đỉnh cao.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sản phẩm tương tự / Cùng thương hiệu -->
+    @if (related.Any())
+    {
+        <div class="mb-5">
+            <h3 class="h5 fw-bold mb-3"><i class="bi bi-stars text-warning me-2"></i> Sản phẩm tương tự bạn có thể thích</h3>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-3">
+                @foreach (var item in related)
+                {
+                    <div class="col">
+                        <div class="product-card shadow-sm h-100">
+                            <div class="product-card-img-wrap">
+                                <a href="/Catalog/Details/@item.Id">
+                                    <img src="@item.Image" alt="@item.Name" class="product-card-img" onerror="this.src='/images/products/placeholder.png'" />
+                                </a>
+                            </div>
+                            <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
+                                <div>
+                                    <span class="product-brand-tag">@item.Brand</span>
+                                    <h4 class="h6 mb-2">
+                                        <a href="/Catalog/Details/@item.Id" class="product-title" title="@item.Name">@item.Name</a>
+                                    </h4>
+                                </div>
+                                <div class="pt-2 border-top">
+                                    <span class="product-price-current">@item.Price.ToString("N0")đ</span>
+                                    <div class="d-grid mt-2">
+                                        <a href="/Catalog/Details/@item.Id" class="btn btn-outline-primary btn-sm fw-semibold">Xem ngay</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

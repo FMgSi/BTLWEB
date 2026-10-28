@@ -17,6 +17,23 @@ public static class DbInitializer
         // 1. Tự động tạo cơ sở dữ liệu SQL Server và toàn bộ 10 bảng theo metadata EF Core nếu chưa tồn tại
         context.Database.EnsureCreated();
 
+        // Nâng cấp an toàn các cột mới nếu đang chạy trên CSDL SQL Server cũ
+        if (context.Database.IsRelational())
+        {
+            try
+            {
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'IsActive')
+                        ALTER TABLE Users ADD IsActive BIT NOT NULL DEFAULT 1;
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'PhoneNumber')
+                        ALTER TABLE Users ADD PhoneNumber NVARCHAR(20) NULL;
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'IdempotencyKey')
+                        ALTER TABLE Orders ADD IdempotencyKey NVARCHAR(100) NULL;
+                ");
+            }
+            catch { }
+        }
+
         // 2. Nạp tài khoản mẫu nếu bảng Users còn trống
         SeedUsersIfEmpty(context);
 

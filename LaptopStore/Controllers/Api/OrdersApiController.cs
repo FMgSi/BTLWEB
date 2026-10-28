@@ -145,30 +145,45 @@ public class OrdersApiController : ControllerBase
 
     private static void MaskSensitiveCustomerInfo(OrderResponseDto order)
     {
-        if (!string.IsNullOrWhiteSpace(order.PhoneNumber) && order.PhoneNumber.Length >= 7)
+        // 1. Che số điện thoại triệt để
+        if (!string.IsNullOrWhiteSpace(order.PhoneNumber))
         {
-            order.PhoneNumber = order.PhoneNumber[..3] + "****" + order.PhoneNumber[^3..];
-        }
-
-        if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
-        {
-            var parts = order.ShippingAddress.Split(',');
-            if (parts.Length > 1)
+            if (order.PhoneNumber.Length >= 7)
             {
-                order.ShippingAddress = "***, " + string.Join(", ", parts.Skip(1).Select(p => p.Trim()));
+                order.PhoneNumber = order.PhoneNumber[..3] + "****" + order.PhoneNumber[^3..];
             }
             else
             {
-                order.ShippingAddress = "*** (Đã bảo mật quyền riêng tư)";
+                order.PhoneNumber = "****";
             }
         }
 
+        // 2. Bảo vệ địa chỉ nhận hàng
+        if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
+        {
+            var parts = order.ShippingAddress.Split(',');
+            if (parts.Length > 2)
+            {
+                order.ShippingAddress = "***, " + string.Join(", ", parts.Skip(parts.Length - 2).Select(p => p.Trim()));
+            }
+            else
+            {
+                order.ShippingAddress = "*** (Đã bảo mật địa chỉ nhận hàng)";
+            }
+        }
+
+        // 3. Che họ tên khách hàng (xử lý cả tên một từ)
         if (!string.IsNullOrWhiteSpace(order.CustomerName))
         {
-            var words = order.CustomerName.Trim().Split(' ');
+            var name = order.CustomerName.Trim();
+            var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length > 1)
             {
-                order.CustomerName = words[0] + " *** " + words[^1];
+                order.CustomerName = words[0][0] + "*** " + words[^1];
+            }
+            else
+            {
+                order.CustomerName = name.Length > 1 ? name[0] + "***" : "***";
             }
         }
     }

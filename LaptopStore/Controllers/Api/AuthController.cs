@@ -48,6 +48,12 @@ public class AuthController : ControllerBase
             return BadRequest(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
         }
 
+        // Kiểm tra xem tài khoản có bị khóa không
+        if (!user.IsActive)
+        {
+            return BadRequest(new { success = false, message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
+        }
+
         // Kiểm tra mật khẩu bằng hàm so khớp Hash
         bool isPasswordValid = PasswordHelper.VerifyPassword(request.Password, user.PasswordHash);
         if (!isPasswordValid)
@@ -173,6 +179,12 @@ public class AuthController : ControllerBase
         if (user == null)
         {
             return Unauthorized(new { success = false, message = "Tài khoản không tồn tại." });
+        }
+
+        if (!user.IsActive)
+        {
+            HttpContext.Session.Clear();
+            return Unauthorized(new { success = false, message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
         }
 
         return Ok(new
