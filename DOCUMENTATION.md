@@ -82,9 +82,7 @@ graph TD
 | **Icons & UI Utility** | Bootstrap & Bootstrap Icons | 5.3.x | Hệ thống lưới Responsive (Grid System) và bộ icon giao diện |
 | **Backend Framework** | ASP.NET Core | .NET 10 / 8.0 LTS | Xây dựng RESTful Web API và ứng dụng Web MVC quản trị |
 | **ORM / Data Access** | Entity Framework Core | 8.0.x (SQL Server) | Ánh xạ đối tượng C# với các bảng cơ sở dữ liệu quan hệ (Object-Relational Mapping) |
-| **Database Engine** | Microsoft SQL Server | 2022 / Express | Hệ quản trị cơ sở dữ liệu quan hệ lưu trữ dữ liệu sản phẩm, hãng, đơn hàng |
-| **Data Automation** | Python / OpenPyXL | 3.10+ | Tiện ích đọc và đồng bộ tự động dữ liệu từ file Excel vào Database |
-| **Containerization** | Docker / Docker Compose | Latest | Đóng gói môi trường chạy SQL Server và Backend cho môi trường máy chủ |
+| **Database Engine** | Microsoft SQL Server | 2022 / Express / LocalDB | Hệ quản trị cơ sở dữ liệu quan hệ lưu trữ dữ liệu sản phẩm, hãng, đơn hàng |
 
 ---
 
@@ -316,11 +314,10 @@ BTLWEB-main/LaptopStore/
 │
 ├── sql-init/
 │   └── init-db.sql                       # Script SQL chứa cấu trúc bảng và 100+ laptop thực tế
-├── docker-compose.yml                    # Cấu hình triển khai nhanh MySQL qua Docker
-├── run.bat                               # Script 1-Click khởi động đồng thời cả FE và BE (Windows)
+├── data/
+│   └── imports/data_laptop.xlsx          # File Excel gốc lưu trữ dữ liệu sản phẩm
+├── run.bat                               # Script 1-Click khởi động hệ thống (Windows)
 ├── run.ps1                               # Script khởi động bằng PowerShell
-├── sync_excel.py                         # Tiện ích đồng bộ dữ liệu Excel -> Database
-├── sync-excel.bat                        # Script 1-Click chạy đồng bộ Excel
 ├── README.md                             # Hướng dẫn nhanh cho người clone dự án
 └── DOCUMENTATION.md                      # Tài liệu kỹ thuật chi tiết toàn bộ hệ thống (file này)
 ```
@@ -330,9 +327,10 @@ BTLWEB-main/LaptopStore/
 ## 8. HƯỚNG DẪN CÀI ĐẶT VÀ VẬN HÀNH
 
 ### 8.1. Yêu cầu môi trường
-1. **.NET 8.0 SDK** ([Tải từ Microsoft](https://dotnet.microsoft.com/download/dotnet/8.0))
-2. **Node.js LTS (v18+)** ([Tải từ Nodejs.org](https://nodejs.org/))
-3. **MySQL Server 8.0** chạy trên cổng mặc định `3306` (User: `root`, Password: `root`).
+1. **.NET 10 hoặc .NET 8 SDK** ([Tải từ Microsoft](https://dotnet.microsoft.com/download))
+2. **Microsoft SQL Server (2019/2022 Express, Developer hoặc LocalDB)**: Tải và cài đặt trực tiếp từ Microsoft.
+   - Hệ thống có tính năng **Auto-Detect** tự động dò tìm các instance SQL Server (`.\SQLEXPRESS`, `(localdb)\MSSQLLocalDB`, `localhost`, `.`) nên không yêu cầu cấu hình thủ công.
+3. *(Tùy chọn)* **Node.js LTS (v18+)** nếu muốn chạy giao diện React song song.
 
 ### 8.2. Khởi động nhanh (Khuyên dùng)
 Chỉ cần nhấp đúp chuột vào file:
@@ -340,11 +338,13 @@ Chỉ cần nhấp đúp chuột vào file:
 run.bat
 ```
 Script sẽ tự động:
-1. Kiểm tra và chạy `npm install` nếu máy chưa có `node_modules`.
-2. Khởi động React Frontend tại: `http://localhost:3000`.
-3. Tự động tạo cơ sở dữ liệu `LaptopStoreDb`, nạp 100+ laptop mẫu và bật Backend tại: `http://localhost:5148`.
+1. Kết nối Microsoft SQL Server nội bộ, tự động tạo CSDL `LaptopStoreDb` và nạp toàn bộ dữ liệu nếu database trống.
+2. Khởi động hệ thống ASP.NET Core MVC tại: `http://localhost:5148`.
+3. Bật song song giao diện React tại `http://localhost:3000` (nếu máy có sẵn Node.js).
 
 ### 8.3. Địa chỉ truy cập các dịch vụ
-* 🛒 **Giao diện mua sắm khách hàng (React)**: [http://localhost:3000](http://localhost:3000)
+* 🛒 **Giao diện mua sắm khách hàng (Razor MVC)**: [http://localhost:5148/Catalog](http://localhost:5148/Catalog)
 * 🛠️ **Giao diện quản trị kho hàng (Admin MVC)**: [http://localhost:5148/Product](http://localhost:5148/Product)
-* 📑 **Tài liệu API tương tác (Swagger UI)**: [http://localhost:5148/swagger](http://localhost:5148/swagger)
+* 🔐 **Trang quản trị hệ thống (Admin Login)**: [http://localhost:5148/Admin/Login](http://localhost:5148/Admin/Login)
+* 📦 **Quản lý đơn hàng (Admin Orders)**: [http://localhost:5148/Admin/Orders](http://localhost:5148/Admin/Orders)
+* 💻 **Giao diện khách hàng (React SPA)**: [http://localhost:3000](http://localhost:3000) (tùy chọn)

@@ -15,14 +15,14 @@ Dự án website thương mại điện tử chuyên kinh doanh Laptop, xây d�
 
 Trước khi chạy, máy tính của bạn cần có sẵn:
 1. **[.NET 10 hoặc .NET 8 SDK](https://dotnet.microsoft.com/download)** (kiểm tra bằng lệnh `dotnet --version`).
-2. **[Node.js](https://nodejs.org/)** (v18+ hoặc v20+ LTS, kiểm tra bằng `node -v`).
-3. **Cơ sở dữ liệu Microsoft SQL Server**:
-   - Hỗ trợ **SQL Server (SQLEXPRESS)** hoặc **LocalDB**.
-   - Cấu hình chuỗi kết nối tại `LaptopStore/appsettings.json` (mặc định: `Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;TrustServerCertificate=True;`).
-   - *(Tùy chọn)* Chạy bằng Docker:
-     ```bash
-     docker compose up -d mssql
+2. **Cơ sở dữ liệu Microsoft SQL Server**:
+   - Tải trực tiếp từ Microsoft: **[SQL Server Express](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)** (khuyên dùng) hoặc bản Developer / LocalDB.
+   - Ứng dụng đã tích hợp **cơ chế tự động dò tìm (Auto-Detection)**: Khi khởi chạy, hệ thống sẽ tự động thử kết nối lần lượt qua `.\SQLEXPRESS`, `(localdb)\MSSQLLocalDB`, `localhost`, `.` nên bạn **không cần cấu hình phức tạp hay dùng Docker**.
+   - Chuỗi kết nối mặc định tại `LaptopStore/appsettings.json`:
+     ```json
+     "Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;"
      ```
+3. *(Tùy chọn nếu dùng Frontend React)*: **[Node.js](https://nodejs.org/)** (v18+ hoặc v20+ LTS). Nếu không cài Node.js, bạn hoàn toàn có thể sử dụng toàn bộ tính năng bán hàng và quản trị qua giao diện Razor MVC thuần của dự án.
 
 ---
 
@@ -30,32 +30,28 @@ Trước khi chạy, máy tính của bạn cần có sẵn:
 
 ### Cách 1: Chạy tự động 1-Click (Khuyên dùng)
 - Nhấp đúp chuột vào file **`run.bat`** (hoặc chạy **`run.ps1`** trong PowerShell).
+- Script sẽ tự động nhận diện SQL Server, tự khởi tạo CSDL và mở hệ thống.
 
 ### Cách 2: Chạy bằng Visual Studio
 1. Mở `LaptopStore.sln` bằng Visual Studio 2022 / 2025.
-2. Chọn project khởi chạy là **LaptopStore** và nhấn **F5**.
+2. Chọn project khởi chạy là **LaptopStore** và nhấn **F5** (hoặc Ctrl + F5).
 
-### Cách 3: Chạy thủ công
+### Cách 3: Chạy bằng lệnh Dotnet CLI
 ```bash
-# Terminal 1: React Frontend
-cd frontend
-npm install
-npm run dev
-
-# Terminal 2: ASP.NET Core Backend
-cd LaptopStore
-dotnet run --launch-profile http
+dotnet run --project LaptopStore --launch-profile http
 ```
 
 ---
 
 ## 🌐 3. Địa Chỉ Truy Cập & Tài Khoản Kiểm Thử
 
-| Giao diện | Đường dẫn URL | Tài khoản đăng nhập |
+| Giao diện | Đường dẫn URL | Mô tả & Tài khoản |
 | :--- | :--- | :--- |
-| 🛒 **Web Khách Hàng (React)** | [http://localhost:3000](http://localhost:3000) | `khachhang` / `User@123` (hoặc đặt hàng trực tiếp) |
-| 🛠️ **Trang Quản Trị (Admin)** | [http://localhost:5148/Admin/Login](http://localhost:5148/Admin/Login) | `admin` / `Admin@123` |
-| 📦 **API Đơn Hàng (Backend)** | [http://localhost:5148/api/orders](http://localhost:5148/api/orders) | RESTful API tích hợp giỏ hàng và trừ kho |
+| 🛒 **Cửa Hàng Khách Hàng (Razor)** | [http://localhost:5148/Catalog](http://localhost:5148/Catalog) | Danh mục sản phẩm, bộ lọc, xem chi tiết, tra cứu đơn hàng |
+| 🛠️ **Quản Trị Sản Phẩm (Admin MVC)** | [http://localhost:5148/Product](http://localhost:5148/Product) | Quản lý kho, thêm/sửa/xóa, quản lý ảnh và cấu hình |
+| 🔐 **Đăng Nhập Quản Trị (Admin)** | [http://localhost:5148/Admin/Login](http://localhost:5148/Admin/Login) | Tài khoản: `admin` / `Admin@123` |
+| 📦 **Trang Quản Trị Đơn Hàng** | [http://localhost:5148/Admin/Orders](http://localhost:5148/Admin/Orders) | Quản lý quy trình xử lý đơn hàng, đổi trạng thái |
+| 💻 **Giao Diện Khách Hàng (React)** | [http://localhost:3000](http://localhost:3000) | Giao diện React SPA (chạy khi có Node.js) |
 
 ---
 

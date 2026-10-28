@@ -4,7 +4,7 @@
     "LaptopStore": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "http://localhost:3000",
+      "launchUrl": "Catalog",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
