@@ -48,6 +48,9 @@
                             </span>
                         </td>
                         <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@item.ProductId" class="btn-action-view me-1 text-decoration-none" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.8rem; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                <i class="bi bi-eye"></i> Xem
+                            </a>
                             <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn-action-edit me-1 text-decoration-none">
                                 <i class="bi bi-pencil-square"></i> Sửa
                             </a>

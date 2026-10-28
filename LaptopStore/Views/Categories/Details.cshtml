@@ -1,0 +1,56 @@
+@model LaptopStore.Models.Category
+
+@{
+    ViewData["Title"] = "Chi tiết thể loại - " + Model.CategoryName;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-info text-dark py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-info-circle-fill me-2"></i>Chi tiết thể loại / danh mục Laptop</h5>
+            </div>
+            <div class="card-body p-4">
+                <dl class="row mb-4">
+                    <dt class="col-sm-4 text-muted">Mã thể loại:</dt>
+                    <dd class="col-sm-8 fw-bold">#@Model.CategoryId</dd>
+
+                    <dt class="col-sm-4 text-muted">Tên thể loại:</dt>
+                    <dd class="col-sm-8 text-primary fw-semibold">@Model.CategoryName</dd>
+
+                    <dt class="col-sm-4 text-muted">Mô tả:</dt>
+                    <dd class="col-sm-8">@(Model.Description ?? "Không có mô tả")</dd>
+
+                    <dt class="col-sm-4 text-muted">Tổng số laptop:</dt>
+                    <dd class="col-sm-8"><span class="badge bg-secondary">@(Model.Products?.Count ?? 0) sản phẩm</span></dd>
+                </dl>
+
+                @if (Model.Products != null && Model.Products.Any())
+                {
+                    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-laptop me-1"></i>Danh sách laptop thuộc thể loại này:</h6>
+                    <ul class="list-group mb-4">
+                        @foreach (var prod in Model.Products)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <a href="/Product/Details/@prod.ProductId" class="fw-semibold text-decoration-none">@prod.ProductName</a>
+                                    <small class="text-muted d-block">Mã SP: #@prod.ProductId | Kho: @prod.StockQuantity</small>
+                                </span>
+                                <span class="badge bg-primary rounded-pill">@prod.Price.ToString("N0") VNĐ</span>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@Model.CategoryId" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i> Sửa thể loại này
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

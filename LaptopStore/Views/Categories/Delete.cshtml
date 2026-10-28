@@ -1,0 +1,35 @@
+@model LaptopStore.Models.Category
+
+@{
+    ViewData["Title"] = "Xác nhận xóa thể loại - " + Model.CategoryName;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 rounded-3 border-danger">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xác nhận xóa thể loại / danh mục</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-danger fw-semibold">Bạn có chắc chắn muốn xóa thể loại này không?</p>
+                <div class="alert alert-light border mb-4">
+                    <h6 class="text-primary fw-bold mb-2">#@Model.CategoryId - @Model.CategoryName</h6>
+                    <p class="text-muted mb-0 small">@(Model.Description ?? "Không có mô tả")</p>
+                    <p class="text-secondary small mt-2 mb-0">Số lượng sản phẩm liên quan: <strong>@(Model.Products?.Count ?? 0) laptop</strong></p>
+                </div>
+
+                <form asp-action="Delete">
+                    <input type="hidden" asp-for="CategoryId" />
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Hủy bỏ
+                        </a>
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-trash-fill me-1"></i> Xác nhận Xóa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

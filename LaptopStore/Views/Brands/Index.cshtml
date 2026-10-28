@@ -1,0 +1,95 @@
+@model IEnumerable<LaptopStore.Models.Brand>
+
+@{
+    ViewData["Title"] = "Quản lý Thương hiệu / Hãng sản xuất";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 text-primary mb-1"><i class="bi bi-buildings-fill me-2"></i>Quản lý Thương hiệu / Hãng (Brands)</h1>
+        <p class="text-muted mb-0">Quản lý hãng sản xuất laptop theo mô hình LapTrinhWeb với Entity Framework Core</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary shadow-sm">
+        <i class="bi bi-plus-circle me-1"></i> Thêm mới thương hiệu
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Mã Hãng</th>
+                        <th>Logo</th>
+                        <th>Tên thương hiệu</th>
+                        <th>Mô tả / Xuất xứ</th>
+                        <th>Số lượng laptop</th>
+                        <th class="text-end pe-4">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-secondary">#@item.BrandId</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.LogoUrl))
+                                {
+                                    <img src="@item.LogoUrl" alt="@item.BrandName" style="height: 32px; max-width: 60px; object-fit: contain;" />
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-muted border">Chưa có logo</span>
+                                }
+                            </td>
+                            <td class="fw-semibold text-primary">@item.BrandName</td>
+                            <td class="text-muted">@(item.Description ?? "Chưa có mô tả")</td>
+                            <td>
+                                <span class="badge bg-secondary rounded-pill">
+                                    @(item.Products?.Count ?? 0) sản phẩm
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a asp-action="Edit" asp-route-id="@item.BrandId" class="btn btn-sm btn-outline-warning me-1">
+                                    <i class="bi bi-pencil"></i> Sửa
+                                </a>
+                                <a asp-action="Details" asp-route-id="@item.BrandId" class="btn btn-sm btn-outline-info me-1">
+                                    <i class="bi bi-info-circle"></i> Chi tiết
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.BrandId" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">Chưa có thương hiệu nào được tạo.</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

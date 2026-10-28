@@ -1,0 +1,106 @@
+@model LaptopStore.Models.Product
+
+@{
+    ViewData["Title"] = "Chi tiết Laptop - " + Model.ProductName;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-md-11">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle-fill me-2"></i>Thông tin chi tiết Laptop
+                </h5>
+                <span class="badge bg-light text-primary fw-bold">Mã SP: #@Model.ProductId</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-4 g-4">
+                    <div class="col-md-4 text-center">
+                        <div class="bg-light p-3 rounded-3 border mb-3 d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                            @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+                            {
+                                <img src="@Model.ThumbnailUrl" alt="@Model.ProductName" class="img-fluid rounded" style="max-height: 200px; object-fit: contain;" />
+                            }
+                            else
+                            {
+                                <i class="bi bi-laptop text-muted" style="font-size: 72px;"></i>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="badge @(Model.StockQuantity > 0 ? "bg-success" : "bg-danger") px-3 py-2">
+                                <i class="bi @(Model.StockQuantity > 0 ? "bi-check-circle" : "bi-x-circle") me-1"></i>
+                                @(Model.StockQuantity > 0 ? $"Còn hàng ({Model.StockQuantity} máy)" : "Hết hàng")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h4 class="text-primary fw-bold mb-2">@Model.ProductName</h4>
+                        <p class="text-muted mb-3">
+                            <i class="bi bi-building me-1"></i>Hãng sản xuất: <strong>@(Model.Brand?.BrandName ?? "Chưa rõ")</strong> |
+                            <i class="bi bi-tag-fill ms-2 me-1"></i>Danh mục: <strong>@(Model.Category?.CategoryName ?? "Chưa phân loại")</strong>
+                        </p>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded-3 bg-light">
+                                    <small class="text-muted d-block">Giá niêm yết</small>
+                                    <span class="fw-bold fs-5 text-dark">@Model.Price.ToString("N0") VNĐ</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded-3 bg-light">
+                                    <small class="text-muted d-block">Giá ưu đãi (Khuyến mãi)</small>
+                                    @if (Model.DiscountPrice.HasValue && Model.DiscountPrice > 0)
+                                    {
+                                        <span class="fw-bold text-danger fs-5">@Model.DiscountPrice.Value.ToString("N0") VNĐ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fs-6">Không áp dụng giảm giá</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cấu hình chi tiết -->
+                        @if (Model.Specification != null)
+                        {
+                            <div class="card border-0 bg-light p-3 rounded-3 mb-3">
+                                <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-cpu-fill me-1"></i>Thông số kỹ thuật:</h6>
+                                <div class="row g-2 small">
+                                    <div class="col-6"><strong>CPU:</strong> @(Model.Specification.CPU ?? "Đang cập nhật")</div>
+                                    <div class="col-6"><strong>RAM:</strong> @(Model.Specification.RamGB)GB</div>
+                                    <div class="col-6"><strong>Ổ cứng:</strong> @(Model.Specification.StorageGB)GB @(Model.Specification.StorageType)</div>
+                                    <div class="col-6"><strong>GPU:</strong> @(Model.Specification.GPU ?? "Đang cập nhật")</div>
+                                    <div class="col-6"><strong>Màn hình:</strong> @(Model.Specification.ScreenSizeInch)" @(Model.Specification.RefreshRateHz)Hz</div>
+                                    <div class="col-6"><strong>Hệ điều hành:</strong> @(Model.Specification.OS ?? "Windows 11")</div>
+                                    <div class="col-6"><strong>Khối lượng:</strong> @(Model.Specification.WeightKg) kg</div>
+                                    <div class="col-6"><strong>Pin:</strong> @(Model.Specification.BatteryWh) Wh</div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-secondary mb-1"><i class="bi bi-card-text me-1"></i>Mô tả sản phẩm:</h6>
+                            <p class="text-muted small">@(Model.Description ?? "Chưa có mô tả chi tiết cho sản phẩm này.")</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between border-top pt-3">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a asp-action="Edit" asp-route-id="@Model.ProductId" class="btn btn-warning text-dark">
+                            <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model.ProductId" class="btn btn-outline-danger">
+                            <i class="bi bi-trash-fill me-1"></i> Xóa sản phẩm
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

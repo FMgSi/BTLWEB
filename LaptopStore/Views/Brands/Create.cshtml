@@ -1,0 +1,51 @@
+@model LaptopStore.Models.Brand
+
+@{
+    ViewData["Title"] = "Thêm mới thương hiệu / hãng";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-building-add me-2"></i>Thêm mới Thương hiệu / Hãng Laptop</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="BrandName" class="form-label fw-semibold"></label>
+                        <input asp-for="BrandName" class="form-control" placeholder="VD: ASUS, Dell, Apple, Lenovo, HP..." />
+                        <span asp-validation-for="BrandName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="LogoUrl" class="form-label fw-semibold"></label>
+                        <input asp-for="LogoUrl" class="form-control" placeholder="/images/brands/asus-logo.png" />
+                        <span asp-validation-for="LogoUrl" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Description" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Mô tả về hãng, xuất xứ (VD: Thương hiệu Đài Loan, thành lập năm 1989...)"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-save me-1"></i> Lưu thương hiệu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

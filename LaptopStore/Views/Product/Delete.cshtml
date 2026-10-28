@@ -1,0 +1,48 @@
+@model LaptopStore.Models.Product
+
+@{
+    ViewData["Title"] = "Xác nhận xóa Laptop - " + Model.ProductName;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden border-danger">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Xác nhận xóa Laptop
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-danger fw-semibold mb-3">
+                    Bạn có chắc chắn muốn xóa sản phẩm laptop này khỏi cơ sở dữ liệu?
+                </p>
+
+                <div class="alert alert-light border rounded-3 p-3 mb-4">
+                    <h5 class="text-primary fw-bold mb-2">@Model.ProductName</h5>
+                    <p class="mb-1 text-muted small"><i class="bi bi-tag me-1"></i>Mã sản phẩm: <strong>#@Model.ProductId</strong></p>
+                    <p class="mb-1 text-muted small"><i class="bi bi-building me-1"></i>Hãng sản xuất: <strong>@(Model.Brand?.BrandName ?? "Chưa rõ")</strong></p>
+                    <p class="mb-1 text-muted small"><i class="bi bi-folder me-1"></i>Danh mục: <strong>@(Model.Category?.CategoryName ?? "Chưa phân loại")</strong></p>
+                    <p class="mb-0 text-danger fw-bold fs-6 mt-2">
+                        Đơn giá: @Model.Price.ToString("N0") VNĐ
+                        @if (Model.DiscountPrice.HasValue && Model.DiscountPrice > 0)
+                        {
+                            <span class="badge bg-danger-subtle text-danger ms-2">Ưu đãi: @Model.DiscountPrice.Value.ToString("N0") VNĐ</span>
+                        }
+                    </p>
+                </div>
+
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" name="id" value="@Model.ProductId" />
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Hủy bỏ
+                        </a>
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-trash-fill me-1"></i> Xác nhận Xóa laptop
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

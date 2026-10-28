@@ -118,6 +118,7 @@ public class ProductController : Controller
         }
 
         TempData["Success"] = $"Đã thêm thành công sản phẩm: {vm.ProductName}";
+        TempData["SuccessMessage"] = $"Thêm mới laptop {vm.ProductName} thành công!";
         HttpContext.Session.SetString("LastAction", $"Vừa thêm thành công sản phẩm: {vm.ProductName}");
 
         return RedirectToAction(nameof(Index));
@@ -184,25 +185,98 @@ public class ProductController : Controller
         }
 
         TempData["Success"] = $"Cập nhật thành công: {vm.ProductName}";
+        TempData["SuccessMessage"] = $"Cập nhật thông tin laptop {vm.ProductName} thành công!";
         HttpContext.Session.SetString("LastAction", $"Cập nhật thành công: {vm.ProductName}");
 
         return RedirectToAction(nameof(Index));
     }
 
     /// <summary>
-    /// 4. Xóa sản phẩm khỏi Database thông qua AJAX (POST)
-    /// POST: /Product/Delete/{id}
+    /// 4. Xem chi tiết thông tin sản phẩm laptop (GET: /Product/Details/5)
+    /// Triển khai theo chuẩn mô hình được học trong LapTrinhWeb (TvcLesson08Df)
     /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Details(int? id)
     {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var product = await _db.Products
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .Include(p => p.Specification)
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(m => m.ProductId == id);
+
+        if (product == null)
+        {
+            return NotFound();
+        }
+
+        return View(product);
+    }
+
+    /// <summary>
+    /// 5. Giao diện Xác nhận xóa sản phẩm (GET: /Product/Delete/5)
+    /// Triển khai theo chuẩn mô hình được học trong LapTrinhWeb (TvcLesson08Df)
+    /// </summary>
+    public async Task<IActionResult> Delete(int? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var product = await _db.Products
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .Include(p => p.Specification)
+            .FirstOrDefaultAsync(m => m.ProductId == id);
+
+        if (product == null)
+        {
+            return NotFound();
+        }
+
+        return View(product);
+    }
+
+    /// <summary>
+    /// 6. Xử lý xóa sản phẩm (POST: /Product/Delete/5)
+    /// Hỗ trợ cả Form submit truyền thống (theo giáo trình MVC) lẫn AJAX Fetch từ giao diện
+    /// </summary>
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var product = await _db.Products.FindAsync(id);
+        var productName = product?.ProductName ?? $"#{id}";
         var success = await _productService.DeleteProductAsync(id);
+
+        var isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
+                     (Request.ContentType != null && Request.ContentType.Contains("application/json"));
+
+        if (isAjax)
+        {
+            if (success)
+            {
+                return Json(new { success = true, message = $"Xóa sản phẩm {productName} thành công" });
+            }
+            return Json(new { success = false, message = "Không tìm thấy sản phẩm hoặc sản phẩm đã có đơn hàng liên kết" });
+        }
+
         if (success)
         {
-            return Json(new { success = true, message = "Xóa sản phẩm thành công" });
+            TempData["SuccessMessage"] = $"Đã xóa sản phẩm {productName} thành công!";
+            TempData["Success"] = $"Đã xóa sản phẩm {productName} thành công!";
         }
-        return Json(new { success = false, message = "Không tìm thấy sản phẩm hoặc sản phẩm đã có đơn hàng liên kết" });
+        else
+        {
+            TempData["ErrorMessage"] = "Không thể xóa sản phẩm vì sản phẩm đang có trong đơn hàng của khách!";
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     /// <summary>

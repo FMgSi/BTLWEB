@@ -40,7 +40,55 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 // =========================================================================
 
 // 1.1. Kết nối Cơ sở dữ liệu Microsoft SQL Server qua Entity Framework Core
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Server=(localdb)\\MSSQLLocalDB;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+
+// Tự động khởi động và phân giải Named Pipe cho (localdb) (kế thừa cơ chế xử lý từ LapTrinhWeb - TvcLesson08Df)
+if (connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
+{
+    try
+    {
+        using (var startProc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("sqllocaldb", "start MSSQLLocalDB")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        }))
+        {
+            startProc?.WaitForExit(3000);
+        }
+
+        using (var infoProc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("sqllocaldb", "info MSSQLLocalDB")
+        {
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        }))
+        {
+            if (infoProc != null)
+            {
+                var output = infoProc.StandardOutput.ReadToEnd();
+                infoProc.WaitForExit(3000);
+                var match = System.Text.RegularExpressions.Regex.Match(output, @"np:\\\\\.\\pipe\\[^\r\n]+");
+                if (match.Success)
+                {
+                    var pipe = match.Value.Trim();
+                    connStr = System.Text.RegularExpressions.Regex.Replace(
+                        connStr,
+                        @"(Server|Data Source)\s*=\s*\(localdb\)\\[^;]+",
+                        $"Server={pipe}",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                }
+            }
+        }
+    }
+    catch
+    {
+        // Giữ nguyên chuỗi kết nối mặc định nếu không chạy được sqllocaldb
+    }
+}
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(connStr, sqlOptions =>
         sqlOptions.EnableRetryOnFailure(

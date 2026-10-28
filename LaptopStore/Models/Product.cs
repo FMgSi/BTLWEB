@@ -31,7 +31,7 @@ public class Product
     public int BrandId { get; set; }
 
     [ForeignKey("BrandId")]
-    public Brand? Brand { get; set; }
+    public virtual Brand? Brand { get; set; }
 
     /// <summary>
     /// Khóa ngoại liên kết đến bảng Categories (Danh mục như Gaming, Văn phòng, Đồ họa)
@@ -41,11 +41,12 @@ public class Product
     public int CategoryId { get; set; }
 
     [ForeignKey("CategoryId")]
-    public Category? Category { get; set; }
+    public virtual Category? Category { get; set; }
 
     /// <summary>
     /// Giá bán niêm yết (gốc) của sản phẩm
     /// </summary>
+    [Column(TypeName = "decimal(18, 2)")]
     [Required(ErrorMessage = "Giá sản phẩm là bắt buộc")]
     [Range(0, 500000000, ErrorMessage = "Giá phải lớn hơn hoặc bằng 0")]
     [Display(Name = "Giá niêm yết")]
@@ -54,6 +55,7 @@ public class Product
     /// <summary>
     /// Giá khuyến mãi (nếu có giảm giá)
     /// </summary>
+    [Column(TypeName = "decimal(18, 2)")]
     [Range(0, 500000000, ErrorMessage = "Giá khuyến mãi hợp lệ")]
     [Display(Name = "Giá khuyến mãi")]
     public decimal? DiscountPrice { get; set; }
@@ -86,10 +88,10 @@ public class Product
     /// <summary>
     /// Quan hệ 1-1 với bảng cấu hình chi tiết (CPU, RAM, Ổ cứng, Màn hình)
     /// </summary>
-    public ProductSpecification? Specification { get; set; }
+    public virtual ProductSpecification? Specification { get; set; }
 
     /// <summary>
     /// Quan hệ 1-Nhiều với bộ sưu tập hình ảnh bổ sung
     /// </summary>
-    public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+    public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
 }
