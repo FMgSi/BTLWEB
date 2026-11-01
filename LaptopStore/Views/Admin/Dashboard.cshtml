@@ -81,6 +81,50 @@
     </div>
 </div>
 
+<!-- 2 THẺ NGHIỆP VỤ TRẢ GÓP (MỐC 1) -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <a href="/Admin/Installments?status=Ch%E1%BB%9D+tr%E1%BA%A3+tr%C6%B0%E1%BB%9Bc" class="text-decoration-none">
+            <div class="metric-card border-start border-4 border-warning shadow-sm">
+                <div class="metric-header">
+                    <span class="metric-label text-warning-emphasis fw-bold">
+                        <i class="bi bi-clock-history text-warning me-1"></i> Đơn trả góp chờ xác nhận trả trước (30%)
+                    </span>
+                    <span class="badge bg-warning text-dark">Cần xử lý ngay</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="metric-value text-warning fs-3 fw-bold">
+                        @Model.WaitingInstallmentPrepayCount đơn
+                    </div>
+                    <span class="btn btn-sm btn-outline-warning">
+                        Duyệt khoản trả trước <i class="bi bi-chevron-right"></i>
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="/Admin/Installments?status=%C4%90ang+tr%E1%BA%A3+g%C3%B3p" class="text-decoration-none">
+            <div class="metric-card border-start border-4 border-primary shadow-sm">
+                <div class="metric-header">
+                    <span class="metric-label text-primary fw-bold">
+                        <i class="bi bi-credit-card-2-front text-primary me-1"></i> Tổng dư nợ hợp đồng trả góp đang theo dõi
+                    </span>
+                    <span class="badge bg-primary">@Model.ActiveInstallmentContractsCount hợp đồng</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="metric-value text-danger fs-3 fw-bold">
+                        @string.Format("{0:N0}đ", Model.TotalInstallmentDebt)
+                    </div>
+                    <span class="btn btn-sm btn-outline-primary">
+                        Xem tiến độ thu kỳ <i class="bi bi-chevron-right"></i>
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
 <!-- MIDDLE CHARTS ROW -->
 <div class="row g-3 mb-4">
     <!-- Left: Xu hướng doanh thu (Line Chart) -->

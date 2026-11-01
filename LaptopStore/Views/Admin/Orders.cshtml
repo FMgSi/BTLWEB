@@ -100,7 +100,29 @@
                         var paymentBadgeClass = o.PaymentStatus == "Đã thanh toán" ? "badge-in-stock" : "badge-low-stock";
 
                         <tr>
-                            <td class="fw-bold text-primary">#@o.OrderCode</td>
+                            <td class="fw-bold text-primary">
+                                <div>#@o.OrderCode</div>
+                                @if (o.PurchaseMode == "Installment")
+                                {
+                                    <span class="badge bg-warning text-dark border small mt-1" style="font-size: 0.68rem;">
+                                        <i class="bi bi-credit-card-2-front"></i> Trả góp @(o.InstallmentContract?.TermMonths ?? 6)T
+                                    </span>
+                                    @if (o.InstallmentContract != null)
+                                    {
+                                        <div class="mt-1">
+                                            <a href="/Admin/InstallmentDetails/@o.InstallmentContract.ContractId" class="small text-decoration-none">
+                                                <i class="bi bi-file-earmark-text"></i> Xem HĐ
+                                            </a>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-secondary border small mt-1" style="font-size: 0.68rem;">
+                                        Trả thẳng
+                                    </span>
+                                }
+                            </td>
                             <td>
                                 <div class="text-dark fw-semibold">@o.CustomerName</div>
                                 <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@o.PhoneNumber</div>
@@ -139,6 +161,18 @@
                                 <span class="badge-status @paymentBadgeClass" style="font-size: 0.72rem;">
                                     @o.PaymentStatus
                                 </span>
+                                @if (o.PurchaseMode == "Installment" && o.PrepayAmount.HasValue)
+                                {
+                                    <div class="text-muted small" style="font-size: 0.7rem;">
+                                        Trả trước: @string.Format("{0:N0}đ", o.PrepayAmount.Value)
+                                    </div>
+                                    @if (o.RemainingDebt.HasValue && o.RemainingDebt.Value > 0)
+                                    {
+                                        <div class="text-danger small fw-semibold" style="font-size: 0.7rem;">
+                                            Nợ: @string.Format("{0:N0}đ", o.RemainingDebt.Value)
+                                        </div>
+                                    }
+                                }
                             </td>
                             <td>
                                 <span class="badge-status @statusClass">
@@ -176,6 +210,13 @@
                                                 <div class="small text-secondary mb-1">Tổng tiền: <strong class="text-success">@string.Format("{0:N0}đ", o.TotalAmount)</strong> (@o.PaymentMethod)</div>
                                                 <div class="small text-secondary">Trạng thái hiện tại: <span class="badge-status @statusClass">@o.OrderStatus</span></div>
                                             </div>
+
+                                            @if (o.PurchaseMode == "Installment")
+                                            {
+                                                <div class="alert alert-info py-2 px-3 small mb-3">
+                                                    <i class="bi bi-info-circle-fill me-1"></i> <strong>Đơn hàng trả góp:</strong> Giao máy xong khách hàng vẫn tiếp tục trả góp theo từng kỳ. Chuyển trạng thái sang "Hoàn thành" sẽ xác nhận giao máy xong nhưng không xóa dư nợ của hợp đồng.
+                                                </div>
+                                            }
 
                                             <div class="mb-3">
                                                 <label class="form-label-dark">Chuyển sang trạng thái mới *</label>

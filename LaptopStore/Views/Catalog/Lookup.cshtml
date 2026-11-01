@@ -112,15 +112,91 @@
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="p-3 bg-light rounded-3 h-100">
-                                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-credit-card-fill text-success me-1"></i> Thanh toán</h6>
+                                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-credit-card-fill text-success me-1"></i> Thanh toán & Hình thức</h6>
                                 <div class="small">
+                                    <div><strong>Hình thức:</strong> @(Model.PurchaseMode == "Installment" ? "Mua trả góp 0%" : "Mua trả thẳng")</div>
                                     <div><strong>Phương thức:</strong> @Model.PaymentMethod</div>
-                                    <div><strong>Trạng thái:</strong> <span class="badge @(Model.PaymentStatus == "Đã thanh toán" ? "bg-success" : "bg-warning text-dark")">@Model.PaymentStatus</span></div>
+                                    <div><strong>Trạng thái:</strong> <span class="badge @(Model.PaymentStatus == "Đã thanh toán" || Model.PaymentStatus == "Đã tất toán" ? "bg-success" : "bg-warning text-dark")">@Model.PaymentStatus</span></div>
                                     <div><strong>Tổng tiền đơn:</strong> <strong class="text-danger fs-6">@Model.TotalAmount.ToString("N0")đ</strong></div>
+                                    @if (Model.PurchaseMode == "Installment" && Model.PrepayAmount.HasValue)
+                                    {
+                                        <div class="mt-2 pt-2 border-top">
+                                            <div><strong>Khoản trả trước (30%):</strong> <span class="text-primary fw-bold">@Model.PrepayAmount.Value.ToString("N0")đ</span></div>
+                                            @if (Model.RemainingDebt.HasValue)
+                                            {
+                                                <div><strong>Dư nợ còn lại:</strong> <span class="text-danger fw-bold">@Model.RemainingDebt.Value.ToString("N0")đ</span></div>
+                                            }
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    @if (Model.PurchaseMode == "Installment" && Model.InstallmentContract != null)
+                    {
+                        var contract = Model.InstallmentContract;
+                        <!-- TIẾN ĐỘ VÀ LỊCH TRẢ GÓP CHI TIẾT DÀNH CHO KHÁCH HÀNG -->
+                        <div class="p-3 mb-4 rounded-3 border bg-light-subtle">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0 text-primary">
+                                    <i class="bi bi-calendar-check me-1"></i> Lịch thanh toán trả góp (@contract.TermMonths kỳ hạn - Lãi suất 0%)
+                                </h6>
+                                <span class="badge bg-primary">Hợp đồng #@contract.ContractCode</span>
+                            </div>
+
+                            <div class="row g-2 mb-3 text-center small">
+                                <div class="col-4">
+                                    <div class="p-2 bg-white rounded border">
+                                        <div class="text-muted">Trả trước 30%</div>
+                                        <div class="fw-bold text-primary">@contract.PrepayAmount.ToString("N0")đ</div>
+                                        <span class="badge @(contract.PrepayStatus == "Đã thanh toán" ? "bg-success" : "bg-warning text-dark") small" style="font-size: 0.68rem;">@contract.PrepayStatus</span>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 bg-white rounded border">
+                                        <div class="text-muted">Đã thanh toán</div>
+                                        <div class="fw-bold text-success">@contract.TotalPaid.ToString("N0")đ</div>
+                                        <small class="text-muted">@contract.PaidPeriodsCount/@contract.TermMonths kỳ</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 bg-white rounded border">
+                                        <div class="text-muted">Dư nợ còn lại</div>
+                                        <div class="fw-bold text-danger">@contract.RemainingDebt.ToString("N0")đ</div>
+                                        <small class="text-muted">Mỗi kỳ @contract.MonthlyInstallmentAmount.ToString("N0")đ</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle small bg-white mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-center" style="width: 60px;">Kỳ</th>
+                                            <th>Ngày đến hạn</th>
+                                            <th class="text-end">Số tiền kỳ</th>
+                                            <th class="text-center">Trạng thái</th>
+                                            <th>Ngày thu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var s in contract.Schedules)
+                                        {
+                                            var badge = s.Status == "Đã thanh toán" ? "bg-success" : (s.Status == "Quá hạn" ? "bg-danger" : "bg-warning text-dark");
+                                            <tr>
+                                                <td class="text-center fw-bold">#@s.PeriodNumber</td>
+                                                <td>@s.DueDate.ToString("dd/MM/yyyy") @(contract.Status == "Chờ trả trước" ? "(Dự kiến)" : "")</td>
+                                                <td class="text-end fw-bold">@s.Amount.ToString("N0")đ</td>
+                                                <td class="text-center"><span class="badge @badge">@s.Status</span></td>
+                                                <td>@(s.PaidAt.HasValue ? s.PaidAt.Value.ToString("dd/MM/yyyy") : "-")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
 
                     <!-- Danh sách sản phẩm trong đơn -->
                     <h6 class="fw-bold mb-3"><i class="bi bi-bag-check-fill text-primary me-1"></i> Mặt hàng đã đặt</h6>

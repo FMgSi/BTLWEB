@@ -16,10 +16,33 @@ namespace LaptopStore.Controllers.Api;
 public class OrdersApiController : ControllerBase
 {
     private readonly IOrderService _orderService;
+    private readonly IInstallmentService _installmentService;
 
-    public OrdersApiController(IOrderService orderService)
+    public OrdersApiController(IOrderService orderService, IInstallmentService installmentService)
     {
         _orderService = orderService;
+        _installmentService = installmentService;
+    }
+
+    /// <summary>
+    /// GET /api/orders/installment-preview?amount=20000000&termMonths=6
+    /// Xem trước bảng tính phương án trả góp: số tiền trả trước 30%, lịch từng kỳ và ngày đến hạn
+    /// </summary>
+    [HttpGet("installment-preview")]
+    public IActionResult PreviewInstallmentPlan([FromQuery] decimal amount, [FromQuery] int termMonths = 6)
+    {
+        if (amount < 1000000)
+        {
+            return BadRequest(new { success = false, message = "Đơn hàng tối thiểu từ 1.000.000đ để áp dụng chương trình trả góp 0%." });
+        }
+
+        if (termMonths != 3 && termMonths != 6 && termMonths != 9 && termMonths != 12)
+        {
+            termMonths = 6;
+        }
+
+        var plan = _installmentService.CalculatePlan(amount, termMonths);
+        return Ok(new { success = true, plan });
     }
 
     /// <summary>

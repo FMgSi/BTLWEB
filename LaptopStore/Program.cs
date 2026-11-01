@@ -100,6 +100,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 
 // 1.2. Đăng ký các Service tầng nghiệp vụ (Clean MVC / Service Layer Pattern)
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IInstallmentService, InstallmentService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
 // 1.3. Kích hoạt mô hình ASP.NET Core MVC (hỗ trợ cả Razor Views và Web API Controllers)

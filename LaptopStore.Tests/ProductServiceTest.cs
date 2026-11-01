@@ -78,7 +78,8 @@ public class ProductServiceTests
     {
         // Arrange
         var db = GetInMemoryDbContext();
-        var orderService = new OrderService(db);
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
 
         var req = new CreateOrderRequest
         {
@@ -118,7 +119,8 @@ public class ProductServiceTests
     {
         // Arrange
         var db = GetInMemoryDbContext();
-        var orderService = new OrderService(db);
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
 
         var req = new CreateOrderRequest
         {

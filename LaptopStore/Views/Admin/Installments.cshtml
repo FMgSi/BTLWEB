@@ -1,0 +1,267 @@
+@model IEnumerable<LaptopStore.ViewModels.InstallmentContractSummaryDto>
+@{
+    ViewData["Title"] = "Quản lý trả góp";
+    var currentStatus = ViewBag.Status as string ?? "all";
+    var currentSearch = ViewBag.Search as string ?? "";
+    int waitingCount = ViewBag.WaitingPrepayCount as int? ?? 0;
+    int activeCount = ViewBag.ActiveContractsCount as int? ?? 0;
+    decimal totalDebt = ViewBag.TotalInstallmentDebt as decimal? ?? 0;
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Quản lý hợp đồng trả góp</h2>
+        <p class="text-muted small mb-0">Theo dõi tiến độ hợp đồng, phê duyệt khoản trả trước 30% và thu tiền từng kỳ hạn</p>
+    </div>
+    <div class="page-actions">
+        <a href="/Admin/Orders" class="btn-secondary-custom">
+            <i class="bi bi-box-seam"></i> Tất cả đơn hàng
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- 3 THẺ CHỈ SỐ NGHIỆP VỤ TRẢ GÓP -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="metric-card border-warning">
+            <div class="metric-header">
+                <span class="metric-label text-warning-emphasis">Chờ xác nhận trả trước</span>
+                <span class="badge bg-warning text-dark"><i class="bi bi-clock-history"></i> Cần duyệt</span>
+            </div>
+            <div class="metric-value text-warning fs-3 fw-bold">
+                @waitingCount hợp đồng
+            </div>
+            <small class="text-muted">Đơn khách đã đặt, đang chờ tiền về để giao máy</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card border-primary">
+            <div class="metric-header">
+                <span class="metric-label text-primary">Hợp đồng đang trả góp</span>
+                <span class="badge bg-primary"><i class="bi bi-arrow-repeat"></i> Đang theo dõi</span>
+            </div>
+            <div class="metric-value text-primary fs-3 fw-bold">
+                @activeCount hợp đồng
+            </div>
+            <small class="text-muted">Đã giao máy và đang thu tiền các kỳ hàng tháng</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card border-danger">
+            <div class="metric-header">
+                <span class="metric-label text-danger">Tổng dư nợ cần thu</span>
+                <span class="badge bg-danger"><i class="bi bi-cash-stack"></i> Công nợ</span>
+            </div>
+            <div class="metric-value text-danger fs-3 fw-bold">
+                @string.Format("{0:N0}đ", totalDebt)
+            </div>
+            <small class="text-muted">Khoản tiền chưa thu của các hợp đồng đang thực hiện</small>
+        </div>
+    </div>
+</div>
+
+<!-- THANH LỌC VÀ TÌM KIẾM -->
+<div class="admin-card mb-4 p-3">
+    <form method="get" asp-action="Installments" class="row g-3 align-items-center">
+        <div class="col-md-5">
+            <div class="position-relative">
+                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã HĐ, mã đơn, tên khách, số điện thoại..." />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select-dark" onchange="this.form.submit()">
+                <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
+                <option value="Chờ trả trước" selected="@(currentStatus == "Chờ trả trước" ? "selected" : null)">1. Chờ trả trước (Cần duyệt)</option>
+                <option value="Đang trả góp" selected="@(currentStatus == "Đang trả góp" ? "selected" : null)">2. Đang trả góp</option>
+                <option value="Quá hạn" selected="@(currentStatus == "Quá hạn" ? "selected" : null)">3. Có kỳ quá hạn</option>
+                <option value="Đã tất toán" selected="@(currentStatus == "Đã tất toán" ? "selected" : null)">4. Đã tất toán (Xong nợ)</option>
+                <option value="Đã hủy" selected="@(currentStatus == "Đã hủy" ? "selected" : null)">5. Đã hủy</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn-primary-custom w-100">
+                <i class="bi bi-funnel"></i> Lọc hợp đồng
+            </button>
+            @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
+            {
+                <a href="/Admin/Installments" class="btn-secondary-custom">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<!-- BẢNG DANH SÁCH HỢP ĐỒNG TRẢ GÓP -->
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title-text mb-0">
+            <i class="bi bi-credit-card-2-front text-primary me-2"></i> Danh sách hợp đồng trả góp (@(ViewBag.TotalCount ?? Model.Count()))
+        </h5>
+    </div>
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Mã HĐ / Đơn hàng</th>
+                    <th>Khách hàng</th>
+                    <th>Tổng đơn</th>
+                    <th>Kỳ hạn</th>
+                    <th>Trả trước (30%)</th>
+                    <th>Đã thu / Dư nợ</th>
+                    <th>Tiến độ</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var c in Model)
+                    {
+                        var statusClass = c.Status switch
+                        {
+                            "Đã tất toán" => "badge-paid",
+                            "Chờ trả trước" => "badge-low-stock",
+                            "Đang trả góp" => c.HasOverdue ? "badge-out-of-stock" : "badge-processing",
+                            "Đã hủy" => "badge-out-of-stock",
+                            _ => "badge-in-stock"
+                        };
+
+                        var prepayBadge = c.PrepayStatus == "Đã thanh toán" ? "badge-in-stock" : "badge-low-stock";
+
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-primary">#@c.ContractCode</div>
+                                <div class="text-muted small"><a href="/Admin/Orders?search=@c.OrderCode" class="text-decoration-none">Đơn #@c.OrderCode</a></div>
+                            </td>
+                            <td>
+                                <div class="text-dark fw-semibold">@c.CustomerName</div>
+                                <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@c.PhoneNumber</div>
+                            </td>
+                            <td class="fw-bold text-dark text-nowrap">
+                                @string.Format("{0:N0}đ", c.TotalOrderAmount)
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-dark border">@c.TermMonths tháng</span>
+                            </td>
+                            <td>
+                                <div class="text-dark fw-medium">@string.Format("{0:N0}đ", c.PrepayAmount)</div>
+                                <span class="badge-status @prepayBadge" style="font-size: 0.72rem;">@c.PrepayStatus</span>
+                            </td>
+                            <td>
+                                <div class="text-success small fw-medium">Đã thu: @string.Format("{0:N0}đ", c.TotalPaid)</div>
+                                <div class="text-danger small fw-bold">Còn nợ: @string.Format("{0:N0}đ", c.RemainingDebt)</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-primary border">@c.ProgressText</span>
+                            </td>
+                            <td>
+                                <span class="badge-status @statusClass">
+                                    @(c.HasOverdue ? "Quá hạn" : c.Status)
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-1">
+                                    @if (c.Status == "Chờ trả trước")
+                                    {
+                                        <button type="button" class="btn btn-sm btn-success text-white" data-bs-toggle="modal" data-bs-target="#modal-activate-@c.ContractId" title="Xác nhận tiền trả trước">
+                                            <i class="bi bi-check-circle"></i> Duyệt tiền
+                                        </button>
+                                    }
+                                    <a href="/Admin/InstallmentDetails/@c.ContractId" class="btn btn-sm btn-primary-custom" title="Xem lịch kỳ và thu tiền">
+                                        <i class="bi bi-eye"></i> Chi tiết
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- MODAL DUYỆT NHANH KHOẢN TRẢ TRƯỚC -->
+                        @if (c.Status == "Chờ trả trước")
+                        {
+                            <div class="modal fade" id="modal-activate-@c.ContractId" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
+                                        <div class="modal-header border-bottom bg-light">
+                                            <h5 class="modal-title fs-6 fw-bold text-success">
+                                                <i class="bi bi-shield-check me-2"></i>Xác nhận khoản trả trước 30%
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" asp-action="ActivateInstallment">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="contractId" value="@c.ContractId" />
+                                            <input type="hidden" name="returnUrl" value="/Admin/Installments" />
+                                            <div class="modal-body text-start">
+                                                <div class="p-3 rounded mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                                    <div class="small text-secondary mb-1">Hợp đồng: <strong class="text-primary">#@c.ContractCode</strong> (Đơn #@c.OrderCode)</div>
+                                                    <div class="small text-secondary mb-1">Khách hàng: <strong class="text-dark">@c.CustomerName</strong> (@c.PhoneNumber)</div>
+                                                    <div class="small text-secondary mb-1">Tổng tiền đơn hàng: <strong>@string.Format("{0:N0}đ", c.TotalOrderAmount)</strong></div>
+                                                    <hr class="my-2" />
+                                                    <div class="fs-6 fw-bold text-success">
+                                                        Số tiền trả trước cần thu: @string.Format("{0:N0}đ", c.PrepayAmount) (30%)
+                                                    </div>
+                                                    <div class="text-muted small mt-1">Sau khi xác nhận, hợp đồng sẽ chuyển sang "Đang trả góp" và chốt lịch các kỳ chính thức (kỳ 1 đến hạn sau 1 tháng).</div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label small fw-semibold">Hình thức nhận tiền *</label>
+                                                    <select name="paymentMethod" class="form-select form-control-dark">
+                                                        <option value="Chuyển khoản (VietQR)">Chuyển khoản VietQR / Ngân hàng</option>
+                                                        <option value="Tiền mặt">Tiền mặt tại quầy / Shipper thu</option>
+                                                        <option value="Thẻ POS">Quẹt thẻ ngân hàng (POS)</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label small fw-semibold">Mã giao dịch / Mã chuẩn chi (nếu có)</label>
+                                                    <input type="text" name="transactionRef" class="form-control form-control-dark" placeholder="VD: FT2610283921..." />
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label small fw-semibold">Ghi chú xác nhận</label>
+                                                    <input type="text" name="note" class="form-control form-control-dark" placeholder="VD: Tiền đã về tài khoản MBBank lúc 10h..." />
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-top bg-light">
+                                                <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Đóng</button>
+                                                <button type="submit" class="btn btn-success text-white fw-semibold">
+                                                    <i class="bi bi-check2-circle"></i> Xác nhận & Kích hoạt hợp đồng
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            Không có hợp đồng trả góp nào phù hợp với bộ lọc.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

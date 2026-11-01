@@ -26,6 +26,16 @@ public class CreateOrderRequest
     public string PaymentMethod { get; set; } = "COD"; // "COD", "VietQR", "Banking", "VNPAY"
 
     /// <summary>
+    /// Hình thức mua hàng: "Full" (Trả toàn bộ), "Installment" (Trả góp)
+    /// </summary>
+    public string PurchaseMode { get; set; } = "Full";
+
+    /// <summary>
+    /// Kỳ hạn trả góp nếu chọn trả góp: 3, 6, 9 hoặc 12 tháng
+    /// </summary>
+    public int? TermMonths { get; set; }
+
+    /// <summary>
     /// Khóa idempotency từ client chống tạo đơn hàng trùng lặp
     /// </summary>
     public string? IdempotencyKey { get; set; }
@@ -57,6 +67,10 @@ public class OrderResponseDto
     public string PaymentMethod { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;
     public string OrderStatus { get; set; } = string.Empty;
+    public string PurchaseMode { get; set; } = "Full";
+    public decimal? PrepayAmount { get; set; }
+    public decimal? RemainingDebt { get; set; }
+    public InstallmentContractDetailDto? InstallmentContract { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<OrderItemResponseDto> Items { get; set; } = new();
 }

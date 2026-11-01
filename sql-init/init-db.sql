@@ -124,6 +124,7 @@ CREATE TABLE Orders (
     SubTotal DECIMAL(18,2) NOT NULL,
     DiscountAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
     TotalAmount DECIMAL(18,2) NOT NULL,
+    PurchaseMode NVARCHAR(50) NOT NULL DEFAULT 'Full',
     PaymentMethod NVARCHAR(50) NOT NULL DEFAULT 'COD',
     PaymentStatus NVARCHAR(50) NOT NULL DEFAULT N'Chờ thanh toán',
     OrderStatus NVARCHAR(50) NOT NULL DEFAULT N'Đang xử lý',
@@ -139,6 +140,8 @@ IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') A
     ALTER TABLE Orders ADD IdempotencyKey NVARCHAR(100) NULL;
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Orders_IdempotencyKey' AND object_id = OBJECT_ID('Orders'))
     CREATE NONCLUSTERED INDEX IX_Orders_IdempotencyKey ON Orders (IdempotencyKey) WHERE IdempotencyKey IS NOT NULL;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'PurchaseMode')
+    ALTER TABLE Orders ADD PurchaseMode NVARCHAR(50) NOT NULL DEFAULT 'Full';
 GO
 
 -- Ràng buộc CHECK constraints bảo vệ tính toàn vẹn dữ liệu
@@ -174,6 +177,9 @@ IF OBJECT_ID('dbo.Payments', 'U') IS NULL
 CREATE TABLE Payments (
     PaymentId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     OrderId INT NOT NULL,
+    PaymentType NVARCHAR(50) NOT NULL DEFAULT 'Full',
+    ScheduleId INT NULL,
+    ConfirmedBy NVARCHAR(100) NULL,
     PaymentMethod NVARCHAR(50) NOT NULL DEFAULT 'COD',
     Amount DECIMAL(18,2) NOT NULL,
     TransactionReference NVARCHAR(100) NULL,
@@ -182,6 +188,14 @@ CREATE TABLE Payments (
     Note NVARCHAR(255) NULL,
     CONSTRAINT FK_Payments_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES Orders (OrderId) ON DELETE CASCADE
 );
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PaymentType')
+    ALTER TABLE Payments ADD PaymentType NVARCHAR(50) NOT NULL DEFAULT 'Full';
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ScheduleId')
+    ALTER TABLE Payments ADD ScheduleId INT NULL;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ConfirmedBy')
+    ALTER TABLE Payments ADD ConfirmedBy NVARCHAR(100) NULL;
 GO
 
 -- 10. Bảng Nhật ký trạng thái đơn (OrderStatusHistories)
@@ -196,6 +210,49 @@ CREATE TABLE OrderStatusHistories (
     CONSTRAINT FK_OrderStatusHistories_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES Orders (OrderId) ON DELETE CASCADE
 );
 GO
+-- 11. Bảng Hợp đồng trả góp (InstallmentContracts)
+IF OBJECT_ID('dbo.InstallmentContracts', 'U') IS NULL
+CREATE TABLE InstallmentContracts (
+    ContractId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    ContractCode NVARCHAR(50) NOT NULL,
+    OrderId INT NOT NULL,
+    TermMonths INT NOT NULL,
+    PrepayPercent DECIMAL(5,2) NOT NULL DEFAULT 30.00,
+    PrepayAmount DECIMAL(18,2) NOT NULL,
+    TotalFinancedAmount DECIMAL(18,2) NOT NULL,
+    InterestRate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    MonthlyInstallmentAmount DECIMAL(18,2) NOT NULL,
+    Status NVARCHAR(50) NOT NULL DEFAULT N'Chờ trả trước',
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    ActivatedAt DATETIME NULL,
+    CompletedAt DATETIME NULL,
+    Notes NVARCHAR(500) NULL,
+    CONSTRAINT IX_InstallmentContracts_ContractCode UNIQUE (ContractCode),
+    CONSTRAINT IX_InstallmentContracts_OrderId UNIQUE (OrderId),
+    CONSTRAINT FK_InstallmentContracts_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES Orders (OrderId) ON DELETE CASCADE,
+    CONSTRAINT CK_InstallmentContracts_TermMonths CHECK (TermMonths IN (3, 6, 9, 12))
+);
+GO
+
+-- 12. Bảng Lịch các kỳ trả góp (InstallmentSchedules)
+IF OBJECT_ID('dbo.InstallmentSchedules', 'U') IS NULL
+CREATE TABLE InstallmentSchedules (
+    ScheduleId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    ContractId INT NOT NULL,
+    PeriodNumber INT NOT NULL,
+    DueDate DATETIME NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    PaidAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    Status NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
+    PaidAt DATETIME NULL,
+    PaymentId INT NULL,
+    CollectedBy NVARCHAR(100) NULL,
+    CONSTRAINT IX_InstallmentSchedules_Contract_Period UNIQUE (ContractId, PeriodNumber),
+    CONSTRAINT FK_InstallmentSchedules_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES InstallmentContracts (ContractId) ON DELETE CASCADE,
+    CONSTRAINT FK_InstallmentSchedules_Payments_PaymentId FOREIGN KEY (PaymentId) REFERENCES Payments (PaymentId) ON DELETE SET NULL
+);
+GO
+
 
 -- =============================================
 -- Brands (Bật IDENTITY_INSERT để nạp ID định sẵn)

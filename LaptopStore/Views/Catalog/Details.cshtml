@@ -112,18 +112,29 @@
                 }
 
                 <!-- Nút hành động đặt hàng -->
-                <div class="d-grid gap-2 mb-3">
+                <div class="row g-2 mb-3">
                     @if (Model.StockQuantity > 0)
                     {
-                        <a href="/Catalog/Lookup" class="btn btn-danger btn-lg fw-bold py-3 shadow-sm">
-                            <i class="bi bi-cart-plus me-2"></i> ĐẶT MUA NGAY (GIAO TẬN NƠI)
-                        </a>
+                        <div class="col-12 col-md-6">
+                            <button type="button" class="btn btn-danger btn-lg fw-bold w-100 py-3 shadow-sm" onclick="openOrderModal('Full')">
+                                <i class="bi bi-cart-check me-1"></i> MUA TRẢ THẲNG
+                                <span class="d-block small fw-normal" style="font-size: 0.75rem;">Giao tận nơi hoặc nhận tại cửa hàng</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <button type="button" class="btn btn-primary btn-lg fw-bold w-100 py-3 shadow-sm" onclick="openOrderModal('Installment')">
+                                <i class="bi bi-credit-card-2-front me-1"></i> MUA TRẢ GÓP 0%
+                                <span class="d-block small fw-normal" style="font-size: 0.75rem;">Trả trước 30% • Duyệt nhanh</span>
+                            </button>
+                        </div>
                     }
                     else
                     {
-                        <button class="btn btn-secondary btn-lg fw-bold py-3" disabled>
-                            <i class="bi bi-bell me-2"></i> SẢN PHẨM TẠM HẾT HÀNG
-                        </button>
+                        <div class="col-12">
+                            <button class="btn btn-secondary btn-lg fw-bold w-100 py-3" disabled>
+                                <i class="bi bi-bell me-2"></i> SẢN PHẨM TẠM HẾT HÀNG
+                            </button>
+                        </div>
                     }
                 </div>
 
@@ -252,3 +263,317 @@
         </div>
     }
 </div>
+
+<!-- MODAL ĐẶT HÀNG TRẢ THẲNG & TRẢ GÓP (MỐC 1) -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header border-bottom bg-light">
+                <h5 class="modal-title fs-5 fw-bold text-dark" id="orderModalTitle">
+                    <i class="bi bi-cart3 text-primary me-2"></i>Đặt mua laptop
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="orderModalBody">
+                <!-- Chọn hình thức mua -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-2">1. Chọn hình thức mua hàng</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="purchaseModeRadio" id="modeFull" value="Full" autocomplete="off" onchange="onModeChange('Full')">
+                            <label class="btn btn-outline-primary w-100 py-3 text-start h-100" for="modeFull">
+                                <div class="fw-bold"><i class="bi bi-cash-stack me-1"></i> Trả toàn bộ (Trả thẳng)</div>
+                                <div class="small text-muted mt-1">Thanh toán 100% khi nhận hàng hoặc qua VietQR</div>
+                                <div class="fw-bold text-danger mt-2">@Model.Price.ToString("N0")đ</div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="purchaseModeRadio" id="modeInstallment" value="Installment" autocomplete="off" onchange="onModeChange('Installment')">
+                            <label class="btn btn-outline-primary w-100 py-3 text-start h-100" for="modeInstallment">
+                                <div class="fw-bold"><i class="bi bi-credit-card-2-front me-1"></i> Trả góp lãi suất 0%</div>
+                                <div class="small text-muted mt-1">Trả trước 30% • Còn lại chia đều theo tháng</div>
+                                <div class="fw-bold text-primary mt-2">Chỉ từ @(Math.Round(Model.Price * 0.30m).ToString("N0"))đ hôm nay</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Khung cấu hình trả góp nếu chọn Trả góp -->
+                <div id="installmentConfigBox" class="p-3 rounded-3 border bg-light-subtle mb-4" style="display: none;">
+                    <label class="form-label fw-bold small text-primary text-uppercase mb-2">
+                        <i class="bi bi-calendar-range me-1"></i> 2. Chọn kỳ hạn trả góp (Lãi suất 0%)
+                    </label>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-secondary term-btn flex-fill" data-term="3" onclick="selectTerm(3)">3 tháng</button>
+                        <button type="button" class="btn btn-primary term-btn flex-fill" data-term="6" onclick="selectTerm(6)">6 tháng</button>
+                        <button type="button" class="btn btn-outline-secondary term-btn flex-fill" data-term="9" onclick="selectTerm(9)">9 tháng</button>
+                        <button type="button" class="btn btn-outline-secondary term-btn flex-fill" data-term="12" onclick="selectTerm(12)">12 tháng</button>
+                    </div>
+
+                    <!-- Bảng tóm tắt tài chính -->
+                    <div class="row g-2 text-center small mb-3">
+                        <div class="col-4">
+                            <div class="p-2 bg-white rounded border">
+                                <div class="text-muted">Trả trước (30%)</div>
+                                <div class="fw-bold text-success fs-6" id="summaryPrepay">0đ</div>
+                                <small class="text-muted">Cần thanh toán ngay</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-white rounded border">
+                                <div class="text-muted">Còn lại (70%)</div>
+                                <div class="fw-bold text-dark fs-6" id="summaryFinanced">0đ</div>
+                                <small class="text-muted">Chia đều các kỳ</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-white rounded border">
+                                <div class="text-muted">Mỗi tháng trả</div>
+                                <div class="fw-bold text-primary fs-6" id="summaryMonthly">0đ</div>
+                                <small class="text-muted" id="summaryTermText">6 kỳ hạn</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lịch trả dự kiến -->
+                    <div class="small">
+                        <div class="fw-semibold text-muted mb-1"><i class="bi bi-info-circle me-1"></i> Lịch thanh toán dự kiến:</div>
+                        <div id="schedulePreviewTable" class="table-responsive bg-white rounded border" style="max-height: 160px; overflow-y: auto;">
+                            <!-- Đổ dữ liệu từ JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form thông tin khách hàng -->
+                <form id="orderForm" onsubmit="submitCustomerOrder(event)">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-2">3. Thông tin người nhận hàng</label>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" id="custName" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-semibold">Số điện thoại nhận hàng <span class="text-danger">*</span></label>
+                            <input type="tel" id="custPhone" class="form-control" placeholder="Ví dụ: 0912345678" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Địa chỉ giao hàng tận nơi <span class="text-danger">*</span></label>
+                            <input type="text" id="custAddress" class="form-control" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành..." required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Ghi chú giao hàng (nếu có)</label>
+                            <input type="text" id="custNotes" class="form-control" placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến..." />
+                        </div>
+                    </div>
+
+                    <!-- Phương thức thanh toán khoản trả ngay -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-2">4. Phương thức thanh toán khoản trả ngay</label>
+                        <div class="form-check p-3 border rounded mb-2">
+                            <input class="form-check-input ms-0 me-2" type="radio" name="payMethodRadio" id="payVietQR" value="VietQR" checked>
+                            <label class="form-check-label fw-semibold" for="payVietQR">
+                                <i class="bi bi-qr-code text-primary me-1"></i> Chuyển khoản quét mã VietQR (Tự động điền số tiền & nội dung)
+                            </label>
+                        </div>
+                        <div class="form-check p-3 border rounded">
+                            <input class="form-check-input ms-0 me-2" type="radio" name="payMethodRadio" id="payCOD" value="COD">
+                            <label class="form-check-label fw-semibold" for="payCOD">
+                                <i class="bi bi-truck text-success me-1"></i> Thanh toán tiền mặt khi nhận máy (COD)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg fw-bold py-3 shadow" id="btnSubmitOrder">
+                            <i class="bi bi-check2-circle me-1"></i> <span id="submitBtnText">XÁC NHẬN ĐẶT HÀNG</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const PRODUCT_ID = @Model.Id;
+    const TOTAL_PRICE = @Model.Price;
+    let selectedMode = 'Full';
+    let selectedTerm = 6;
+
+    function formatVND(num) {
+        return num.toLocaleString('vi-VN') + 'đ';
+    }
+
+    function openOrderModal(mode) {
+        selectedMode = mode;
+        const modalEl = document.getElementById('orderModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        
+        if (mode === 'Installment') {
+            document.getElementById('modeInstallment').checked = true;
+            onModeChange('Installment');
+        } else {
+            document.getElementById('modeFull').checked = true;
+            onModeChange('Full');
+        }
+        
+        modal.show();
+    }
+
+    function onModeChange(mode) {
+        selectedMode = mode;
+        const configBox = document.getElementById('installmentConfigBox');
+        const btnText = document.getElementById('submitBtnText');
+        
+        if (mode === 'Installment') {
+            configBox.style.display = 'block';
+            selectTerm(selectedTerm);
+            const prepay = Math.round(TOTAL_PRICE * 0.3);
+            btnText.textContent = `ĐẶT HÀNG TRẢ GÓP (TRẢ TRƯỚC ${formatVND(prepay)})`;
+        } else {
+            configBox.style.display = 'none';
+            btnText.textContent = `XÁC NHẬN ĐẶT HÀNG (${formatVND(TOTAL_PRICE)})`;
+        }
+    }
+
+    function selectTerm(term) {
+        selectedTerm = term;
+        document.querySelectorAll('.term-btn').forEach(b => {
+            if (parseInt(b.dataset.term) === term) {
+                b.className = 'btn btn-primary term-btn flex-fill';
+            } else {
+                b.className = 'btn btn-outline-secondary term-btn flex-fill';
+            }
+        });
+
+        // Tính toán nghiệp vụ trả góp chuẩn Mốc 1:
+        // Trả trước đúng 30% làm tròn đến đồng
+        const prepayAmount = Math.round(TOTAL_PRICE * 0.30);
+        const financedAmount = TOTAL_PRICE - prepayAmount;
+        const basePeriodAmount = Math.floor(financedAmount / term);
+        const lastPeriodAmount = financedAmount - (basePeriodAmount * (term - 1));
+
+        document.getElementById('summaryPrepay').textContent = formatVND(prepayAmount);
+        document.getElementById('summaryFinanced').textContent = formatVND(financedAmount);
+        document.getElementById('summaryMonthly').textContent = formatVND(basePeriodAmount);
+        document.getElementById('summaryTermText').textContent = `${term} kỳ hạn (lãi 0%)`;
+
+        // Render lịch dự kiến
+        const today = new Date();
+        let tableHtml = `<table class="table table-sm table-borderless mb-0 align-middle">
+            <thead class="table-light"><tr><th class="ps-2">Kỳ</th><th>Hạn dự kiến</th><th class="text-end pe-2">Số tiền</th></tr></thead><tbody>`;
+        
+        for (let i = 1; i <= term; i++) {
+            const dueDate = new Date(today);
+            dueDate.setMonth(dueDate.getMonth() + i);
+            const dateStr = dueDate.toLocaleDateString('vi-VN');
+            const amt = (i === term) ? lastPeriodAmount : basePeriodAmount;
+            tableHtml += `<tr>
+                <td class="ps-2 fw-semibold">Kỳ #${i}</td>
+                <td class="text-muted">${dateStr}</td>
+                <td class="text-end pe-2 fw-bold text-primary">${formatVND(amt)}</td>
+            </tr>`;
+        }
+        tableHtml += '</tbody></table>';
+        document.getElementById('schedulePreviewTable').innerHTML = tableHtml;
+
+        const btnText = document.getElementById('submitBtnText');
+        btnText.textContent = `ĐẶT HÀNG TRẢ GÓP (TRẢ TRƯỚC ${formatVND(prepayAmount)})`;
+    }
+
+    async function submitCustomerOrder(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btnSubmitOrder');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang tạo đơn hàng...';
+
+        const name = document.getElementById('custName').value.trim();
+        const phone = document.getElementById('custPhone').value.trim();
+        const address = document.getElementById('custAddress').value.trim();
+        const notes = document.getElementById('custNotes').value.trim();
+        const payMethod = document.querySelector('input[name="payMethodRadio"]:checked').value;
+
+        const payload = {
+            customerName: name,
+            phoneNumber: phone,
+            shippingAddress: address,
+            notes: notes,
+            paymentMethod: payMethod,
+            purchaseMode: selectedMode,
+            termMonths: selectedMode === 'Installment' ? selectedTerm : null,
+            items: [{
+                productId: PRODUCT_ID,
+                quantity: 1,
+                selectedSpecs: '@(Model.Specification != null ? $"RAM {Model.Specification.RamGB}GB • {Model.Specification.StorageGB}GB {Model.Specification.StorageType}" : "Tiêu chuẩn")'
+            }]
+        };
+
+        try {
+            const resp = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                alert(data.message || 'Lỗi khi đặt hàng. Vui lòng thử lại!');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> XÁC NHẬN ĐẶT HÀNG';
+                return;
+            }
+
+            // Đặt hàng thành công: hiển thị thông báo kết quả
+            renderOrderSuccess(data.orderCode, payMethod, selectedMode, selectedTerm, phone);
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> XÁC NHẬN ĐẶT HÀNG';
+        }
+    }
+
+    function renderOrderSuccess(orderCode, payMethod, mode, term, phone) {
+        const modalBody = document.getElementById('orderModalBody');
+        const prepayAmount = Math.round(TOTAL_PRICE * 0.30);
+        const amountToPayNow = (mode === 'Installment') ? prepayAmount : TOTAL_PRICE;
+
+        let qrSection = '';
+        if (payMethod === 'VietQR') {
+            const qrUrl = `https://api.vietqr.io/image/970422-0988668866-compact2.png?amount=${amountToPayNow}&addInfo=${encodeURIComponent((mode === 'Installment' ? 'TT TRAGOP ' : 'THANHTOAN ') + orderCode)}&accountName=HE%20THONG%20LAPTOP%20WORLD`;
+            qrSection = `
+                <div class="text-center p-3 my-3 bg-light rounded border">
+                    <div class="fw-bold text-dark mb-1">Mã QR Thanh toán chính xác ${formatVND(amountToPayNow)}</div>
+                    <div class="small text-muted mb-2">Mở App ngân hàng quét mã QR dưới đây để chuyển khoản tự động:</div>
+                    <img src="${qrUrl}" alt="VietQR" class="img-fluid rounded border shadow-sm" style="max-width: 250px;" />
+                    <div class="small text-secondary mt-2">
+                        Tài khoản: <strong>0988668866</strong> - MBBank<br/>
+                        Chủ TK: <strong>HE THONG LAPTOP WORLD</strong><br/>
+                        Nội dung: <strong>${(mode === 'Installment' ? 'TT TRAGOP ' : 'THANHTOAN ') + orderCode}</strong>
+                    </div>
+                </div>
+            `;
+        }
+
+        modalBody.innerHTML = `
+            <div class="text-center py-3">
+                <div class="d-inline-flex p-3 rounded-circle bg-success-subtle text-success mb-3">
+                    <i class="bi bi-check-circle-fill fs-1"></i>
+                </div>
+                <h4 class="fw-bold text-dark">Đặt hàng ${mode === 'Installment' ? 'trả góp ' : ''}thành công!</h4>
+                <div class="fs-5 text-primary fw-bold my-2">Mã đơn hàng: #${orderCode}</div>
+                <p class="text-muted small">
+                    ${mode === 'Installment' 
+                        ? `Đơn hàng trả góp <strong>${term} tháng</strong> đã được chuyển tới bộ phận kế toán. Vui lòng hoàn tất khoản trả trước <strong>${formatVND(prepayAmount)} (30%)</strong> để nhân viên kích hoạt hợp đồng và giao máy.`
+                        : 'Đơn hàng của bạn đã được ghi nhận vào hệ thống và đang được xử lý đóng gói.'}
+                </p>
+                ${qrSection}
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <a href="/Catalog/Lookup?orderCode=${orderCode}&phone=${encodeURIComponent(phone)}" class="btn btn-primary px-4 fw-semibold">
+                        <i class="bi bi-truck me-1"></i> Tra cứu tiến độ đơn hàng
+                    </a>
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        `;
+    }
+</script>

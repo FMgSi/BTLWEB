@@ -105,6 +105,12 @@
                     <span>Quản lý đơn hàng</span>
                 </a>
 
+                <!-- Quản lý trả góp (Mốc 1) -->
+                <a href="/Admin/Installments" class="nav-link-custom @(currentCtrl == "admin" && (currentAction == "installments" || currentAction == "installmentdetails") ? "active" : "")">
+                    <i class="bi bi-credit-card-2-front-fill"></i>
+                    <span>Quản lý trả góp</span>
+                </a>
+
                 <!-- Quản lý khách hàng -->
                 <a href="/Admin/Customers" class="nav-link-custom @(currentCtrl == "admin" && currentAction == "customers" ? "active" : "")">
                     <i class="bi bi-people-fill"></i>

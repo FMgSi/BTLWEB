@@ -23,6 +23,7 @@ public class AdminController : Controller
     private readonly AppDbContext _db;
     private readonly IOrderService _orderService;
     private readonly IProductService _productService;
+    private readonly IInstallmentService _installmentService;
     private readonly IWebHostEnvironment _env;
 
     private string SettingsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "systemsettings.json");
@@ -106,11 +107,17 @@ public class AdminController : Controller
         new DiscountDto { Code = "WELCOME", Title = "Chào mừng thành viên mới", DiscountType = "Giảm theo %", DiscountValueText = "3% (Tối đa 200k)", ConditionText = "Đơn hàng đầu tiên", UsageText = "120 / Không giới hạn", ExpiryText = "Không giới hạn", Status = "Đang hoạt động", StatusBadgeClass = "badge-in-stock" }
     };
 
-    public AdminController(AppDbContext db, IOrderService orderService, IProductService productService, IWebHostEnvironment env)
+    public AdminController(
+        AppDbContext db,
+        IOrderService orderService,
+        IProductService productService,
+        IInstallmentService installmentService,
+        IWebHostEnvironment env)
     {
         _db = db;
         _orderService = orderService;
         _productService = productService;
+        _installmentService = installmentService;
         _env = env;
     }
 
@@ -283,6 +290,128 @@ public class AdminController : Controller
         }
 
         return RedirectToAction(nameof(Orders));
+    }
+
+    /// <summary>
+    /// Quản lý Hợp đồng Trả góp (Mốc 1: Theo dõi đơn chờ trả trước, đang trả, quá hạn, đã tất toán)
+    /// GET: /Admin/Installments
+    /// </summary>
+    public async Task<IActionResult> Installments(string? search, string? status, int page = 1)
+    {
+        int pageSize = 15;
+        var pagedResult = await _installmentService.GetContractsAsync(search, status, page, pageSize);
+        var (waitingPrepay, activeContracts, totalDebt) = await _installmentService.GetInstallmentDashboardMetricsAsync();
+
+        ViewBag.Search = search;
+        ViewBag.Status = status ?? "all";
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling(pagedResult.TotalItems / (double)pageSize);
+        if (ViewBag.TotalPages == 0) ViewBag.TotalPages = 1;
+        ViewBag.TotalCount = pagedResult.TotalItems;
+
+        ViewBag.WaitingPrepayCount = waitingPrepay;
+        ViewBag.ActiveContractsCount = activeContracts;
+        ViewBag.TotalInstallmentDebt = totalDebt;
+
+        return View(pagedResult.Items);
+    }
+
+    /// <summary>
+    /// Xem chi tiết hợp đồng trả góp kèm lịch các kỳ và lịch sử biên nhận thanh toán
+    /// GET: /Admin/InstallmentDetails/{id}
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> InstallmentDetails(int id)
+    {
+        var contract = await _installmentService.GetContractByIdAsync(id);
+        if (contract == null)
+        {
+            TempData["Error"] = "Không tìm thấy hợp đồng trả góp yêu cầu.";
+            return RedirectToAction(nameof(Installments));
+        }
+
+        return View(contract);
+    }
+
+    /// <summary>
+    /// Admin xác nhận đã nhận khoản tiền trả trước 30% -> Kích hoạt hợp đồng và chốt lịch trả chính thức
+    /// POST: /Admin/ActivateInstallment
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ActivateInstallment(int contractId, string paymentMethod, string? transactionRef, string? note, string? returnUrl = null)
+    {
+        var adminName = User.Identity?.Name ?? "Quản trị viên";
+        var (success, message, contract) = await _installmentService.ActivateContractAsync(
+            contractId, adminName, paymentMethod ?? "Tiền mặt", transactionRef, note);
+
+        if (success)
+        {
+            TempData["Success"] = message;
+        }
+        else
+        {
+            TempData["Error"] = message;
+        }
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(Installments));
+    }
+
+    /// <summary>
+    /// Admin thu tiền cho từng kỳ trả góp theo thứ tự
+    /// POST: /Admin/CollectInstallmentPeriod
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CollectInstallmentPeriod(
+        int contractId, int periodNumber, string paymentMethod, string? transactionRef, string? note, string? returnUrl = null)
+    {
+        var adminName = User.Identity?.Name ?? "Quản trị viên";
+        var (success, message, schedule) = await _installmentService.CollectPeriodPaymentAsync(
+            contractId, periodNumber, adminName, paymentMethod ?? "Tiền mặt", transactionRef, note);
+
+        if (success)
+        {
+            TempData["Success"] = message;
+        }
+        else
+        {
+            TempData["Error"] = message;
+        }
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(InstallmentDetails), new { id = contractId });
+    }
+
+    /// <summary>
+    /// In hoặc xem Biên nhận thu tiền trả góp
+    /// GET: /Admin/InstallmentReceipt/{paymentId}
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> InstallmentReceipt(int id)
+    {
+        var payment = await _db.Payments
+            .AsNoTracking()
+            .Include(p => p.Order)
+                .ThenInclude(o => o!.InstallmentContract)
+            .Include(p => p.Schedule)
+            .FirstOrDefaultAsync(p => p.PaymentId == id);
+
+        if (payment == null)
+        {
+            return NotFound("Không tìm thấy biên nhận thu tiền.");
+        }
+
+        return View(payment);
     }
 
     /// <summary>

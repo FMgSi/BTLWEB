@@ -24,6 +24,8 @@ export default function CartPage({
   const [customerAddress, setCustomerAddress] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('banking');
+  const [purchaseMode, setPurchaseMode] = useState('Full');
+  const [termMonths, setTermMonths] = useState(6);
 
   // Thông tin tài khoản ngân hàng nhận tiền chính thức của Cửa hàng
   const STORE_BANK_ACCOUNT = {
@@ -47,6 +49,12 @@ export default function CartPage({
     return sum + (orig || 0) * (item.quantity || 1);
   }, 0);
   const totalDiscount = Math.max(0, totalOriginal - totalPayable);
+
+  // Tính toán kế hoạch trả góp: trả trước đúng 30% làm tròn đến đồng, dồn lẻ kỳ cuối
+  const prepayAmount = Math.round(totalPayable * 0.30);
+  const financedAmount = totalPayable - prepayAmount;
+  const basePeriodAmount = Math.floor(financedAmount / termMonths);
+  const lastPeriodAmount = financedAmount - (basePeriodAmount * (termMonths - 1));
 
   // Sao chép văn bản vào bộ nhớ tạm
   const handleCopy = (text, key) => {
@@ -72,6 +80,8 @@ export default function CartPage({
         shippingAddress: customerAddress.trim(),
         notes: orderNotes.trim(),
         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'VietQR',
+        purchaseMode: purchaseMode,
+        termMonths: purchaseMode === 'Installment' ? termMonths : null,
         items: checkedItems.map((item) => ({
           productId: item.productId || item.id,
           quantity: item.quantity || 1,
@@ -107,6 +117,10 @@ export default function CartPage({
         address: customerAddress,
         notes: orderNotes,
         total: confirmedTotal,
+        purchaseMode: purchaseMode,
+        termMonths: termMonths,
+        prepayAmount: Math.round(confirmedTotal * 0.30),
+        remainingDebt: confirmedTotal - Math.round(confirmedTotal * 0.30),
         items: (data.order?.items && data.order.items.length > 0)
           ? data.order.items.map((i) => ({
               ...i,
@@ -151,8 +165,12 @@ export default function CartPage({
   };
 
   // Đường link tạo mã QR VietQR tự động theo số tiền đã chốt từ máy chủ và mã đơn hàng
+  const amountToPayNow = pendingOrder?.purchaseMode === 'Installment'
+    ? pendingOrder.prepayAmount
+    : (pendingOrder?.total || totalPayable);
+
   const qrImageUrl = pendingOrder
-    ? `https://img.vietqr.io/image/${STORE_BANK_ACCOUNT.bankId}-${STORE_BANK_ACCOUNT.accountNo}-compact2.png?amount=${pendingOrder.total}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(STORE_BANK_ACCOUNT.accountName)}`
+    ? `https://img.vietqr.io/image/${STORE_BANK_ACCOUNT.bankId}-${STORE_BANK_ACCOUNT.accountNo}-compact2.png?amount=${amountToPayNow}&addInfo=${encodeURIComponent((pendingOrder.purchaseMode === 'Installment' ? 'TT TRAGOP ' : '') + pendingOrder.orderId)}&accountName=${encodeURIComponent(STORE_BANK_ACCOUNT.accountName)}`
     : '';
 
   return (
@@ -401,6 +419,58 @@ export default function CartPage({
 
               <form onSubmit={handleConfirmOrder}>
                 <div className="modal-body py-2">
+                  {/* Chọn hình thức mua */}
+                  <div className="mb-3 p-2 bg-light rounded-3 border">
+                    <label className="form-label small fw-bold text-dark d-block mb-2">Hình thức mua hàng:</label>
+                    <div className="d-flex gap-2">
+                      <button
+                        type="button"
+                        className={`btn btn-sm flex-fill ${purchaseMode === 'Full' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setPurchaseMode('Full')}
+                      >
+                        Trả toàn bộ
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm flex-fill ${purchaseMode === 'Installment' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setPurchaseMode('Installment')}
+                      >
+                        Trả góp 0% (Trả trước 30%)
+                      </button>
+                    </div>
+
+                    {purchaseMode === 'Installment' && (
+                      <div className="mt-3 pt-2 border-top">
+                        <label className="form-label small fw-semibold text-secondary mb-1">Chọn kỳ hạn:</label>
+                        <div className="d-flex gap-1 mb-2">
+                          {[3, 6, 9, 12].map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`btn btn-sm flex-fill ${termMonths === t ? 'btn-danger' : 'btn-outline-secondary'}`}
+                              onClick={() => setTermMonths(t)}
+                            >
+                              {t}T
+                            </button>
+                          ))}
+                        </div>
+                        <div className="small bg-white p-2 rounded border">
+                          <div className="d-flex justify-content-between text-muted">
+                            <span>Trả trước (30%):</span>
+                            <strong className="text-success">{formatVND(prepayAmount)}</strong>
+                          </div>
+                          <div className="d-flex justify-content-between text-muted">
+                            <span>Còn lại ({termMonths} kỳ):</span>
+                            <span>{formatVND(financedAmount)}</span>
+                          </div>
+                          <div className="d-flex justify-content-between text-dark fw-bold border-top mt-1 pt-1">
+                            <span>Mỗi tháng:</span>
+                            <span className="text-primary">{formatVND(basePeriodAmount)}/tháng</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="mb-3">
                     <label className="form-label small fw-semibold text-secondary">
                       Họ và tên người nhận <span className="text-danger">*</span>
@@ -487,8 +557,12 @@ export default function CartPage({
                   </div>
 
                   <div className="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
-                    <span className="small fw-semibold text-secondary">Tổng thanh toán:</span>
-                    <span className="fs-5 fw-bold text-danger">{formatVND(totalPayable)}</span>
+                    <span className="small fw-semibold text-secondary">
+                      {purchaseMode === 'Installment' ? 'Cần trả ngay hôm nay (30%):' : 'Tổng thanh toán:'}
+                    </span>
+                    <span className="fs-5 fw-bold text-danger">
+                      {formatVND(purchaseMode === 'Installment' ? prepayAmount : totalPayable)}
+                    </span>
                   </div>
                 </div>
 
@@ -581,7 +655,7 @@ export default function CartPage({
                   <div className="d-flex justify-content-between align-items-center py-1 border-bottom">
                     <span className="text-muted">Số tiền:</span>
                     <div className="d-flex align-items-center gap-2">
-                      <strong className="text-danger">{formatVND(pendingOrder.total)}</strong>
+                      <strong className="text-danger">{formatVND(amountToPayNow)}</strong>
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-secondary py-0 px-2"

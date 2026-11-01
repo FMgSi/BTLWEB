@@ -40,6 +40,27 @@ public class Payment
 
     public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Phân loại giao dịch: "Full" (Thanh toán toàn bộ), "Prepay" (Trả trước 30%), "InstallmentPeriod" (Thu kỳ trả góp)
+    /// </summary>
+    [Required]
+    [StringLength(50)]
+    public string PaymentType { get; set; } = "Full";
+
+    /// <summary>
+    /// Liên kết kỳ trả góp tương ứng (nếu là thu kỳ trả góp)
+    /// </summary>
+    public int? ScheduleId { get; set; }
+
+    [ForeignKey("ScheduleId")]
+    public InstallmentSchedule? Schedule { get; set; }
+
+    /// <summary>
+    /// Người xác nhận / thu tiền (Admin / Nhân viên)
+    /// </summary>
+    [StringLength(100)]
+    public string? ConfirmedBy { get; set; }
+
     [StringLength(255)]
     public string? Note { get; set; }
 }

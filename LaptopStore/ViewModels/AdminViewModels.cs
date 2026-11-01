@@ -11,6 +11,11 @@ public class AdminDashboardViewModel
     public double SalesGrowth { get; set; } = 18.0;
     public int LowStockCount { get; set; } = 15;
 
+    // Các chỉ số nghiệp vụ trả góp
+    public int WaitingInstallmentPrepayCount { get; set; } = 0;
+    public int ActiveInstallmentContractsCount { get; set; } = 0;
+    public decimal TotalInstallmentDebt { get; set; } = 0;
+
     public List<RecentOrderDto> RecentOrders { get; set; } = new();
     public List<TopProductDto> TopSellingProducts { get; set; } = new();
     public List<RevenuePointDto> RevenueTrends { get; set; } = new();

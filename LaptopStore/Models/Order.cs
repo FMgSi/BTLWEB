@@ -74,6 +74,14 @@ public class Order
     public decimal TotalAmount { get; set; }
 
     /// <summary>
+    /// Hình thức mua hàng: "Full" (Trả toàn bộ), "Installment" (Trả góp)
+    /// </summary>
+    [Required]
+    [StringLength(50)]
+    [Display(Name = "Hình thức mua hàng")]
+    public string PurchaseMode { get; set; } = "Full";
+
+    /// <summary>
     /// Phương thức thanh toán: "COD", "VietQR", "Banking", "VNPAY"
     /// </summary>
     [Required]
@@ -115,4 +123,10 @@ public class Order
     /// Lịch sử thay đổi trạng thái đơn hàng
     /// </summary>
     public ICollection<OrderStatusHistory> StatusHistories { get; set; } = new List<OrderStatusHistory>();
+
+    /// <summary>
+    /// Hợp đồng trả góp nếu khách hàng chọn hình thức trả góp (PurchaseMode = "Installment")
+    /// Quan hệ 1 - 1 với Đơn hàng
+    /// </summary>
+    public InstallmentContract? InstallmentContract { get; set; }
 }

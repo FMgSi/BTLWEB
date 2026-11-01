@@ -29,6 +29,56 @@ public static class DbInitializer
                         ALTER TABLE Users ADD PhoneNumber NVARCHAR(20) NULL;
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'IdempotencyKey')
                         ALTER TABLE Orders ADD IdempotencyKey NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'PurchaseMode')
+                        ALTER TABLE Orders ADD PurchaseMode NVARCHAR(50) NOT NULL DEFAULT 'Full';
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'PaymentType')
+                        ALTER TABLE Payments ADD PaymentType NVARCHAR(50) NOT NULL DEFAULT 'Full';
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ScheduleId')
+                        ALTER TABLE Payments ADD ScheduleId INT NULL;
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ConfirmedBy')
+                        ALTER TABLE Payments ADD ConfirmedBy NVARCHAR(100) NULL;
+
+                    IF OBJECT_ID('dbo.InstallmentContracts', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE InstallmentContracts (
+                            ContractId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            ContractCode NVARCHAR(50) NOT NULL,
+                            OrderId INT NOT NULL,
+                            TermMonths INT NOT NULL,
+                            PrepayPercent DECIMAL(5,2) NOT NULL DEFAULT 30.00,
+                            PrepayAmount DECIMAL(18,2) NOT NULL,
+                            TotalFinancedAmount DECIMAL(18,2) NOT NULL,
+                            InterestRate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+                            MonthlyInstallmentAmount DECIMAL(18,2) NOT NULL,
+                            Status NVARCHAR(50) NOT NULL DEFAULT N'Chờ trả trước',
+                            CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                            ActivatedAt DATETIME NULL,
+                            CompletedAt DATETIME NULL,
+                            Notes NVARCHAR(500) NULL,
+                            CONSTRAINT IX_InstallmentContracts_ContractCode UNIQUE (ContractCode),
+                            CONSTRAINT IX_InstallmentContracts_OrderId UNIQUE (OrderId),
+                            CONSTRAINT FK_InstallmentContracts_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES Orders (OrderId) ON DELETE CASCADE
+                        );
+                    END
+
+                    IF OBJECT_ID('dbo.InstallmentSchedules', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE InstallmentSchedules (
+                            ScheduleId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            ContractId INT NOT NULL,
+                            PeriodNumber INT NOT NULL,
+                            DueDate DATETIME NOT NULL,
+                            Amount DECIMAL(18,2) NOT NULL,
+                            PaidAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+                            Status NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
+                            PaidAt DATETIME NULL,
+                            PaymentId INT NULL,
+                            CollectedBy NVARCHAR(100) NULL,
+                            CONSTRAINT IX_InstallmentSchedules_Contract_Period UNIQUE (ContractId, PeriodNumber),
+                            CONSTRAINT FK_InstallmentSchedules_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES InstallmentContracts (ContractId) ON DELETE CASCADE,
+                            CONSTRAINT FK_InstallmentSchedules_Payments_PaymentId FOREIGN KEY (PaymentId) REFERENCES Payments (PaymentId) ON DELETE SET NULL
+                        );
+                    END
                 ");
             }
             catch { }

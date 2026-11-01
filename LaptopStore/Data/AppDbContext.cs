@@ -62,6 +62,16 @@ public class AppDbContext : DbContext
     public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
 
     /// <summary>
+    /// Bảng InstallmentContracts (Hợp đồng trả góp)
+    /// </summary>
+    public DbSet<InstallmentContract> InstallmentContracts => Set<InstallmentContract>();
+
+    /// <summary>
+    /// Bảng InstallmentSchedules (Lịch thanh toán các kỳ trả góp)
+    /// </summary>
+    public DbSet<InstallmentSchedule> InstallmentSchedules => Set<InstallmentSchedule>();
+
+    /// <summary>
     /// Cấu hình nâng cao cho các bảng và mối quan hệ (Fluent API)
     /// </summary>
     protected override void OnModelCreating(ModelBuilder mb)
@@ -143,6 +153,43 @@ public class AppDbContext : DbContext
         mb.Entity<Payment>(entity =>
         {
             entity.Property(p => p.Amount).HasPrecision(18, 2);
+        });
+
+        // Cấu hình bảng InstallmentContracts (Hợp đồng trả góp)
+        mb.Entity<InstallmentContract>(entity =>
+        {
+            entity.HasIndex(c => c.ContractCode).IsUnique();
+            entity.HasIndex(c => c.OrderId).IsUnique();
+
+            entity.Property(c => c.PrepayPercent).HasPrecision(5, 2);
+            entity.Property(c => c.PrepayAmount).HasPrecision(18, 2);
+            entity.Property(c => c.TotalFinancedAmount).HasPrecision(18, 2);
+            entity.Property(c => c.InterestRate).HasPrecision(5, 2);
+            entity.Property(c => c.MonthlyInstallmentAmount).HasPrecision(18, 2);
+
+            entity.HasOne(c => c.Order)
+                .WithOne(o => o.InstallmentContract)
+                .HasForeignKey<InstallmentContract>(c => c.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(c => c.Schedules)
+                .WithOne(s => s.Contract)
+                .HasForeignKey(s => s.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Cấu hình bảng InstallmentSchedules (Lịch các kỳ)
+        mb.Entity<InstallmentSchedule>(entity =>
+        {
+            entity.HasIndex(s => new { s.ContractId, s.PeriodNumber }).IsUnique();
+
+            entity.Property(s => s.Amount).HasPrecision(18, 2);
+            entity.Property(s => s.PaidAmount).HasPrecision(18, 2);
+
+            entity.HasOne(s => s.Payment)
+                .WithMany()
+                .HasForeignKey(s => s.PaymentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

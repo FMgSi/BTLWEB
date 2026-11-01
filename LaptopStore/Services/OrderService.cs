@@ -8,10 +8,12 @@ namespace LaptopStore.Services;
 public class OrderService : IOrderService
 {
     private readonly AppDbContext _db;
+    private readonly IInstallmentService _installmentService;
 
-    public OrderService(AppDbContext db)
+    public OrderService(AppDbContext db, IInstallmentService installmentService)
     {
         _db = db;
+        _installmentService = installmentService;
     }
 
     public async Task<(bool Success, string Message, OrderResponseDto? Order)> CreateOrderAsync(CreateOrderRequest req, int? userId = null)
@@ -26,6 +28,9 @@ public class OrderService : IOrderService
         {
             var existingOrder = await _db.Orders
                 .Include(o => o.OrderItems)
+                .Include(o => o.Payments)
+                .Include(o => o.InstallmentContract)
+                    .ThenInclude(c => c!.Schedules)
                 .FirstOrDefaultAsync(o => o.IdempotencyKey == req.IdempotencyKey.Trim());
             if (existingOrder != null)
             {
@@ -127,10 +132,23 @@ public class OrderService : IOrderService
                     attempts++;
                 } while (await _db.Orders.AnyAsync(o => o.OrderCode == orderCode) && attempts < 10);
 
-                string initialPaymentStatus = req.PaymentMethod.Contains("VietQR", StringComparison.OrdinalIgnoreCase) ||
-                                              req.PaymentMethod.Contains("Banking", StringComparison.OrdinalIgnoreCase)
-                                              ? "Chờ xác nhận"
-                                              : "Chờ thanh toán";
+                bool isInstallment = req.PurchaseMode?.Equals("Installment", StringComparison.OrdinalIgnoreCase) == true;
+                int termMonths = (req.TermMonths == 3 || req.TermMonths == 6 || req.TermMonths == 9 || req.TermMonths == 12)
+                    ? req.TermMonths.Value
+                    : 6;
+
+                InstallmentPlanDto? plan = null;
+                if (isInstallment)
+                {
+                    plan = _installmentService.CalculatePlan(subTotal, termMonths);
+                }
+
+                string initialPaymentStatus = isInstallment
+                    ? "Chờ trả trước"
+                    : ((req.PaymentMethod.Contains("VietQR", StringComparison.OrdinalIgnoreCase) ||
+                        req.PaymentMethod.Contains("Banking", StringComparison.OrdinalIgnoreCase))
+                        ? "Chờ xác nhận"
+                        : "Chờ thanh toán");
 
                 string initialOrderStatus = "Đang xử lý";
 
@@ -147,6 +165,7 @@ public class OrderService : IOrderService
                     SubTotal = subTotal,
                     DiscountAmount = 0,
                     TotalAmount = subTotal,
+                    PurchaseMode = isInstallment ? "Installment" : "Full",
                     PaymentMethod = req.PaymentMethod,
                     PaymentStatus = initialPaymentStatus,
                     OrderStatus = initialOrderStatus,
@@ -154,21 +173,73 @@ public class OrderService : IOrderService
                     OrderItems = orderItems
                 };
 
-                order.Payments.Add(new Payment
+                if (isInstallment && plan != null)
                 {
-                    PaymentMethod = req.PaymentMethod,
-                    Amount = subTotal,
-                    PaymentStatus = initialPaymentStatus,
-                    PaymentDate = DateTime.UtcNow,
-                    Note = $"Khởi tạo giao dịch {req.PaymentMethod}"
-                });
+                    string prepayStatus = (req.PaymentMethod.Contains("VietQR", StringComparison.OrdinalIgnoreCase) ||
+                                           req.PaymentMethod.Contains("Banking", StringComparison.OrdinalIgnoreCase))
+                                           ? "Chờ xác nhận"
+                                           : "Chờ thanh toán";
+
+                    order.Payments.Add(new Payment
+                    {
+                        PaymentMethod = req.PaymentMethod,
+                        Amount = plan.PrepayAmount,
+                        PaymentStatus = prepayStatus,
+                        PaymentType = "Prepay",
+                        PaymentDate = DateTime.UtcNow,
+                        Note = $"Khởi tạo thanh toán trả trước 30% ({plan.PrepayAmount:N0}đ) qua {req.PaymentMethod}"
+                    });
+
+                    // Tạo hợp đồng trả góp cùng trong transaction với đơn hàng và trừ kho
+                    var contract = new InstallmentContract
+                    {
+                        ContractCode = $"HDTG{DateTime.Now:yyMMdd}-{orderCode.Substring(orderCode.Length - 4)}",
+                        TermMonths = plan.TermMonths,
+                        PrepayPercent = plan.PrepayPercent,
+                        PrepayAmount = plan.PrepayAmount,
+                        TotalFinancedAmount = plan.FinancedAmount,
+                        InterestRate = 0.00m,
+                        MonthlyInstallmentAmount = plan.MonthlyInstallmentAmount,
+                        Status = "Chờ trả trước",
+                        CreatedAt = DateTime.UtcNow,
+                        Notes = req.Notes
+                    };
+
+                    foreach (var p in plan.Periods)
+                    {
+                        contract.Schedules.Add(new InstallmentSchedule
+                        {
+                            PeriodNumber = p.PeriodNumber,
+                            DueDate = p.DueDate,
+                            Amount = p.Amount,
+                            PaidAmount = 0,
+                            Status = "Chưa thanh toán"
+                        });
+                    }
+
+                    order.InstallmentContract = contract;
+                }
+                else
+                {
+                    order.Payments.Add(new Payment
+                    {
+                        PaymentMethod = req.PaymentMethod,
+                        Amount = subTotal,
+                        PaymentStatus = initialPaymentStatus,
+                        PaymentType = "Full",
+                        PaymentDate = DateTime.UtcNow,
+                        Note = $"Khởi tạo giao dịch {req.PaymentMethod}"
+                    });
+                }
 
                 order.StatusHistories.Add(new OrderStatusHistory
                 {
                     Status = initialOrderStatus,
                     ChangedBy = "Hệ thống",
                     ChangedAt = DateTime.UtcNow,
-                    Note = "Khách hàng tạo đơn đặt hàng trực tuyến"
+                    Note = isInstallment 
+                        ? $"Khách hàng đặt mua trả góp {termMonths} tháng (trả trước 30%: {plan?.PrepayAmount:N0}đ)"
+                        : "Khách hàng tạo đơn đặt hàng trực tuyến"
                 });
 
                 _db.Orders.Add(order);
@@ -191,6 +262,9 @@ public class OrderService : IOrderService
         var query = _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
+            .Include(o => o.Payments)
+            .Include(o => o.InstallmentContract)
+                .ThenInclude(c => c!.Schedules)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -200,7 +274,8 @@ public class OrderService : IOrderService
                 o.OrderCode.ToLower().Contains(s) ||
                 o.CustomerName.ToLower().Contains(s) ||
                 o.PhoneNumber.Contains(s) ||
-                (o.Email != null && o.Email.ToLower().Contains(s))
+                (o.Email != null && o.Email.ToLower().Contains(s)) ||
+                (o.InstallmentContract != null && o.InstallmentContract.ContractCode.ToLower().Contains(s))
             );
         }
 
@@ -230,6 +305,9 @@ public class OrderService : IOrderService
         var o = await _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
+            .Include(o => o.Payments)
+            .Include(o => o.InstallmentContract)
+                .ThenInclude(c => c!.Schedules)
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode.Trim());
 
         return o == null ? null : MapToResponseDto(o);
@@ -240,6 +318,9 @@ public class OrderService : IOrderService
         var orders = await _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
+            .Include(o => o.Payments)
+            .Include(o => o.InstallmentContract)
+                .ThenInclude(c => c!.Schedules)
             .Where(o => o.UserId == userId)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
@@ -258,6 +339,7 @@ public class OrderService : IOrderService
                 var order = await _db.Orders
                     .Include(o => o.OrderItems)
                     .Include(o => o.Payments)
+                    .Include(o => o.InstallmentContract)
                     .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
                 if (order == null)
@@ -309,32 +391,15 @@ public class OrderService : IOrderService
                 order.UpdatedAt = DateTime.UtcNow;
 
                 // 2. Đồng bộ trạng thái thanh toán và bảng Payments
-                if (newStatus.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase) ||
-                    newStatus.Equals("Đã thanh toán", StringComparison.OrdinalIgnoreCase))
-                {
-                    order.PaymentStatus = "Đã thanh toán";
-                    var latestPayment = order.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
-                    if (latestPayment != null)
-                    {
-                        latestPayment.PaymentStatus = "Thành công";
-                        latestPayment.PaymentDate = DateTime.UtcNow;
-                        latestPayment.Note = $"Xác nhận thanh toán thành công bởi {changedBy ?? "Quản trị viên"}";
-                    }
-                    else
-                    {
-                        order.Payments.Add(new Payment
-                        {
-                            PaymentMethod = order.PaymentMethod,
-                            Amount = order.TotalAmount,
-                            PaymentStatus = "Thành công",
-                            PaymentDate = DateTime.UtcNow,
-                            Note = $"Thanh toán thành công xác nhận bởi {changedBy ?? "Quản trị viên"}"
-                        });
-                    }
-                }
-                else if (newStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
+                bool isInstallmentOrder = order.PurchaseMode.Equals("Installment", StringComparison.OrdinalIgnoreCase);
+
+                if (newStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
                 {
                     order.PaymentStatus = "Đã hủy";
+                    if (order.InstallmentContract != null)
+                    {
+                        order.InstallmentContract.Status = "Đã hủy";
+                    }
 
                     // Hoàn lại số lượng tồn kho chính xác một lần duy nhất bằng UPDATE nguyên tử
                     foreach (var item in order.OrderItems)
@@ -357,10 +422,64 @@ public class OrderService : IOrderService
                     }
 
                     var latestPayment = order.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
-                    if (latestPayment != null)
+                    if (latestPayment != null && latestPayment.PaymentStatus != "Thành công")
                     {
                         latestPayment.PaymentStatus = "Đã hủy";
                         latestPayment.Note = $"Đơn hàng bị hủy: {note ?? "Hủy bởi quản trị viên"}";
+                    }
+
+                    // Cảnh báo hoàn tiền nếu đơn trả góp hoặc đơn trả thẳng đã thực thu tiền
+                    var totalCollected = order.Payments.Where(p => p.PaymentStatus == "Thành công").Sum(p => p.Amount);
+                    if (totalCollected > 0)
+                    {
+                        note = (string.IsNullOrWhiteSpace(note) ? "" : note + " | ") + 
+                               $"Cảnh báo kế toán: Đơn đã hủy nhưng đã thực thu {totalCollected:N0}đ, cần hoàn tiền lại cho khách hàng.";
+                    }
+                }
+                else if (isInstallmentOrder)
+                {
+                    // Đối với đơn hàng trả góp: Giao máy xong (Đang giao / Hoàn thành) vẫn có thể còn nợ 70%.
+                    // Giao hàng KHÔNG làm thay đổi dư nợ và KHÔNG tự động đánh dấu đã thanh toán toàn bộ.
+                    // Chỉ cập nhật trạng thái thanh toán từ số tiền thực thu / tiến độ hợp đồng.
+                    if (order.InstallmentContract != null)
+                    {
+                        if (order.InstallmentContract.Status == "Đã tất toán")
+                        {
+                            order.PaymentStatus = "Đã tất toán";
+                        }
+                        else if (order.InstallmentContract.Status == "Đang trả góp")
+                        {
+                            order.PaymentStatus = "Đang trả góp";
+                        }
+                        else
+                        {
+                            order.PaymentStatus = "Chờ trả trước";
+                        }
+                    }
+                }
+                else if (newStatus.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase) ||
+                         newStatus.Equals("Đã thanh toán", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Đơn trả thẳng thông thường (PurchaseMode == "Full")
+                    order.PaymentStatus = "Đã thanh toán";
+                    var latestPayment = order.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
+                    if (latestPayment != null)
+                    {
+                        latestPayment.PaymentStatus = "Thành công";
+                        latestPayment.PaymentDate = DateTime.UtcNow;
+                        latestPayment.Note = $"Xác nhận thanh toán thành công bởi {changedBy ?? "Quản trị viên"}";
+                    }
+                    else
+                    {
+                        order.Payments.Add(new Payment
+                        {
+                            PaymentMethod = order.PaymentMethod,
+                            Amount = order.TotalAmount,
+                            PaymentStatus = "Thành công",
+                            PaymentType = "Full",
+                            PaymentDate = DateTime.UtcNow,
+                            Note = $"Thanh toán thành công xác nhận bởi {changedBy ?? "Quản trị viên"}"
+                        });
                     }
                 }
 
@@ -475,6 +594,8 @@ public class OrderService : IOrderService
             .Take(5)
             .ToList();
 
+        var (waitingPrepay, activeContracts, totalDebt) = await _installmentService.GetInstallmentDashboardMetricsAsync();
+
         return new AdminDashboardViewModel
         {
             MonthlyRevenue = monthlyRevenue,
@@ -483,6 +604,9 @@ public class OrderService : IOrderService
             LaptopsSoldCount = monthlyLaptopsSold,
             SalesGrowth = revenueGrowth,
             LowStockCount = lowStockCount,
+            WaitingInstallmentPrepayCount = waitingPrepay,
+            ActiveInstallmentContractsCount = activeContracts,
+            TotalInstallmentDebt = totalDebt,
             RecentOrders = recentOrdersDto,
             TopSellingProducts = topSelling
         };
@@ -492,8 +616,8 @@ public class OrderService : IOrderService
     {
         return status switch
         {
-            "Đã thanh toán" or "Hoàn thành" => "badge-paid",
-            "Đang xử lý" => "badge-processing",
+            "Đã thanh toán" or "Hoàn thành" or "Đã tất toán" => "badge-paid",
+            "Đang xử lý" or "Đang trả góp" => "badge-processing",
             "Đã xác nhận" => "badge-confirmed",
             "Đã hủy" => "badge-out-of-stock",
             _ => "badge-in-stock"
@@ -502,6 +626,88 @@ public class OrderService : IOrderService
 
     private static OrderResponseDto MapToResponseDto(Order o)
     {
+        decimal? prepay = o.InstallmentContract?.PrepayAmount;
+        decimal? remainingDebt = null;
+        if (o.PurchaseMode.Equals("Installment", StringComparison.OrdinalIgnoreCase))
+        {
+            var successfulPayments = o.Payments != null ? o.Payments.Where(p => p.PaymentStatus == "Thành công").ToList() : new List<Payment>();
+            decimal totalPaid = successfulPayments.Sum(p => p.Amount);
+            remainingDebt = Math.Max(0, o.TotalAmount - totalPaid);
+        }
+
+        InstallmentContractDetailDto? contractDto = null;
+        if (o.InstallmentContract != null)
+        {
+            var c = o.InstallmentContract;
+            var successfulPayments = o.Payments != null ? o.Payments.Where(p => p.PaymentStatus == "Thành công").ToList() : new List<Payment>();
+            decimal totalPaid = successfulPayments.Sum(p => p.Amount);
+            decimal debt = Math.Max(0, o.TotalAmount - totalPaid);
+            bool isPrepayPaid = c.Status != "Chờ trả trước" || successfulPayments.Any(p => p.PaymentType == "Prepay");
+
+            var schedulesDto = c.Schedules
+                .OrderBy(s => s.PeriodNumber)
+                .Select(s => new InstallmentScheduleDto
+                {
+                    ScheduleId = s.ScheduleId,
+                    PeriodNumber = s.PeriodNumber,
+                    DueDate = s.DueDate,
+                    Amount = s.Amount,
+                    PaidAmount = s.PaidAmount,
+                    Status = (s.Status != "Đã thanh toán" && s.DueDate < DateTime.UtcNow) ? "Quá hạn" : s.Status,
+                    PaidAt = s.PaidAt,
+                    CollectedBy = s.CollectedBy,
+                    PaymentId = s.PaymentId
+                }).ToList();
+
+            var nextPeriod = schedulesDto.FirstOrDefault(s => s.Status != "Đã thanh toán");
+            if (nextPeriod != null) nextPeriod.IsCurrentDue = true;
+
+            contractDto = new InstallmentContractDetailDto
+            {
+                ContractId = c.ContractId,
+                ContractCode = c.ContractCode,
+                OrderId = c.OrderId,
+                OrderCode = o.OrderCode,
+                CustomerName = o.CustomerName,
+                PhoneNumber = o.PhoneNumber,
+                ShippingAddress = o.ShippingAddress,
+                TotalOrderAmount = o.TotalAmount,
+                TermMonths = c.TermMonths,
+                PrepayPercent = c.PrepayPercent,
+                PrepayAmount = c.PrepayAmount,
+                PrepayStatus = isPrepayPaid ? "Đã thanh toán" : "Chưa thanh toán",
+                TotalFinancedAmount = c.TotalFinancedAmount,
+                InterestRate = c.InterestRate,
+                MonthlyInstallmentAmount = c.MonthlyInstallmentAmount,
+                Status = c.Status,
+                OrderStatus = o.OrderStatus,
+                CreatedAt = c.CreatedAt,
+                ActivatedAt = c.ActivatedAt,
+                CompletedAt = c.CompletedAt,
+                Notes = c.Notes,
+                TotalPaid = totalPaid,
+                RemainingDebt = debt,
+                PaidPeriodsCount = schedulesDto.Count(s => s.Status == "Đã thanh toán"),
+                OverduePeriodsCount = schedulesDto.Count(s => s.Status == "Quá hạn"),
+                NextPeriodToPay = nextPeriod,
+                Schedules = schedulesDto,
+                Payments = (o.Payments ?? new List<Payment>())
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => new InstallmentPaymentReceiptDto
+                    {
+                        PaymentId = p.PaymentId,
+                        PaymentType = p.PaymentType,
+                        Amount = p.Amount,
+                        PaymentMethod = p.PaymentMethod,
+                        PaymentStatus = p.PaymentStatus,
+                        PaymentDate = p.PaymentDate,
+                        ConfirmedBy = p.ConfirmedBy,
+                        TransactionReference = p.TransactionReference,
+                        Note = p.Note
+                    }).ToList()
+            };
+        }
+
         return new OrderResponseDto
         {
             OrderId = o.OrderId,
@@ -513,6 +719,10 @@ public class OrderService : IOrderService
             PaymentMethod = o.PaymentMethod,
             PaymentStatus = o.PaymentStatus,
             OrderStatus = o.OrderStatus,
+            PurchaseMode = o.PurchaseMode,
+            PrepayAmount = prepay,
+            RemainingDebt = remainingDebt,
+            InstallmentContract = contractDto,
             CreatedAt = o.CreatedAt,
             Items = o.OrderItems.Select(i => new OrderItemResponseDto
             {

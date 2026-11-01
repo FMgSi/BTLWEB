@@ -1,0 +1,133 @@
+@model LaptopStore.Models.Payment
+@{
+    Layout = null;
+    var order = Model.Order;
+    var contract = order?.InstallmentContract;
+    var schedule = Model.Schedule;
+    var typeTitle = Model.PaymentType switch
+    {
+        "Prepay" => "KHOẢN TRẢ TRƯỚC 30% HỢP ĐỒNG TRẢ GÓP",
+        "InstallmentPeriod" => $"TIỀN TRẢ GÓP KỲ {schedule?.PeriodNumber ?? 1}/{(contract?.TermMonths ?? 6)}",
+        _ => "THANH TOÁN ĐƠN HÀNG"
+    };
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Biên nhận thu tiền - #PAY-@Model.PaymentId</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <style>
+        body { background: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; }
+        .receipt-card { max-width: 700px; margin: 30px auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .receipt-header { border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 25px; }
+        .receipt-footer { border-top: 1px dashed #cbd5e1; padding-top: 20px; margin-top: 30px; }
+        @@media print {
+            body { background: #fff; }
+            .receipt-card { box-shadow: none; padding: 0; margin: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="receipt-card">
+            <!-- HEADER -->
+            <div class="receipt-header d-flex justify-content-between align-items-start">
+                <div>
+                    <h4 class="fw-bold text-primary mb-1">HỆ THỐNG LAPTOP WORLD</h4>
+                    <p class="text-muted small mb-0">Địa chỉ: Số 123 Cầu Giấy, Quận Cầu Giấy, TP. Hà Nội</p>
+                    <p class="text-muted small mb-0">Hotline: 1900 8888 | Website: laptopworld.vn</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success-subtle text-success fs-6 border border-success">ĐÃ THU TIỀN</span>
+                    <div class="text-muted small mt-1">Mã phiếu: <strong>#PAY-@Model.PaymentId</strong></div>
+                    <div class="text-muted small">Ngày lập: @Model.PaymentDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+
+            <!-- TIÊU ĐỀ -->
+            <div class="text-center my-4">
+                <h3 class="fw-bold mb-1">BIÊN NHẬN THU TIỀN</h3>
+                <div class="text-primary fw-semibold">@typeTitle</div>
+            </div>
+
+            <!-- THÔNG TIN KHÁCH VÀ HỢP ĐỒNG -->
+            <div class="row g-3 mb-4 small">
+                <div class="col-6">
+                    <div><strong>Khách hàng:</strong> @(order?.CustomerName ?? "Khách lẻ")</div>
+                    <div><strong>Số điện thoại:</strong> @(order?.PhoneNumber ?? "-")</div>
+                    <div><strong>Địa chỉ:</strong> @(order?.ShippingAddress ?? "-")</div>
+                </div>
+                <div class="col-6 text-end">
+                    <div><strong>Mã đơn hàng:</strong> #@(order?.OrderCode ?? "-")</div>
+                    <div><strong>Mã hợp đồng trả góp:</strong> #@(contract?.ContractCode ?? "-")</div>
+                    <div><strong>Hình thức thu:</strong> @Model.PaymentMethod</div>
+                    @if (!string.IsNullOrEmpty(Model.TransactionReference))
+                    {
+                        <div><strong>Mã chuẩn chi:</strong> @Model.TransactionReference</div>
+                    }
+                </div>
+            </div>
+
+            <!-- BẢNG CHI TIẾT KHOẢN TIỀN -->
+            <table class="table table-bordered small mb-4">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nội dung thanh toán</th>
+                        <th class="text-center">Kỳ hạn</th>
+                        <th class="text-end">Số tiền thu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="fw-bold">@typeTitle</div>
+                            <div class="text-muted small">@(Model.Note ?? "Thanh toán theo hợp đồng mua trả góp máy tính xách tay")</div>
+                        </td>
+                        <td class="text-center">
+                            @(contract != null ? $"{contract.TermMonths} tháng" : "-")
+                        </td>
+                        <td class="text-end fw-bold text-success fs-6">
+                            @string.Format("{0:N0} VNĐ", Model.Amount)
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" class="text-end fw-bold">Tổng số tiền thực thu:</td>
+                        <td class="text-end fw-bold fs-5 text-danger">@string.Format("{0:N0} VNĐ", Model.Amount)</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- CHỮ KÝ VÀ NGƯỜI XÁC NHẬN -->
+            <div class="receipt-footer">
+                <div class="row text-center small mt-4">
+                    <div class="col-6">
+                        <div class="fw-bold mb-5">NGƯỜI NỘP TIỀN</div>
+                        <div class="text-muted">@(order?.CustomerName ?? "Khách hàng")</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="fw-bold mb-5">NGƯỜI THU TIỀN</div>
+                        <div class="text-dark fw-semibold">@(Model.ConfirmedBy ?? "Quản trị viên")</div>
+                    </div>
+                </div>
+                <div class="text-center text-muted small mt-4 fst-italic">
+                    Cảm ơn Quý khách đã tin tưởng và mua hàng tại Hệ thống Laptop World!
+                </div>
+            </div>
+
+            <!-- NÚT IN (ẨN KHI IN) -->
+            <div class="text-center mt-4 no-print d-flex justify-content-center gap-2">
+                <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="window.print()">
+                    In phiếu thu
+                </button>
+                <button type="button" class="btn btn-secondary px-4" onclick="window.close()">
+                    Đóng cửa sổ
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
