@@ -17,6 +17,9 @@ export default function CartPage({
   const [orderSuccess, setOrderSuccess] = useState(null);
   const [pendingOrder, setPendingOrder] = useState(null);
   const [copiedKey, setCopiedKey] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [idempotencyKey, setIdempotencyKey] = useState('');
 
   // Form đặt hàng
   const [customerName, setCustomerName] = useState(currentUser?.fullName || currentUser?.username || '');
@@ -26,6 +29,12 @@ export default function CartPage({
   const [paymentMethod, setPaymentMethod] = useState('banking');
   const [purchaseMode, setPurchaseMode] = useState('Full');
   const [termMonths, setTermMonths] = useState(6);
+
+  const handleOpenCheckoutModal = () => {
+    setIdempotencyKey(`IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+    setPhoneError('');
+    setShowCheckoutModal(true);
+  };
 
   // Thông tin tài khoản ngân hàng nhận tiền chính thức của Cửa hàng
   const STORE_BANK_ACCOUNT = {
@@ -71,17 +80,29 @@ export default function CartPage({
       return;
     }
 
+    const cleanPhone = customerPhone.replace(/[\s\-\.]/g, '');
+    const vnPhoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
+    if (!vnPhoneRegex.test(cleanPhone)) {
+      setPhoneError('Số điện thoại không đúng định dạng (cần đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)');
+      return;
+    }
+    setPhoneError('');
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       // 1. Tạo payload gửi lên Backend ASP.NET Core
       const orderPayload = {
         customerName: customerName.trim(),
-        phoneNumber: customerPhone.trim(),
+        phoneNumber: cleanPhone,
         email: currentUser?.email || '',
         shippingAddress: customerAddress.trim(),
         notes: orderNotes.trim(),
         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'VietQR',
         purchaseMode: purchaseMode,
         termMonths: purchaseMode === 'Installment' ? termMonths : null,
+        idempotencyKey: idempotencyKey || `IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         items: checkedItems.map((item) => ({
           productId: item.productId || item.id,
           variantId: item.variantId || null,
@@ -91,66 +112,105 @@ export default function CartPage({
         })),
       };
 
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(orderPayload),
-      });
+      let res;
+      try {
+        res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(orderPayload),
+        });
+      } catch (networkErr) {
+        console.error('Lỗi mạng kết nối API /api/orders:', networkErr);
+        alert('Không thể kết nối đến máy chủ backend (Cổng 5148 đang tắt hoặc mất mạng). Vui lòng thử lại!');
+        return;
+      }
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data = null;
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          console.error('Lỗi phân tích cú pháp JSON phản hồi:', jsonErr);
+          alert('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau!');
+          return;
+        }
+      } else {
+        const text = await res.text();
+        console.error('Máy chủ phản hồi nội dung non-JSON:', text);
+        alert(`Máy chủ phản hồi mã trạng thái HTTP ${res.status}. Vui lòng kiểm tra lại dịch vụ backend!`);
+        return;
+      }
 
       if (!res.ok || !data.success) {
-        alert(data.message || 'Đặt hàng thất bại. Vui lòng kiểm tra lại tồn kho sản phẩm!');
+        let errorMsg = data.message;
+        if (!errorMsg && data.errors) {
+          errorMsg = Object.entries(data.errors)
+            .map(([field, msgs]) => Array.isArray(msgs) ? msgs.join(', ') : msgs)
+            .join('\n');
+        }
+        if (!errorMsg && data.title) {
+          errorMsg = data.title;
+        }
+        alert(errorMsg || 'Đặt hàng thất bại. Vui lòng kiểm tra lại thông tin giỏ hàng!');
         return;
       }
 
       const realOrderCode = data.orderCode || data.order?.orderCode || 'PC000000';
 
-      // Lấy chính xác tổng tiền đã được máy chủ Backend kiểm tra và chốt từ CSDL
-      const confirmedTotal = (data.order && typeof data.order.totalAmount === 'number')
-        ? data.order.totalAmount
-        : (typeof data.totalAmount === 'number' ? data.totalAmount : totalPayable);
+      try {
+        // Lấy chính xác tổng tiền đã được máy chủ Backend kiểm tra và chốt từ CSDL
+        const confirmedTotal = (data.order && typeof data.order.totalAmount === 'number')
+          ? data.order.totalAmount
+          : (typeof data.totalAmount === 'number' ? data.totalAmount : totalPayable);
 
-      const orderData = {
-        orderId: realOrderCode,
-        name: customerName,
-        phone: customerPhone,
-        address: customerAddress,
-        notes: orderNotes,
-        total: confirmedTotal,
-        purchaseMode: purchaseMode,
-        termMonths: termMonths,
-        prepayAmount: Math.round(confirmedTotal * 0.30),
-        remainingDebt: confirmedTotal - Math.round(confirmedTotal * 0.30),
-        items: (data.order?.items && data.order.items.length > 0)
-          ? data.order.items.map((i) => ({
-              ...i,
-              name: i.productName,
-              price: i.unitPrice,
-              specs: i.selectedSpecs,
-              image: i.thumbnailUrl,
-            }))
-          : [...checkedItems],
-        paymentMethod: paymentMethod === 'cod' ? 'Thanh toán tiền mặt khi nhận hàng (COD)' : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
-      };
+        const orderData = {
+          orderId: realOrderCode,
+          name: customerName,
+          phone: cleanPhone,
+          address: customerAddress,
+          notes: orderNotes,
+          total: confirmedTotal,
+          purchaseMode: purchaseMode,
+          termMonths: termMonths,
+          prepayAmount: Math.round(confirmedTotal * 0.30),
+          remainingDebt: confirmedTotal - Math.round(confirmedTotal * 0.30),
+          items: (data.order?.items && data.order.items.length > 0)
+            ? data.order.items.map((i) => ({
+                ...i,
+                name: i.productName,
+                price: i.unitPrice,
+                specs: i.selectedSpecs,
+                image: i.thumbnailUrl,
+              }))
+            : [...checkedItems],
+          paymentMethod: paymentMethod === 'cod'
+            ? (purchaseMode === 'Installment'
+                ? 'Trả góp - Tiền mặt 30% khi giao máy (COD)'
+                : 'Thanh toán tiền mặt khi nhận hàng (COD)')
+            : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
+        };
 
-      setShowCheckoutModal(false);
+        setShowCheckoutModal(false);
 
-      // Nếu chọn chuyển khoản ngân hàng -> Mở modal quét mã VietQR kèm mã đơn thật
-      if (paymentMethod === 'banking') {
-        setPendingOrder(orderData);
-        setShowQrModal(true);
-      } else {
-        // Nếu chọn COD -> Hoàn tất đặt hàng trực tiếp và xóa các món đã mua khỏi giỏ
-        checkedItems.forEach((item) => {
-          onRemoveItem(item.cartItemId || item.id);
-        });
-        setOrderSuccess(orderData);
+        // Nếu chọn chuyển khoản ngân hàng -> Mở modal quét mã VietQR kèm mã đơn thật
+        if (paymentMethod === 'banking') {
+          setPendingOrder(orderData);
+          setShowQrModal(true);
+        } else {
+          // Nếu chọn COD -> Hoàn tất đặt hàng trực tiếp và xóa các món đã mua khỏi giỏ
+          checkedItems.forEach((item) => {
+            onRemoveItem(item.cartItemId || item.id);
+          });
+          setOrderSuccess(orderData);
+        }
+      } catch (uiErr) {
+        console.error('Lỗi cập nhật giao diện sau khi tạo đơn:', uiErr);
+        alert(`Đơn hàng của bạn đã được ghi nhận thành công với mã #${realOrderCode}! Bạn có thể tra cứu đơn hàng bằng số điện thoại.`);
       }
-    } catch (err) {
-      console.warn('Lỗi gọi API /api/orders:', err);
-      alert('Không thể kết nối đến máy chủ để tạo đơn hàng. Vui lòng thử lại sau!');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -209,9 +269,32 @@ export default function CartPage({
               <div><strong>Giao đến:</strong> {orderSuccess.address}</div>
               <div><strong>Số điện thoại:</strong> {orderSuccess.phone}</div>
               <div><strong>Hình thức:</strong> {orderSuccess.paymentMethod}</div>
-              <div className="mt-2 pt-2 border-top text-danger fw-bold fs-6">
-                Tổng thanh toán: {formatVND(orderSuccess.total)}
-              </div>
+              {orderSuccess.purchaseMode === 'Installment' ? (
+                <div className="mt-2 pt-2 border-top">
+                  <div className="d-flex justify-content-between text-muted">
+                    <span>Tổng giá trị đơn hàng:</span>
+                    <strong>{formatVND(orderSuccess.total)}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between text-success fw-bold">
+                    <span>Khoản trả trước 30%:</span>
+                    <span>{formatVND(orderSuccess.prepayAmount)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between text-muted">
+                    <span>Còn lại ({orderSuccess.termMonths} kỳ):</span>
+                    <span>{formatVND(orderSuccess.remainingDebt)}</span>
+                  </div>
+                  <div className="alert alert-info py-2 px-3 mt-2 mb-0 small">
+                    <i className="bi bi-info-circle me-1"></i>
+                    {orderSuccess.paymentMethod.includes('COD') || orderSuccess.paymentMethod.includes('tiền mặt')
+                      ? `Cửa hàng sẽ liên hệ xác nhận và cử nhân viên giao máy tận nơi, hỗ trợ ký hợp đồng trả góp và thu khoản trả trước 30% (${formatVND(orderSuccess.prepayAmount)}) bằng tiền mặt.`
+                      : `Hệ thống đã ghi nhận thanh toán khoản trả trước 30% (${formatVND(orderSuccess.prepayAmount)}). Nhân viên sẽ liên hệ và giao máy trong thời gian sớm nhất.`}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 pt-2 border-top text-danger fw-bold fs-6">
+                  Tổng thanh toán: {formatVND(orderSuccess.total)}
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -389,7 +472,7 @@ export default function CartPage({
                   type="button"
                   className="cart-checkout-btn"
                   disabled={checkedItems.length === 0}
-                  onClick={() => setShowCheckoutModal(true)}
+                  onClick={handleOpenCheckoutModal}
                 >
                   <i className="bi bi-shield-check me-1"></i> Xác nhận đơn ({checkedItems.length})
                 </button>
@@ -502,12 +585,21 @@ export default function CartPage({
                     </label>
                     <input
                       type="tel"
-                      className="form-control"
+                      className={`form-control ${phoneError ? 'is-invalid border-danger' : ''}`}
                       placeholder="0987 654 321"
                       required
                       value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value);
+                        if (phoneError) setPhoneError('');
+                      }}
                     />
+                    {phoneError && (
+                      <div className="text-danger small mt-1 d-flex align-items-center gap-1">
+                        <i className="bi bi-exclamation-circle-fill"></i>
+                        <span>{phoneError}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-3">
@@ -549,8 +641,16 @@ export default function CartPage({
                         onChange={() => setPaymentMethod('cod')}
                       />
                       <label className="form-check-label small" htmlFor="payCod">
-                        💵 Thanh toán tiền mặt khi nhận hàng (COD)
+                        {purchaseMode === 'Installment'
+                          ? '💵 Tiền mặt khi nhận máy (Thu trước 30% khi giao máy & ký HĐ)'
+                          : '💵 Thanh toán tiền mặt khi nhận hàng (COD)'}
                       </label>
+                      {purchaseMode === 'Installment' && paymentMethod === 'cod' && (
+                        <div className="form-text small text-primary mt-1">
+                          <i className="bi bi-info-circle me-1"></i>
+                          Nhân viên sẽ giao máy tận nơi, hỗ trợ hoàn tất hồ sơ trả góp và thu khoản trả trước 30% ({formatVND(prepayAmount)}) bằng tiền mặt.
+                        </div>
+                      )}
                     </div>
                     <div className="form-check">
                       <input
@@ -562,7 +662,9 @@ export default function CartPage({
                         onChange={() => setPaymentMethod('banking')}
                       />
                       <label className="form-check-label small" htmlFor="payBanking">
-                        💳 Chuyển khoản ngân hàng (Quét mã VietQR)
+                        {purchaseMode === 'Installment'
+                          ? '💳 Chuyển khoản VietQR (Thanh toán 30% trả trước qua mã QR)'
+                          : '💳 Chuyển khoản ngân hàng (Quét mã VietQR)'}
                       </label>
                     </div>
                   </div>
@@ -589,8 +691,16 @@ export default function CartPage({
                     type="submit"
                     className="btn btn-danger px-4 fw-bold"
                     style={{ backgroundColor: '#e11b1e' }}
+                    disabled={isSubmitting}
                   >
-                    Hoàn tất đặt hàng
+                    {isSubmitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Đang xử lý đơn...
+                      </>
+                    ) : (
+                      'Hoàn tất đặt hàng'
+                    )}
                   </button>
                 </div>
               </form>

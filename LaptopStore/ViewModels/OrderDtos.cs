@@ -9,7 +9,7 @@ public class CreateOrderRequest
     public string CustomerName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Vui lòng nhập số điện thoại người nhận")]
-    [Phone(ErrorMessage = "Số điện thoại không đúng định dạng")]
+    [RegularExpression(@"^(0|\+84)(3|5|7|8|9)[0-9]{8}$", ErrorMessage = "Số điện thoại không hợp lệ (cần đúng 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09)")]
     public string PhoneNumber { get; set; } = string.Empty;
 
     [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]

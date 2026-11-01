@@ -295,4 +295,74 @@ public class InstallmentServiceTest
         var finalOrder = await db.Orders.FindAsync(order!.OrderId);
         Assert.Equal("Đã tất toán", finalOrder!.PaymentStatus);
     }
+
+    [Fact]
+    public async Task CreateOrder_Installment6Months_82970000_CalculatesPrepayAndPeriodsExactly()
+    {
+        // Arrange: 3 sản phẩm tổng 82.970.000đ
+        var db = GetInMemoryDbContext();
+        var p1 = new Product { ProductId = 10, ProductName = "Laptop 1", BrandId = 1, CategoryId = 1, Price = 30000000, StockQuantity = 5, IsActive = true };
+        var p2 = new Product { ProductId = 11, ProductName = "Laptop 2", BrandId = 1, CategoryId = 1, Price = 25000000, StockQuantity = 5, IsActive = true };
+        var p3 = new Product { ProductId = 12, ProductName = "Laptop 3", BrandId = 1, CategoryId = 1, Price = 27970000, StockQuantity = 5, IsActive = true };
+        db.Products.AddRange(p1, p2, p3);
+        await db.SaveChangesAsync();
+
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Khách Hàng Trả Góp 82Tr",
+            PhoneNumber = "0987654321",
+            ShippingAddress = "Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Installment",
+            TermMonths = 6,
+            IdempotencyKey = "TEST-82970000-KEY",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new() { ProductId = 10, Quantity = 1 },
+                new() { ProductId = 11, Quantity = 1 },
+                new() { ProductId = 12, Quantity = 1 }
+            }
+        };
+
+        // Act
+        var (success, message, order) = await orderService.CreateOrderAsync(req);
+
+        // Assert
+        Assert.True(success);
+        Assert.NotNull(order);
+        Assert.Equal(82970000m, order.TotalAmount);
+        Assert.Equal(24891000m, order.PrepayAmount); // 30% đúng đến đồng
+
+        var savedOrder = await db.Orders
+            .Include(o => o.Payments)
+            .Include(o => o.InstallmentContract)
+                .ThenInclude(c => c!.Schedules)
+            .FirstOrDefaultAsync(o => o.OrderCode == order.OrderCode);
+
+        Assert.NotNull(savedOrder);
+        var contract = savedOrder.InstallmentContract;
+        Assert.NotNull(contract);
+        Assert.Equal(24891000m, contract.PrepayAmount);
+        Assert.Equal(58079000m, contract.TotalFinancedAmount); // 82.970.000 - 24.891.000 = 58.079.000
+        Assert.Equal(6, contract.Schedules.Count);
+
+        var schedules = contract.Schedules.OrderBy(s => s.PeriodNumber).ToList();
+        for (int i = 0; i < 5; i++)
+        {
+            Assert.Equal(9679833m, schedules[i].Amount); // 5 kỳ đầu
+        }
+        Assert.Equal(9679835m, schedules[5].Amount); // Kỳ cuối dồn chênh lệch để tổng khớp đến đồng!
+
+        // Tổng 6 kỳ phải khớp chính xác 58.079.000đ
+        Assert.Equal(58079000m, schedules.Sum(s => s.Amount));
+
+        // Khoản Payment ban đầu cho COD
+        var payment = savedOrder.Payments.First();
+        Assert.Equal("COD", payment.PaymentMethod);
+        Assert.Equal(24891000m, payment.Amount);
+        Assert.Contains("Thu tiền mặt", payment.Note);
+    }
 }

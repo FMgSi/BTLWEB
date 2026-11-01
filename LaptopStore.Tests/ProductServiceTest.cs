@@ -206,4 +206,71 @@ public class ProductServiceTests
         Assert.Equal(1024, created.Specification.StorageGB);
         Assert.Equal("SSD NVMe", created.Specification.StorageType);
     }
+
+    [Fact]
+    public async Task CreateOrder_WithIdempotencyKey_ReturnsSameOrderWithoutDeductingStockTwice()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Nguyễn Văn Trùng Lặp",
+            PhoneNumber = "0987654321",
+            ShippingAddress = "Hà Nội",
+            PaymentMethod = "COD",
+            IdempotencyKey = "TEST-IDEMP-KEY-999",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new() { ProductId = 1, Quantity = 1 }
+            }
+        };
+
+        // Act 1: Lần gọi thứ nhất
+        var firstRes = await orderService.CreateOrderAsync(req);
+        Assert.True(firstRes.Success);
+        Assert.NotNull(firstRes.Order);
+        string orderCode = firstRes.Order.OrderCode;
+
+        var prodAfterFirst = await db.Products.FindAsync(1);
+        Assert.Equal(9, prodAfterFirst!.StockQuantity); // Ban đầu 10, trừ 1 còn 9
+
+        // Act 2: Lần gọi thứ hai với CÙNG IdempotencyKey (mạng bị ngắt hoặc khách bấm lại)
+        var secondRes = await orderService.CreateOrderAsync(req);
+
+        // Assert 2: Phải trả về cùng mã đơn và KHÔNG trừ kho thêm
+        Assert.True(secondRes.Success);
+        Assert.NotNull(secondRes.Order);
+        Assert.Equal(orderCode, secondRes.Order.OrderCode);
+
+        var prodAfterSecond = await db.Products.FindAsync(1);
+        Assert.Equal(9, prodAfterSecond!.StockQuantity); // Vẫn là 9, không bị trừ thêm lần 2!
+    }
+
+    [Theory]
+    [InlineData("123", false)]
+    [InlineData("abcdefghij", false)]
+    [InlineData("0123456789", false)] // đầu số 01 cũ không còn hợp lệ
+    [InlineData("0912345678", true)]  // đầu số 09 chuẩn 10 số
+    [InlineData("0388776655", true)]  // đầu số 03 chuẩn 10 số
+    [InlineData("+84988776655", true)] // +84 chuẩn 10 số
+    public void CreateOrderRequest_PhoneNumberValidation_EnforcesVietnamFormat(string phone, bool expectedValid)
+    {
+        var model = new CreateOrderRequest
+        {
+            CustomerName = "Người Nhận",
+            PhoneNumber = phone,
+            ShippingAddress = "123 Đường ABC, Hà Nội",
+            PaymentMethod = "COD",
+            Items = new List<CreateOrderItemRequest> { new() { ProductId = 1, Quantity = 1 } }
+        };
+
+        var context = new System.ComponentModel.DataAnnotations.ValidationContext(model);
+        var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+        bool isValid = System.ComponentModel.DataAnnotations.Validator.TryValidateObject(model, context, results, validateAllProperties: true);
+
+        Assert.Equal(expectedValid, isValid);
+    }
 }

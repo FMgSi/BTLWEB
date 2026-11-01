@@ -43,6 +43,7 @@ public class OrderService : IOrderService
         return await strategy.ExecuteAsync<(bool Success, string Message, OrderResponseDto? Order)>(async () =>
         {
             using var tx = await _db.Database.BeginTransactionAsync();
+            bool committed = false;
             try
             {
                 var productIds = req.Items.Select(i => i.ProductId).Distinct().ToList();
@@ -338,6 +339,10 @@ public class OrderService : IOrderService
                                            ? "Chờ xác nhận"
                                            : "Chờ thanh toán";
 
+                    string prepayNote = req.PaymentMethod.Contains("COD", StringComparison.OrdinalIgnoreCase)
+                        ? $"Khoản trả trước 30% ({plan.PrepayAmount:N0}đ) - Thu tiền mặt khi nhân viên giao máy và ký hợp đồng"
+                        : $"Khởi tạo thanh toán trả trước 30% ({plan.PrepayAmount:N0}đ) qua {req.PaymentMethod}";
+
                     order.Payments.Add(new Payment
                     {
                         PaymentMethod = req.PaymentMethod,
@@ -345,7 +350,7 @@ public class OrderService : IOrderService
                         PaymentStatus = prepayStatus,
                         PaymentType = "Prepay",
                         PaymentDate = DateTime.UtcNow,
-                        Note = $"Khởi tạo thanh toán trả trước 30% ({plan.PrepayAmount:N0}đ) qua {req.PaymentMethod}"
+                        Note = prepayNote
                     });
 
                     // Tạo hợp đồng trả góp cùng trong transaction với đơn hàng và trừ kho
@@ -402,14 +407,25 @@ public class OrderService : IOrderService
 
                 _db.Orders.Add(order);
                 await _db.SaveChangesAsync();
-                await tx.CommitAsync();
 
+                // Chuẩn bị DTO ngay sau khi SaveChangesAsync cấp khóa chính OrderId và trước khi commit
                 var resDto = MapToResponseDto(order);
+
+                await tx.CommitAsync();
+                committed = true;
+
                 return (true, "Đặt hàng thành công!", resDto);
             }
             catch (Exception ex)
             {
-                await tx.RollbackAsync();
+                if (!committed)
+                {
+                    try
+                    {
+                        await tx.RollbackAsync();
+                    }
+                    catch { }
+                }
                 return (false, "Lỗi khi lưu đơn hàng: " + ex.Message, null);
             }
         });
