@@ -72,12 +72,12 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
           <button
             type="button"
             className="card-action-link bg-transparent border-0"
-            title="Thêm vào giỏ hàng"
+            title="Chọn màu sắc & cấu hình để mua"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (onAddToCart) {
-                onAddToCart(item);
+              if (onSelectProduct) {
+                onSelectProduct(item.id);
               }
             }}
           >

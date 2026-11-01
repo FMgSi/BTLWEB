@@ -11,6 +11,10 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  // States lựa chọn Màu sắc & Biến thể (Variants)
+  const [selectedColorId, setSelectedColorId] = useState(null);
+  const [selectedVariantId, setSelectedVariantId] = useState(null);
+
   // States lựa chọn cấu hình RAM và Ổ cứng
   const [selectedRamIndex, setSelectedRamIndex] = useState(0);
   const [selectedStorageIndex, setSelectedStorageIndex] = useState(0);
@@ -37,6 +41,8 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     setIsLoading(true);
     setError(null);
     setSelectedImageIndex(0);
+    setSelectedColorId(null);
+    setSelectedVariantId(null);
     setSelectedRamIndex(0);
     setSelectedStorageIndex(0);
 
@@ -86,8 +92,14 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               weightKg: 1.45,
               batteryWh: 54,
               os: 'Windows 11 Home Bản quyền'
-            }
+            },
+            variants: data.variants || []
           };
+
+          if (enriched.variants && enriched.variants.length > 0) {
+            setSelectedColorId(enriched.variants[0].colorId);
+            setSelectedVariantId(enriched.variants[0].variantId);
+          }
 
           setProduct(enriched);
           setIsLoading(false);
@@ -216,13 +228,74 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     }
   ];
 
+  // Quản lý biến thể màu sắc và cấu hình
+  const hasVariants = Boolean(product?.variants && product.variants.length > 0);
+
+  // Danh sách Màu sắc duy nhất của máy
+  const availableColors = React.useMemo(() => {
+    if (!hasVariants) return [];
+    const map = new Map();
+    product.variants.forEach((v) => {
+      if (!map.has(v.colorId)) {
+        map.set(v.colorId, {
+          colorId: v.colorId,
+          colorName: v.colorName,
+          hexCode: v.hexCode || '#94a3b8'
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [product?.variants, hasVariants]);
+
+  // Các biến thể thuộc màu đang chọn
+  const activeColorId = selectedColorId || availableColors[0]?.colorId;
+  const variantsForCurrentColor = React.useMemo(() => {
+    if (!hasVariants) return [];
+    return product.variants.filter((v) => v.colorId === activeColorId);
+  }, [product?.variants, hasVariants, activeColorId]);
+
+  // Biến thể đang được kích hoạt
+  const activeVariant = React.useMemo(() => {
+    if (!variantsForCurrentColor || variantsForCurrentColor.length === 0) return null;
+    return variantsForCurrentColor.find((v) => v.variantId === selectedVariantId) || variantsForCurrentColor[0];
+  }, [variantsForCurrentColor, selectedVariantId]);
+
+  // Xử lý đổi màu: ưu tiên giữ RAM/SSD nếu màu mới có cấu hình tương đương
+  const handleSelectColor = (newColorId) => {
+    setSelectedColorId(newColorId);
+    if (!product?.variants) return;
+    const sameConfig = product.variants.find(
+      (v) => v.colorId === newColorId && v.ramGB === activeVariant?.ramGB && v.storageGB === activeVariant?.storageGB
+    );
+    if (sameConfig) {
+      setSelectedVariantId(sameConfig.variantId);
+    } else {
+      const firstVar = product.variants.find((v) => v.colorId === newColorId);
+      if (firstVar) {
+        setSelectedVariantId(firstVar.variantId);
+      }
+    }
+  };
+
+  // Tồn kho và giá động theo biến thể
+  const currentStock = hasVariants
+    ? (activeVariant?.stockQuantity ?? 0)
+    : product.stockQuantity;
+  const isOutOfStock = currentStock <= 0;
+
   // Tính toán giá động theo cấu hình đang chọn
   const activeRamOpt = ramOptions[selectedRamIndex] || ramOptions[0];
   const activeStorageOpt = storageOptions[selectedStorageIndex] || storageOptions[0];
   const totalExtra = (activeRamOpt?.extra || 0) + (activeStorageOpt?.extra || 0);
 
-  const displayPrice = product.price + totalExtra;
-  const displayOriginalPrice = product.originalPrice ? product.originalPrice + totalExtra : null;
+  const displayPrice = hasVariants && activeVariant
+    ? (activeVariant.effectivePrice ?? (activeVariant.discountPrice || activeVariant.price || product.price))
+    : (product.price + totalExtra);
+
+  const displayOriginalPrice = hasVariants && activeVariant
+    ? ((activeVariant.discountPrice && activeVariant.price) ? activeVariant.price : product.originalPrice)
+    : (product.originalPrice ? product.originalPrice + totalExtra : null);
+
   const displaySavings = (displayOriginalPrice && displayOriginalPrice > displayPrice)
     ? (displayOriginalPrice - displayPrice)
     : 0;
@@ -636,48 +709,153 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               )}
             </div>
 
-            {/* 2. Tùy chọn cấu hình RAM & SSD (Khi chọn giá sẽ cập nhật trực tiếp) */}
+            {/* 2. Tùy chọn Màu sắc & Cấu hình (Variants) */}
             <div className="bg-white border rounded-3 p-3 mb-3 shadow-sm">
-              <div className="mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-semibold">Chọn dung lượng RAM:</span>
-                  <span className="text-danger fw-bold small">
-                    {activeRamOpt.extra > 0 ? `+${formatVND(activeRamOpt.extra)}` : 'Tiêu chuẩn'}
-                  </span>
+              {/* Lựa chọn Màu sắc */}
+              {hasVariants && availableColors.length > 0 && (
+                <div className="mb-3 pb-3 border-bottom">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="text-secondary small fw-bold text-uppercase">
+                      <i className="bi bi-palette-fill text-danger me-1"></i> 1. Chọn màu sắc máy:
+                    </span>
+                    <span className="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold">
+                      {activeVariant?.colorName || 'Mặc định'}
+                    </span>
+                  </div>
+                  <div className="d-flex flex-wrap gap-2">
+                    {availableColors.map((c) => {
+                      const isSelected = activeColorId === c.colorId;
+                      return (
+                        <button
+                          key={c.colorId}
+                          type="button"
+                          className={`btn btn-sm d-flex align-items-center gap-2 py-2 px-3 rounded-3 border ${
+                            isSelected
+                              ? 'border-danger bg-danger-subtle text-danger fw-bold shadow-sm'
+                              : 'border-secondary-subtle bg-white text-dark'
+                          }`}
+                          onClick={() => handleSelectColor(c.colorId)}
+                        >
+                          <span
+                            className="rounded-circle border"
+                            style={{
+                              width: '14px',
+                              height: '14px',
+                              backgroundColor: c.hexCode,
+                              display: 'inline-block'
+                            }}
+                          ></span>
+                          <span>{c.colorName}</span>
+                          {isSelected && <i className="bi bi-check2 text-danger ms-1"></i>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="d-flex gap-2">
-                  {ramOptions.map((opt, idx) => (
-                    <button 
-                      key={idx}
-                      type="button" 
-                      className={`config-pill-btn ${selectedRamIndex === idx ? 'active' : ''}`}
-                      onClick={() => setSelectedRamIndex(idx)}
-                    >
-                      {opt.label} {opt.extra > 0 ? `(+${formatVND(opt.extra)})` : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
 
-              <div>
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-semibold">Ổ cứng lưu trữ SSD:</span>
-                  <span className="text-danger fw-bold small">
-                    {activeStorageOpt.extra > 0 ? `+${formatVND(activeStorageOpt.extra)}` : 'Tiêu chuẩn'}
+              {/* Lựa chọn Cấu hình */}
+              {hasVariants ? (
+                <div>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="text-secondary small fw-bold text-uppercase">
+                      <i className="bi bi-cpu-fill text-danger me-1"></i> 2. Chọn cấu hình có sẵn ({activeVariant?.colorName}):
+                    </span>
+                  </div>
+                  <div className="d-flex flex-wrap gap-2">
+                    {variantsForCurrentColor.map((v) => {
+                      const isSelected = activeVariant?.variantId === v.variantId;
+                      const isVariantOos = v.stockQuantity <= 0;
+                      return (
+                        <button
+                          key={v.variantId}
+                          type="button"
+                          className={`btn btn-sm text-start p-2 rounded-3 border ${
+                            isSelected
+                              ? 'border-danger bg-danger-subtle text-danger fw-bold shadow-sm'
+                              : 'border-secondary-subtle bg-white text-dark'
+                          } ${isVariantOos ? 'opacity-75' : ''}`}
+                          onClick={() => setSelectedVariantId(v.variantId)}
+                        >
+                          <div className="fw-semibold small">RAM {v.ramGB}GB • SSD {v.storageGB}GB</div>
+                          <div className="d-flex align-items-center gap-2 mt-1" style={{ fontSize: '11px' }}>
+                            <span className="text-muted">SKU: <code>{v.sku}</code></span>
+                            {isVariantOos ? (
+                              <span className="badge bg-danger text-white">Hết hàng</span>
+                            ) : (
+                              <span className="badge bg-success-subtle text-success">Còn {v.stockQuantity}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Fallback cho sản phẩm cũ không quản lý theo biến thể */
+                <div>
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="text-secondary small fw-semibold">Chọn dung lượng RAM:</span>
+                      <span className="text-danger fw-bold small">
+                        {activeRamOpt.extra > 0 ? `+${formatVND(activeRamOpt.extra)}` : 'Tiêu chuẩn'}
+                      </span>
+                    </div>
+                    <div className="d-flex gap-2">
+                      {ramOptions.map((opt, idx) => (
+                        <button 
+                          key={idx}
+                          type="button" 
+                          className={`config-pill-btn ${selectedRamIndex === idx ? 'active' : ''}`}
+                          onClick={() => setSelectedRamIndex(idx)}
+                        >
+                          {opt.label} {opt.extra > 0 ? `(+${formatVND(opt.extra)})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="text-secondary small fw-semibold">Ổ cứng lưu trữ SSD:</span>
+                      <span className="text-danger fw-bold small">
+                        {activeStorageOpt.extra > 0 ? `+${formatVND(activeStorageOpt.extra)}` : 'Tiêu chuẩn'}
+                      </span>
+                    </div>
+                    <div className="d-flex gap-2">
+                      {storageOptions.map((opt, idx) => (
+                        <button 
+                          key={idx}
+                          type="button" 
+                          className={`config-pill-btn ${selectedStorageIndex === idx ? 'active' : ''}`}
+                          onClick={() => setSelectedStorageIndex(idx)}
+                        >
+                          {opt.label} {opt.extra > 0 ? `(+${formatVND(opt.extra)})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Thông tin tình trạng tồn kho của phiên bản đang chọn */}
+              <div className="mt-3 pt-2 border-top small d-flex align-items-center justify-content-between">
+                <span>
+                  {isOutOfStock ? (
+                    <span className="text-danger fw-bold">
+                      <i className="bi bi-x-circle-fill me-1"></i> Phiên bản này tạm hết hàng!
+                    </span>
+                  ) : (
+                    <span className="text-success fw-bold">
+                      <i className="bi bi-check-circle-fill me-1"></i> Có sẵn {currentStock} máy tại cửa hàng
+                    </span>
+                  )}
+                </span>
+                {activeVariant?.sku && (
+                  <span className="text-muted" style={{ fontSize: '11px' }}>
+                    SKU: <code>{activeVariant.sku}</code>
                   </span>
-                </div>
-                <div className="d-flex gap-2">
-                  {storageOptions.map((opt, idx) => (
-                    <button 
-                      key={idx}
-                      type="button" 
-                      className={`config-pill-btn ${selectedStorageIndex === idx ? 'active' : ''}`}
-                      onClick={() => setSelectedStorageIndex(idx)}
-                    >
-                      {opt.label} {opt.extra > 0 ? `(+${formatVND(opt.extra)})` : ''}
-                    </button>
-                  ))}
-                </div>
+                )}
               </div>
             </div>
 
@@ -715,21 +893,33 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </div>
             </div>
 
-            {/* 4. Cụm nút hành động Mua Hàng - Thiết kế đơn giản, tập trung vào chức năng */}
+            {/* 4. Cụm nút hành động Mua Hàng */}
             <div className="mb-3">
               <button 
                 type="button" 
-                className="btn btn-danger w-100 py-3 fw-bold fs-6 mb-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center"
-                style={{ backgroundColor: '#e11b1e', borderColor: '#e11b1e' }}
+                disabled={isOutOfStock}
+                className={`btn w-100 py-3 fw-bold fs-6 mb-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center ${
+                  isOutOfStock ? 'btn-secondary text-white' : 'btn-danger'
+                }`}
+                style={!isOutOfStock ? { backgroundColor: '#e11b1e', borderColor: '#e11b1e' } : {}}
                 onClick={() => {
+                  if (isOutOfStock) return;
                   const cartItem = {
                     id: product.id,
+                    productId: product.id,
+                    variantId: activeVariant?.variantId || null,
+                    colorName: activeVariant?.colorName || null,
+                    colorHex: activeVariant?.hexCode || null,
+                    sku: activeVariant?.sku || null,
                     name: product.name,
-                    image: product.image,
+                    image: activeVariant?.imageUrl || product.image,
                     price: displayPrice,
                     originalPrice: displayOriginalPrice,
-                    selectedRam: activeRamOpt.label,
-                    selectedStorage: activeStorageOpt.label,
+                    selectedRam: activeVariant ? `${activeVariant.ramGB} GB` : activeRamOpt.label,
+                    selectedStorage: activeVariant ? `${activeVariant.storageGB} GB SSD` : activeStorageOpt.label,
+                    specs: activeVariant
+                      ? `Màu: ${activeVariant.colorName} • RAM: ${activeVariant.ramGB}GB • SSD: ${activeVariant.storageGB}GB`
+                      : `RAM: ${activeRamOpt.label} • ${activeStorageOpt.label}`,
                   };
                   if (onBuyNow) {
                     onBuyNow(cartItem);
@@ -738,27 +928,39 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                   }
                 }}
               >
-                MUA NGAY ({formatVND(displayPrice)})
+                {isOutOfStock ? 'TẠM HẾT HÀNG' : `MUA NGAY (${formatVND(displayPrice)})`}
               </button>
 
               <button 
                 type="button" 
-                className="btn btn-outline-danger w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3"
-                style={{ borderColor: '#e11b1e', color: '#e11b1e' }}
+                disabled={isOutOfStock}
+                className={`btn w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3 ${
+                  isOutOfStock ? 'btn-outline-secondary' : 'btn-outline-danger'
+                }`}
+                style={!isOutOfStock ? { borderColor: '#e11b1e', color: '#e11b1e' } : {}}
                 onClick={() => {
+                  if (isOutOfStock) return;
                   const cartItem = {
                     id: product.id,
+                    productId: product.id,
+                    variantId: activeVariant?.variantId || null,
+                    colorName: activeVariant?.colorName || null,
+                    colorHex: activeVariant?.hexCode || null,
+                    sku: activeVariant?.sku || null,
                     name: product.name,
-                    image: product.image,
+                    image: activeVariant?.imageUrl || product.image,
                     price: displayPrice,
                     originalPrice: displayOriginalPrice,
-                    selectedRam: activeRamOpt.label,
-                    selectedStorage: activeStorageOpt.label,
+                    selectedRam: activeVariant ? `${activeVariant.ramGB} GB` : activeRamOpt.label,
+                    selectedStorage: activeVariant ? `${activeVariant.storageGB} GB SSD` : activeStorageOpt.label,
+                    specs: activeVariant
+                      ? `Màu: ${activeVariant.colorName} • RAM: ${activeVariant.ramGB}GB • SSD: ${activeVariant.storageGB}GB`
+                      : `RAM: ${activeRamOpt.label} • ${activeStorageOpt.label}`,
                   };
                   if (onAddToCart) {
                     onAddToCart(cartItem);
                   }
-                  triggerToast(`Đã thêm ${product.name} vào giỏ hàng thành công!`);
+                  triggerToast(`Đã thêm ${product.name} [Màu: ${activeVariant?.colorName || 'Mặc định'}] vào giỏ hàng!`);
                 }}
               >
                 <i className="bi bi-cart-plus fs-5"></i>

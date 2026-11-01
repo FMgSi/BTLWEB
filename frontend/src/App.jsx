@@ -292,7 +292,9 @@ export default function App() {
     const storageLabel = itemOrProduct.selectedStorage || (typeof storageArg === 'string' ? storageArg : (itemOrProduct.specification ? `${itemOrProduct.specification.storageGB} GB SSD` : '512 GB SSD'));
     const finalPrice = itemOrProduct.price || priceArg || 0;
     const finalOrig = itemOrProduct.originalPrice || (finalPrice > 0 ? Math.round(finalPrice * 1.15) : null);
-    const cartItemId = `${itemOrProduct.id}_${ramLabel}_${storageLabel}`;
+    const cartItemId = itemOrProduct.variantId
+      ? `${itemOrProduct.id}_v${itemOrProduct.variantId}`
+      : `${itemOrProduct.id}_${itemOrProduct.colorName || ''}_${ramLabel}_${storageLabel}`;
 
     setCartItems((prev) => {
       const idx = prev.findIndex((item) => (item.cartItemId || item.id) === cartItemId);
@@ -310,20 +312,27 @@ export default function App() {
         ...prev,
         {
           id: itemOrProduct.id,
+          productId: itemOrProduct.id,
           cartItemId,
+          variantId: itemOrProduct.variantId || null,
+          colorName: itemOrProduct.colorName || null,
+          colorHex: itemOrProduct.colorHex || null,
+          sku: itemOrProduct.sku || null,
           name: itemOrProduct.name,
           image: itemOrProduct.image || itemOrProduct.thumbnailUrl || '/images/default.png',
           price: finalPrice,
           originalPrice: finalOrig,
           selectedRam: ramLabel,
           selectedStorage: storageLabel,
+          specs: itemOrProduct.specs || `RAM: ${ramLabel} • ${storageLabel}`,
           quantity: 1,
           checked: true,
         },
       ];
     });
 
-    showToast(`Đã thêm "${itemOrProduct.name}" [RAM: ${ramLabel} • ${storageLabel}] vào giỏ hàng!`);
+    const colorText = itemOrProduct.colorName ? ` [Màu: ${itemOrProduct.colorName}]` : ` [RAM: ${ramLabel} • ${storageLabel}]`;
+    showToast(`Đã thêm "${itemOrProduct.name}"${colorText} vào giỏ hàng!`);
   };
 
   // Mua ngay (Thêm vào giỏ hàng và chuyển ngay đến trang Giỏ hàng)

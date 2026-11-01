@@ -301,8 +301,17 @@ export default function CartPage({
                             {item.name}
                           </div>
 
-                          {(item.selectedRam || item.selectedStorage) && (
+                          {(item.selectedRam || item.selectedStorage || item.colorName) && (
                             <div className="cart-item-spec-tag">
+                              {item.colorName && (
+                                <span className="badge bg-light text-dark border me-2 py-1 px-2" style={{ fontSize: '11px' }}>
+                                  <span 
+                                    className="d-inline-block rounded-circle me-1 border" 
+                                    style={{ width: '8px', height: '8px', backgroundColor: item.colorHex || '#64748b' }}
+                                  ></span>
+                                  Màu: <strong>{item.colorName}</strong>
+                                </span>
+                              )}
                               <i className="bi bi-cpu me-1"></i>
                               {item.selectedRam && <span>RAM: {item.selectedRam}</span>}
                               {item.selectedRam && item.selectedStorage && <span className="mx-1">•</span>}
