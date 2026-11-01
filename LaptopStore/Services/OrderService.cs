@@ -61,6 +61,15 @@ public class OrderService : IOrderService
                         .ToDictionaryAsync(v => v.VariantId);
                 }
 
+                // Tập hợp các sản phẩm đã có phiên bản đang hoạt động (dùng để chặn mua thiếu VariantId)
+                var productsWithVariants = await _db.ProductVariants
+                    .AsNoTracking()
+                    .Where(v => productIds.Contains(v.ProductId) && v.IsActive)
+                    .Select(v => v.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+                var productsWithVariantsSet = new HashSet<int>(productsWithVariants);
+
                 decimal subTotal = 0;
                 var orderItems = new List<OrderItem>();
                 var inMemoryDeductions = new List<(ProductVariant? v, Product p, int qty)>();
@@ -150,23 +159,53 @@ public class OrderService : IOrderService
                             return (false, $"Sản phẩm '{product.ProductName}' - Màu {cName} (RAM {variant.RamGB}GB/SSD {variant.StorageGB}GB) không đủ tồn kho (chỉ còn {currentStock} máy). Vui lòng điều chỉnh giỏ hàng!", null);
                         }
 
-                        // Đồng thời trừ tổng tồn kho trên Product:
+                        // Đồng thời trừ tổng tồn kho trên Product (kiểm tra chặt chẽ số dòng bị ảnh hưởng):
+                        int productRowsAffected;
                         if (_db.Database.IsRelational())
                         {
-                            await _db.Products
+                            productRowsAffected = await _db.Products
                                 .Where(p => p.ProductId == itemReq.ProductId && p.StockQuantity >= itemReq.Quantity)
                                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity - itemReq.Quantity));
                         }
                         else
                         {
-                            product.StockQuantity -= itemReq.Quantity;
-                            await _db.SaveChangesAsync();
-                            inMemoryDeductions.Add((variant, product, itemReq.Quantity));
+                            if (product.StockQuantity >= itemReq.Quantity)
+                            {
+                                product.StockQuantity -= itemReq.Quantity;
+                                await _db.SaveChangesAsync();
+                                productRowsAffected = 1;
+                                inMemoryDeductions.Add((variant, product, itemReq.Quantity));
+                            }
+                            else
+                            {
+                                productRowsAffected = 0;
+                            }
+                        }
+
+                        if (productRowsAffected == 0)
+                        {
+                            // Nếu kho tổng Product không đủ (dữ liệu kho bị lệch), hoàn lại variant đã trừ và rollback
+                            if (_db.Database.IsRelational())
+                            {
+                                await _db.ProductVariants
+                                    .Where(v => v.VariantId == variant.VariantId)
+                                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.StockQuantity, v => v.StockQuantity + itemReq.Quantity));
+                            }
+                            else
+                            {
+                                variant.StockQuantity += itemReq.Quantity;
+                                await _db.SaveChangesAsync();
+                            }
+
+                            await RollbackAsync();
+                            var freshP = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == itemReq.ProductId);
+                            int currentProductStock = freshP?.StockQuantity ?? 0;
+                            return (false, $"Sản phẩm '{product.ProductName}' không đủ tồn kho tổng (chỉ còn {currentProductStock} máy). Vui lòng điều chỉnh giỏ hàng!", null);
                         }
 
                         variantId = variant.VariantId;
                         colorName = variant.Color?.Name ?? itemReq.ColorName;
-                        unitPrice = variant.EffectivePrice > 0 ? variant.EffectivePrice : (product.DiscountPrice ?? product.Price);
+                        unitPrice = variant.EffectivePrice;
                         if (!string.IsNullOrWhiteSpace(variant.ImageUrl))
                         {
                             itemThumbnail = variant.ImageUrl;
@@ -179,7 +218,14 @@ public class OrderService : IOrderService
                     }
                     else
                     {
-                        // FALLBACK: Đơn hàng theo sản phẩm gốc (dành cho dữ liệu cũ hoặc không chọn variant)
+                        // Kiểm tra nghiệp vụ: Mẫu laptop đã có phiên bản màu sắc thì BẮT BUỘC khách phải chọn phiên bản
+                        if (productsWithVariantsSet.Contains(itemReq.ProductId))
+                        {
+                            await RollbackAsync();
+                            return (false, $"Sản phẩm '{product.ProductName}' có nhiều phiên bản màu sắc và cấu hình. Vui lòng chọn phiên bản cụ thể trước khi đặt hàng!", null);
+                        }
+
+                        // FALLBACK: Đơn hàng theo sản phẩm gốc (chỉ dành cho sản phẩm cũ chưa chuyển đổi sang phiên bản)
                         int rowsAffected;
                         if (_db.Database.IsRelational())
                         {

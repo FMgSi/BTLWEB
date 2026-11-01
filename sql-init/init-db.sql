@@ -269,24 +269,48 @@ GO
 
 -- 14. Bảng Phiên bản cấu hình & Màu sắc (ProductVariants)
 IF OBJECT_ID('dbo.ProductVariants', 'U') IS NULL
-CREATE TABLE ProductVariants (
-    VariantId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    ProductId INT NOT NULL,
-    ColorId INT NOT NULL,
-    RamGB INT NOT NULL,
-    StorageGB INT NOT NULL,
-    SKU NVARCHAR(100) NOT NULL,
-    StockQuantity INT NOT NULL DEFAULT 0,
-    Price DECIMAL(18,2) NOT NULL DEFAULT 0,
-    DiscountPrice DECIMAL(18,2) NULL,
-    ImageUrl NVARCHAR(500) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CONSTRAINT IX_ProductVariants_SKU UNIQUE (SKU),
-    CONSTRAINT IX_ProductVariants_UniqueCombo UNIQUE (ProductId, ColorId, RamGB, StorageGB),
-    CONSTRAINT FK_ProductVariants_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE,
-    CONSTRAINT FK_ProductVariants_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId),
-    CONSTRAINT CK_ProductVariants_Stock CHECK (StockQuantity >= 0)
-);
+BEGIN
+    CREATE TABLE ProductVariants (
+        VariantId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        ProductId INT NOT NULL,
+        ColorId INT NOT NULL,
+        RamGB INT NOT NULL,
+        StorageGB INT NOT NULL,
+        SKU NVARCHAR(100) NOT NULL,
+        StockQuantity INT NOT NULL DEFAULT 0,
+        Price DECIMAL(18,2) NULL,
+        DiscountPrice DECIMAL(18,2) NULL,
+        ImageUrl NVARCHAR(500) NULL,
+        IsActive BIT NOT NULL DEFAULT 1,
+        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT IX_ProductVariants_SKU UNIQUE (SKU),
+        CONSTRAINT IX_ProductVariants_UniqueCombo UNIQUE (ProductId, ColorId, RamGB, StorageGB),
+        CONSTRAINT FK_ProductVariants_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE,
+        CONSTRAINT FK_ProductVariants_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId),
+        CONSTRAINT CK_ProductVariants_Stock CHECK (StockQuantity >= 0)
+    );
+END
+ELSE
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductVariants') AND name = 'CreatedAt')
+        ALTER TABLE ProductVariants ADD CreatedAt DATETIME NOT NULL DEFAULT GETDATE();
+    
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductVariants') AND name = 'Price' AND is_nullable = 0)
+    BEGIN
+        DECLARE @pvPriceConstraint NVARCHAR(200);
+        SELECT @pvPriceConstraint = d.name 
+        FROM sys.default_constraints d 
+        JOIN sys.columns c ON d.parent_column_id = c.column_id AND d.parent_object_id = c.object_id
+        WHERE d.parent_object_id = OBJECT_ID('ProductVariants') AND c.name = 'Price';
+        
+        IF @pvPriceConstraint IS NOT NULL
+            EXEC('ALTER TABLE ProductVariants DROP CONSTRAINT ' + @pvPriceConstraint);
+
+        ALTER TABLE ProductVariants ALTER COLUMN Price DECIMAL(18,2) NULL;
+    END
+
+    UPDATE ProductVariants SET Price = NULL WHERE Price = 0;
+END
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_OrderItems_ProductVariants_VariantId')
@@ -778,10 +802,10 @@ GO
 IF NOT EXISTS (SELECT 1 FROM ProductVariants)
 BEGIN
     SET IDENTITY_INSERT ProductVariants ON;
-    INSERT INTO ProductVariants (VariantId, ProductId, ColorId, RamGB, StorageGB, SKU, StockQuantity, Price, DiscountPrice, IsActive) VALUES
-    (1, 1, 1, 16, 512, N'DELL-1-SLV-16-512', 1, 17990000, 16490000, 1),
-    (2, 1, 2, 16, 512, N'DELL-1-BLK-16-512', 2, 17990000, 16490000, 1),
-    (3, 1, 2, 32, 1024, N'DELL-1-BLK-32-1TB', 0, 21990000, NULL, 1);
+    INSERT INTO ProductVariants (VariantId, ProductId, ColorId, RamGB, StorageGB, SKU, StockQuantity, Price, DiscountPrice, IsActive, CreatedAt) VALUES
+    (1, 1, 1, 16, 512, N'DELL-1-SLV-16-512', 1, NULL, NULL, 1, GETDATE()),
+    (2, 1, 2, 16, 512, N'DELL-1-BLK-16-512', 2, NULL, NULL, 1, GETDATE()),
+    (3, 1, 2, 32, 1024, N'DELL-1-BLK-32-1TB', 0, 21990000, NULL, 1, GETDATE());
     SET IDENTITY_INSERT ProductVariants OFF;
     UPDATE Products SET StockQuantity = 3 WHERE ProductId = 1;
 END

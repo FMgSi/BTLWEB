@@ -63,15 +63,40 @@ public static class DbInitializer
                             StorageGB INT NOT NULL,
                             SKU NVARCHAR(100) NOT NULL,
                             StockQuantity INT NOT NULL DEFAULT 0,
-                            Price DECIMAL(18,2) NOT NULL DEFAULT 0,
+                            Price DECIMAL(18,2) NULL,
                             DiscountPrice DECIMAL(18,2) NULL,
                             ImageUrl NVARCHAR(500) NULL,
                             IsActive BIT NOT NULL DEFAULT 1,
+                            CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
                             CONSTRAINT IX_ProductVariants_SKU UNIQUE (SKU),
                             CONSTRAINT IX_ProductVariants_UniqueCombo UNIQUE (ProductId, ColorId, RamGB, StorageGB),
                             CONSTRAINT FK_ProductVariants_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE,
                             CONSTRAINT FK_ProductVariants_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId)
                         );
+                    END
+                    ELSE
+                    BEGIN
+                        -- Nâng cấp an toàn cho bảng ProductVariants nếu CSDL đã được tạo trước đó
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductVariants') AND name = 'CreatedAt')
+                        BEGIN
+                            ALTER TABLE ProductVariants ADD CreatedAt DATETIME NOT NULL DEFAULT GETDATE();
+                        END
+
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductVariants') AND name = 'Price' AND is_nullable = 0)
+                        BEGIN
+                            DECLARE @pvPriceConstraint NVARCHAR(200);
+                            SELECT @pvPriceConstraint = d.name 
+                            FROM sys.default_constraints d 
+                            JOIN sys.columns c ON d.parent_column_id = c.column_id AND d.parent_object_id = c.object_id
+                            WHERE d.parent_object_id = OBJECT_ID('ProductVariants') AND c.name = 'Price';
+                            
+                            IF @pvPriceConstraint IS NOT NULL
+                                EXEC('ALTER TABLE ProductVariants DROP CONSTRAINT ' + @pvPriceConstraint);
+
+                            ALTER TABLE ProductVariants ALTER COLUMN Price DECIMAL(18,2) NULL;
+                        END
+
+                        UPDATE ProductVariants SET Price = NULL WHERE Price = 0;
                     END
 
                     IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_OrderItems_ProductVariants_VariantId')
@@ -568,7 +593,7 @@ public static class DbInitializer
                 if (isDellDemo)
                 {
                     // Nghiệp vụ cốt lõi theo kịch bản:
-                    // 1. Dell - Bạc - 16GB - 512GB: Tồn 1
+                    // 1. Dell - Bạc - 16GB - 512GB: Tồn 1 (kế thừa giá máy: Price = null)
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -577,12 +602,13 @@ public static class DbInitializer
                         StorageGB = 512,
                         SKU = $"DELL-{prod.ProductId}-SLV-16-512",
                         StockQuantity = 1,
-                        Price = prod.Price,
-                        DiscountPrice = prod.DiscountPrice,
-                        IsActive = true
+                        Price = null, // Kế thừa giá gốc của sản phẩm
+                        DiscountPrice = null,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
                     });
 
-                    // 2. Dell - Đen - 16GB - 512GB: Tồn 2
+                    // 2. Dell - Đen - 16GB - 512GB: Tồn 2 (kế thừa giá máy: Price = null)
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -591,12 +617,13 @@ public static class DbInitializer
                         StorageGB = 512,
                         SKU = $"DELL-{prod.ProductId}-BLK-16-512",
                         StockQuantity = 2,
-                        Price = prod.Price,
-                        DiscountPrice = prod.DiscountPrice,
-                        IsActive = true
+                        Price = null, // Kế thừa giá gốc của sản phẩm
+                        DiscountPrice = null,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
                     });
 
-                    // 3. Dell - Đen - 32GB - 1TB: Tồn 0
+                    // 3. Dell - Đen - 32GB - 1TB: Tồn 0 (cấu hình cao giá riêng)
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -607,7 +634,8 @@ public static class DbInitializer
                         StockQuantity = 0,
                         Price = prod.Price + 4000000,
                         DiscountPrice = null,
-                        IsActive = true
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
                     });
 
                     // Cập nhật tổng tồn kho của Dell = 1 + 2 + 0 = 3
@@ -615,7 +643,7 @@ public static class DbInitializer
                 }
                 else
                 {
-                    // Các laptop khác: Tạo 2 biến thể màu với thông số sẵn có
+                    // Các laptop khác: Tạo 2 biến thể màu với thông số sẵn có, kế thừa giá sản phẩm
                     int halfStock = Math.Max(1, prod.StockQuantity / 2);
                     int remainingStock = Math.Max(0, prod.StockQuantity - halfStock);
 
@@ -627,9 +655,10 @@ public static class DbInitializer
                         StorageGB = storage,
                         SKU = $"SKU-{prod.ProductId}-SGRY-{ram}-{storage}",
                         StockQuantity = halfStock,
-                        Price = prod.Price,
-                        DiscountPrice = prod.DiscountPrice,
-                        IsActive = true
+                        Price = null,
+                        DiscountPrice = null,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
                     });
 
                     variants.Add(new ProductVariant
@@ -640,9 +669,10 @@ public static class DbInitializer
                         StorageGB = storage,
                         SKU = $"SKU-{prod.ProductId}-SLV-{ram}-{storage}",
                         StockQuantity = remainingStock,
-                        Price = prod.Price,
-                        DiscountPrice = prod.DiscountPrice,
-                        IsActive = true
+                        Price = null,
+                        DiscountPrice = null,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
                     });
                 }
             }

@@ -419,4 +419,221 @@ public class ProductVariantStockTest
         var colorStillExists = await db.Colors.AnyAsync(c => c.ColorId == silver.ColorId);
         Assert.True(colorStillExists);
     }
+
+    [Fact]
+    public async Task OrderWithoutVariantId_ForProductWithActiveVariants_IsRejected()
+    {
+        // ARRANGE: Sản phẩm Dell đã có phiên bản màu sắc nhưng khách gửi giỏ hàng không có VariantId
+        var (db, _, _, _, _, _) = CreateTestSetup();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Nguyễn Thiếu Màu",
+            PhoneNumber = "0966666666",
+            ShippingAddress = "Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new()
+                {
+                    ProductId = 1,
+                    VariantId = null, // Thiếu VariantId
+                    Quantity = 1
+                }
+            }
+        };
+
+        // ACT
+        var res = await orderService.CreateOrderAsync(req);
+
+        // ASSERT: Hệ thống từ chối và yêu cầu chọn màu sắc/phiên bản cụ thể
+        Assert.False(res.Success);
+        Assert.Contains("có nhiều phiên bản màu sắc", res.Message, StringComparison.OrdinalIgnoreCase);
+
+        // Không trừ kho và không tạo đơn hàng
+        var orderCount = await db.Orders.CountAsync();
+        Assert.Equal(0, orderCount);
+    }
+
+    [Fact]
+    public async Task OrderWithoutVariantId_ForLegacyProductWithoutVariants_IsAllowed()
+    {
+        // ARRANGE: Sản phẩm phụ kiện / sản phẩm cũ chưa chuyển sang cấu hình phiên bản
+        var (db, _, _, _, _, _) = CreateTestSetup();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+
+        var legacyProduct = new Product
+        {
+            ProductId = 99,
+            ProductName = "Chuột không dây Logitech (Legacy)",
+            BrandId = 1,
+            CategoryId = 1,
+            Price = 350000m,
+            StockQuantity = 5,
+            IsActive = true
+        };
+        db.Products.Add(legacyProduct);
+        await db.SaveChangesAsync();
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Khách mua phụ kiện",
+            PhoneNumber = "0977777777",
+            ShippingAddress = "Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new()
+                {
+                    ProductId = 99,
+                    VariantId = null, // Không có variant vì sản phẩm cũ
+                    Quantity = 2
+                }
+            }
+        };
+
+        // ACT
+        var res = await orderService.CreateOrderAsync(req);
+
+        // ASSERT: Thành công và trừ trực tiếp vào Product.StockQuantity (5 -> 3)
+        Assert.True(res.Success);
+        var freshP = await db.Products.FindAsync(99);
+        Assert.NotNull(freshP);
+        Assert.Equal(3, freshP.StockQuantity);
+    }
+
+    [Fact]
+    public async Task ProductTotalStockInconsistency_WhenProductStockIsZero_RollbacksTransactionAndRevertsVariant()
+    {
+        // ARRANGE: Tình huống dữ liệu kho bị lệch: Biến thể Bạc còn 1 máy nhưng kho tổng Product bị 0
+        var (db, product, _, _, _, _) = CreateTestSetup();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+
+        product.StockQuantity = 0; // Giả lập kho tổng bị lệch
+        await db.SaveChangesAsync();
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Đặng Lệch Kho",
+            PhoneNumber = "0988888888",
+            ShippingAddress = "Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new()
+                {
+                    ProductId = 1,
+                    VariantId = 101, // Bạc (kho variant còn 1)
+                    Quantity = 1
+                }
+            }
+        };
+
+        // ACT
+        var res = await orderService.CreateOrderAsync(req);
+
+        // ASSERT: Lệnh trừ kho tổng thất bại -> Rollback và hoàn lại variant đã trừ
+        Assert.False(res.Success);
+        Assert.Contains("không đủ tồn kho tổng", res.Message, StringComparison.OrdinalIgnoreCase);
+
+        // Tồn kho của variant Bạc vẫn được giữ nguyên = 1
+        var freshSilver = await db.ProductVariants.FindAsync(101);
+        Assert.NotNull(freshSilver);
+        Assert.Equal(1, freshSilver.StockQuantity);
+
+        // Không tạo đơn
+        Assert.Equal(0, await db.Orders.CountAsync());
+    }
+
+    [Fact]
+    public void ProductVariant_EffectivePrice_WhenPriceIsNull_OrZero_InheritsProductPrice()
+    {
+        var product = new Product
+        {
+            ProductId = 1,
+            ProductName = "Dell Inspiron 15",
+            Price = 17990000m,
+            DiscountPrice = 16490000m
+        };
+
+        // 1. Variant có Price = null -> Kế thừa giá khuyến mãi của Product (16.490.000đ)
+        var variantNullPrice = new ProductVariant
+        {
+            Product = product,
+            Price = null,
+            DiscountPrice = null
+        };
+        Assert.Equal(16490000m, variantNullPrice.EffectivePrice);
+
+        // 2. Variant có Price = 0 (lỗi nhập liệu) -> Vẫn fallback an toàn về giá máy, không bao giờ nhận giá 0đ
+        var variantZeroPrice = new ProductVariant
+        {
+            Product = product,
+            Price = 0m,
+            DiscountPrice = null
+        };
+        Assert.Equal(16490000m, variantZeroPrice.EffectivePrice);
+
+        // 3. Variant có Price riêng cao hơn (cấu hình 32GB/1TB) -> Dùng giá riêng
+        var variantCustomPrice = new ProductVariant
+        {
+            Product = product,
+            Price = 21990000m,
+            DiscountPrice = null
+        };
+        Assert.Equal(21990000m, variantCustomPrice.EffectivePrice);
+
+        // 4. Có CreatedAt tự động khởi tạo
+        Assert.True(variantNullPrice.CreatedAt <= DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task SqlServer_ColorsIncludeVariants_ExecutesWithoutMissingColumnError()
+    {
+        // Kiểm tra trực tiếp trên SQL Server thực tế (nếu có kết nối tới SQLEXPRESS)
+        string connStr = "Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
+        
+        try
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connStr)
+                .Options;
+
+            using var db = new AppDbContext(options);
+            if (!await db.Database.CanConnectAsync())
+            {
+                return; // Bỏ qua nếu môi trường không có SQLEXPRESS
+            }
+
+            // Chạy DbInitializer để kích hoạt migration CreatedAt & Price null
+            DbInitializer.Initialize(db);
+
+            // Thực thi đúng câu lệnh từng gây lỗi: Include(c => c.Variants).ToListAsync()
+            var colorsWithVariants = await db.Colors
+                .Include(c => c.Variants)
+                .AsNoTracking()
+                .ToListAsync();
+
+            Assert.NotNull(colorsWithVariants);
+            Assert.True(colorsWithVariants.Count > 0);
+
+            // Kiểm tra các biến thể load lên không bị lỗi CreatedAt
+            var allVariants = colorsWithVariants.SelectMany(c => c.Variants).ToList();
+            foreach (var v in allVariants)
+            {
+                Assert.True(v.CreatedAt > DateTime.MinValue);
+            }
+        }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Message.Contains("network-related") || ex.Message.Contains("server was not found"))
+        {
+            // Bỏ qua nếu SQL Server không reachable trong runner
+        }
+    }
 }

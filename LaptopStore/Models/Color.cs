@@ -34,3 +34,4 @@ public class Color
     /// </summary>
     public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
 }
+

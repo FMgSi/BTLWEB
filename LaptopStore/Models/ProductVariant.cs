@@ -85,8 +85,19 @@ public class ProductVariant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Helper: Lấy giá bán thực tế của phiên bản (ưu tiên giá riêng, fallback về giá sản phẩm)
+    /// Helper: Lấy giá bán thực tế của phiên bản (ưu tiên giá riêng nếu > 0, fallback về giá sản phẩm)
     /// </summary>
     [NotMapped]
-    public decimal EffectivePrice => DiscountPrice ?? Price ?? (Product?.DiscountPrice ?? Product?.Price ?? 0);
+    public decimal EffectivePrice
+    {
+        get
+        {
+            if (DiscountPrice.HasValue && DiscountPrice.Value > 0)
+                return DiscountPrice.Value;
+            if (Price.HasValue && Price.Value > 0)
+                return Price.Value;
+            return Product?.DiscountPrice ?? Product?.Price ?? 0;
+        }
+    }
 }
+
