@@ -1,5 +1,7 @@
+import { formatVND } from '../../utils/formatters';
+
 export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
-  const formatVND = (num) => (num ? num.toLocaleString('vi-VN') + '₫' : '');
+
 
   const handleClickDetail = (e) => {
     if (onSelectProduct && !e.ctrlKey && !e.metaKey && !e.shiftKey) {

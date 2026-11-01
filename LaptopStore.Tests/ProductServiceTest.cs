@@ -310,4 +310,72 @@ public class ProductServiceTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(okResult.Value);
     }
+
+    [Fact]
+    public void OrdersApiController_PreviewInstallmentPlan_ReturnsAccurateMath()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+        var controller = new OrdersApiController(orderService, installmentService);
+
+        // Act: Đơn 82.970.000đ, 6 tháng
+        var actionRes = controller.PreviewInstallmentPlan(82970000m, 6);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(actionRes);
+        Assert.NotNull(okResult.Value);
+
+        var planProp = okResult.Value.GetType().GetProperty("plan")?.GetValue(okResult.Value, null) as InstallmentPlanDto;
+        Assert.NotNull(planProp);
+        Assert.Equal(24891000m, planProp.PrepayAmount);
+        Assert.Equal(58079000m, planProp.FinancedAmount);
+        Assert.Equal(9679833m, planProp.MonthlyInstallmentAmount);
+        Assert.Equal(9679835m, planProp.LastPeriodAmount);
+        Assert.Equal(6, planProp.Periods.Count);
+        Assert.Equal(58079000m, planProp.Periods.Sum(p => p.Amount));
+    }
+
+    [Fact]
+    public async Task OrderService_DuplicateIdempotencyKey_ReturnsExistingOrderWithoutDoubleDeduction()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Nguyễn Văn Test",
+            PhoneNumber = "0912345678",
+            ShippingAddress = "Số 1 Đại Cồ Việt, Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            IdempotencyKey = "TEST-IDEMP-KEY-9999",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new() { ProductId = 1, Quantity = 2 }
+            }
+        };
+
+        // Act 1: Lần đầu tạo đơn
+        var order1 = await orderService.CreateOrderAsync(req);
+        var stockAfterFirst = await db.Products.Where(p => p.ProductId == 1).Select(p => p.StockQuantity).FirstAsync();
+
+        // Act 2: Request lặp lại cùng IdempotencyKey
+        var order2 = await orderService.CreateOrderAsync(req);
+        var stockAfterSecond = await db.Products.Where(p => p.ProductId == 1).Select(p => p.StockQuantity).FirstAsync();
+
+        // Assert
+        Assert.True(order1.Success);
+        Assert.True(order2.Success);
+        Assert.NotNull(order1.Order);
+        Assert.NotNull(order2.Order);
+        Assert.Equal(order1.Order!.OrderId, order2.Order!.OrderId);
+        Assert.Equal(order1.Order!.OrderCode, order2.Order!.OrderCode);
+        Assert.Equal(8, stockAfterFirst); // Ban đầu có 10, mua 2 -> còn 8
+        Assert.Equal(8, stockAfterSecond); // Không bị trừ kho lần 2!
+        Assert.Equal(1, await db.Orders.CountAsync(o => o.IdempotencyKey == "TEST-IDEMP-KEY-9999"));
+    }
 }

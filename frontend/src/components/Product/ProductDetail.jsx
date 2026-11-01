@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatVND } from '../../utils/formatters';
 import './ProductDetail.css';
 import { PRODUCT_DATA } from '../../data/mockData';
 
@@ -22,8 +23,7 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
-  // Helper format tiền Việt Nam đồng
-  const formatVND = (num) => (num ? num.toLocaleString('vi-VN') + '₫' : '');
+
 
   // Trigger toast thông báo
   const triggerToast = (msg) => {

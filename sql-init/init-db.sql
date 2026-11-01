@@ -12,6 +12,11 @@ GO
 USE LaptopStoreDb;
 GO
 
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- 1. Bảng Thương hiệu (Brands)
 IF OBJECT_ID('dbo.Brands', 'U') IS NULL
 CREATE TABLE Brands (
@@ -138,21 +143,22 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'IdempotencyKey')
     ALTER TABLE Orders ADD IdempotencyKey NVARCHAR(100) NULL;
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Orders_IdempotencyKey' AND is_unique = 0 AND object_id = OBJECT_ID('Orders'))
+    DROP INDEX IX_Orders_IdempotencyKey ON Orders;
+
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Orders_IdempotencyKey' AND object_id = OBJECT_ID('Orders'))
-    CREATE NONCLUSTERED INDEX IX_Orders_IdempotencyKey ON Orders (IdempotencyKey) WHERE IdempotencyKey IS NOT NULL;
+    CREATE UNIQUE NONCLUSTERED INDEX IX_Orders_IdempotencyKey ON Orders (IdempotencyKey) WHERE IdempotencyKey IS NOT NULL;
+
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'PurchaseMode')
     ALTER TABLE Orders ADD PurchaseMode NVARCHAR(50) NOT NULL DEFAULT 'Full';
 GO
 
--- Ràng buộc CHECK constraints bảo vệ tính toàn vẹn dữ liệu
+-- Ràng buộc CHECK constraints bảo vệ tính toàn vẹn dữ liệu Products
 IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_Products_Price')
     ALTER TABLE Products ADD CONSTRAINT CK_Products_Price CHECK (Price >= 0);
 IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_Products_StockQuantity')
     ALTER TABLE Products ADD CONSTRAINT CK_Products_StockQuantity CHECK (StockQuantity >= 0);
-IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_OrderItems_Quantity')
-    ALTER TABLE OrderItems ADD CONSTRAINT CK_OrderItems_Quantity CHECK (Quantity > 0);
-IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_OrderItems_UnitPrice')
-    ALTER TABLE OrderItems ADD CONSTRAINT CK_OrderItems_UnitPrice CHECK (UnitPrice >= 0);
 GO
 
 -- 8. Bảng Chi tiết mặt hàng trong đơn (OrderItems)
@@ -172,6 +178,13 @@ CREATE TABLE OrderItems (
     CONSTRAINT FK_OrderItems_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES Orders (OrderId) ON DELETE CASCADE,
     CONSTRAINT FK_OrderItems_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE NO ACTION
 );
+GO
+
+-- Ràng buộc CHECK constraints bảo vệ tính toàn vẹn dữ liệu OrderItems
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_OrderItems_Quantity')
+    ALTER TABLE OrderItems ADD CONSTRAINT CK_OrderItems_Quantity CHECK (Quantity > 0);
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_OrderItems_UnitPrice')
+    ALTER TABLE OrderItems ADD CONSTRAINT CK_OrderItems_UnitPrice CHECK (UnitPrice >= 0);
 GO
 
 -- 9. Bảng Giao dịch thanh toán (Payments)
@@ -253,6 +266,13 @@ CREATE TABLE InstallmentSchedules (
     CONSTRAINT FK_InstallmentSchedules_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES InstallmentContracts (ContractId) ON DELETE CASCADE,
     CONSTRAINT FK_InstallmentSchedules_Payments_PaymentId FOREIGN KEY (PaymentId) REFERENCES Payments (PaymentId) ON DELETE NO ACTION
 );
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Payments_InstallmentSchedules_ScheduleId')
+BEGIN
+    ALTER TABLE Payments ADD CONSTRAINT FK_Payments_InstallmentSchedules_ScheduleId 
+        FOREIGN KEY (ScheduleId) REFERENCES InstallmentSchedules (ScheduleId) ON DELETE NO ACTION;
+END
 GO
 
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { formatVND } from '../../utils/formatters';
 import './CartPage.css';
 
 export default function CartPage({
@@ -32,6 +33,7 @@ export default function CartPage({
   const [paymentMethod, setPaymentMethod] = useState('banking');
   const [purchaseMode, setPurchaseMode] = useState('Full');
   const [termMonths, setTermMonths] = useState(6);
+  const [serverInstallmentPlan, setServerInstallmentPlan] = useState(null);
 
   const handleOpenCheckoutModal = () => {
     setIdempotencyKey(`IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
@@ -48,9 +50,6 @@ export default function CartPage({
     accountName: 'HE THONG LAPTOP WORLD',
   };
 
-  // Định dạng số tiền sang chuẩn Việt Nam Đồng (VND)
-  const formatVND = (num) => (num ? num.toLocaleString('vi-VN') + 'đ' : '0đ');
-
   // Các sản phẩm được chọn để thanh toán
   const checkedItems = cartItems.filter((i) => i.checked !== false);
   const isAllChecked = cartItems.length > 0 && checkedItems.length === cartItems.length;
@@ -63,11 +62,47 @@ export default function CartPage({
   }, 0);
   const totalDiscount = Math.max(0, totalOriginal - totalPayable);
 
-  // Tính toán kế hoạch trả góp: trả trước đúng 30% làm tròn đến đồng, dồn lẻ kỳ cuối
-  const prepayAmount = Math.round(totalPayable * 0.30);
-  const financedAmount = totalPayable - prepayAmount;
-  const basePeriodAmount = Math.floor(financedAmount / termMonths);
-  const lastPeriodAmount = financedAmount - (basePeriodAmount * (termMonths - 1));
+  // Đồng bộ phương án trả góp từ Backend API (Single Source of Truth)
+  useEffect(() => {
+    if (purchaseMode !== 'Installment' || totalPayable < 1000000) {
+      setServerInstallmentPlan(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchInstallmentPlan = async () => {
+      try {
+        const res = await fetch(`/api/orders/installment-preview?amount=${totalPayable}&termMonths=${termMonths}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.success && data.plan) {
+            setServerInstallmentPlan(data.plan);
+          }
+        }
+      } catch (err) {
+        console.warn('Không thể tải preview trả góp từ API, dùng fallback cục bộ:', err);
+      }
+    };
+
+    fetchInstallmentPlan();
+    return () => {
+      isMounted = false;
+    };
+  }, [purchaseMode, totalPayable, termMonths]);
+
+  // Tính toán kế hoạch trả góp: ưu tiên kết quả từ backend API, fallback sang tính toán cục bộ
+  const prepayAmount = serverInstallmentPlan
+    ? serverInstallmentPlan.prepayAmount
+    : Math.round(totalPayable * 0.30);
+  const financedAmount = serverInstallmentPlan
+    ? serverInstallmentPlan.financedAmount
+    : totalPayable - prepayAmount;
+  const basePeriodAmount = serverInstallmentPlan
+    ? serverInstallmentPlan.monthlyInstallmentAmount
+    : Math.floor(financedAmount / termMonths);
+  const lastPeriodAmount = serverInstallmentPlan
+    ? (serverInstallmentPlan.lastPeriodAmount ?? (financedAmount - (basePeriodAmount * (termMonths - 1))))
+    : (financedAmount - (basePeriodAmount * (termMonths - 1)));
 
   // Sao chép văn bản vào bộ nhớ tạm
   const handleCopy = (text, key) => {
@@ -81,6 +116,12 @@ export default function CartPage({
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
       setFormError('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
+      return;
+    }
+
+    const address = customerAddress.trim();
+    if (address.length < 5 || address.length > 255) {
+      setFormError('Vui lòng nhập địa chỉ nhận hàng từ 5 đến 255 ký tự, gồm số nhà và tên đường hoặc thôn/xóm.');
       return;
     }
 
@@ -101,8 +142,8 @@ export default function CartPage({
       const orderPayload = {
         customerName: customerName.trim(),
         phoneNumber: cleanPhone,
-        email: currentUser?.email || '',
-        shippingAddress: customerAddress.trim(),
+        email: currentUser?.email?.trim() || null,
+        shippingAddress: address,
         notes: orderNotes.trim(),
         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'VietQR',
         purchaseMode: purchaseMode,
@@ -133,7 +174,7 @@ export default function CartPage({
 
       const contentType = res.headers.get('content-type') || '';
       let data = null;
-      if (contentType.includes('application/json')) {
+      if (/^(?:application\/json|application\/[\w.+-]+\+json)(?:\s*;|$)/i.test(contentType)) {
         try {
           data = await res.json();
         } catch (jsonErr) {
@@ -151,8 +192,8 @@ export default function CartPage({
       if (!res.ok || !data.success) {
         let errorMsg = data.message;
         if (!errorMsg && data.errors) {
-          errorMsg = Object.entries(data.errors)
-            .map(([field, msgs]) => Array.isArray(msgs) ? msgs.join(', ') : msgs)
+          errorMsg = Object.values(data.errors)
+            .map((msgs) => Array.isArray(msgs) ? msgs.join(', ') : msgs)
             .join('\n');
         }
         if (!errorMsg && data.title) {

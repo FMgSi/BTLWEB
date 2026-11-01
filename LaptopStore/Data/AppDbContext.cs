@@ -121,6 +121,10 @@ public class AppDbContext : DbContext
         mb.Entity<Order>(entity =>
         {
             entity.HasIndex(o => o.OrderCode).IsUnique();
+            entity.HasIndex(o => o.IdempotencyKey)
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
+
             entity.Property(o => o.SubTotal).HasPrecision(18, 2);
             entity.Property(o => o.DiscountAmount).HasPrecision(18, 2);
             entity.Property(o => o.TotalAmount).HasPrecision(18, 2);
@@ -163,6 +167,11 @@ public class AppDbContext : DbContext
         mb.Entity<Payment>(entity =>
         {
             entity.Property(p => p.Amount).HasPrecision(18, 2);
+
+            entity.HasOne(p => p.Schedule)
+                .WithMany()
+                .HasForeignKey(p => p.ScheduleId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         // Cấu hình bảng InstallmentContracts (Hợp đồng trả góp)
