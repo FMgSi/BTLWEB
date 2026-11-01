@@ -11,3 +11,4 @@ export const formatVND = (num, symbol = '₫') => {
   if (isNaN(parsed)) return `0${symbol}`;
   return parsed.toLocaleString('vi-VN') + symbol;
 };
+

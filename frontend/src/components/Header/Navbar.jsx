@@ -84,6 +84,16 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
                 Liên hệ
               </a>
             </li>
+
+            <li className="nav-item">
+              <a 
+                className={`nav-link px-3 ${activeNav === 'service' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
+                href="/service" 
+                onClick={(e) => handleClick(e, 'service')}
+              >
+                <i className="bi bi-tools me-1 text-danger"></i> Sửa chữa & Bảo hành
+              </a>
+            </li>
           </ul>
         </div>
       </div>

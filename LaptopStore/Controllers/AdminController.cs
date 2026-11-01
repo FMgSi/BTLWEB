@@ -24,6 +24,7 @@ public class AdminController : Controller
     private readonly IOrderService _orderService;
     private readonly IProductService _productService;
     private readonly IInstallmentService _installmentService;
+    private readonly IWarrantyService _warrantyService;
     private readonly IWebHostEnvironment _env;
 
     private string SettingsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "systemsettings.json");
@@ -112,12 +113,14 @@ public class AdminController : Controller
         IOrderService orderService,
         IProductService productService,
         IInstallmentService installmentService,
+        IWarrantyService warrantyService,
         IWebHostEnvironment env)
     {
         _db = db;
         _orderService = orderService;
         _productService = productService;
         _installmentService = installmentService;
+        _warrantyService = warrantyService;
         _env = env;
     }
 
@@ -740,8 +743,10 @@ public class AdminController : Controller
                 .CountAsync(s => s.Status != "Đã thanh toán" && s.DueDate <= sevenDaysLater);
             int lowStockCount = await _db.Products
                 .CountAsync(p => p.IsActive && p.StockQuantity <= 2);
+            int pendingTicketsCount = await _db.ServiceTickets
+                .CountAsync(t => t.Status == "Chờ tiếp nhận");
 
-            int totalCount = pendingOrdersCount + urgentSchedulesCount + lowStockCount;
+            int totalCount = pendingOrdersCount + urgentSchedulesCount + lowStockCount + pendingTicketsCount;
 
             return Json(new
             {
@@ -749,12 +754,181 @@ public class AdminController : Controller
                 totalCount,
                 orders = pendingOrders,
                 installments = urgentSchedules,
-                stocks = lowStockItems
+                stocks = lowStockItems,
+                pendingTicketsCount
             });
         }
         catch (Exception ex)
         {
             return Json(new { success = false, message = ex.Message, totalCount = 0 });
         }
+    }
+
+    /// <summary>
+    /// GET: /Admin/ServiceTickets
+    /// Quản lý Hàng chờ tiếp nhận và Phiếu dịch vụ Bảo hành & Sửa chữa
+    /// </summary>
+    public async Task<IActionResult> ServiceTickets(string? status = "all", string? search = null, string? type = "all")
+    {
+        var tickets = await _warrantyService.GetAdminTicketsAsync(status, search, type);
+
+        ViewBag.Status = status ?? "all";
+        ViewBag.Search = search ?? "";
+        ViewBag.Type = type ?? "all";
+
+        var allTickets = await _warrantyService.GetAdminTicketsAsync("all", null, "all");
+        ViewBag.PendingCount = allTickets.Count(t => t.Status == "Chờ tiếp nhận");
+        ViewBag.ProcessingCount = allTickets.Count(t => t.Status == "Đang kiểm tra" || t.Status == "Đã tiếp nhận" || t.Status == "Chờ duyệt báo giá" || t.Status == "Đang xử lý");
+        ViewBag.WaitingReturnCount = allTickets.Count(t => t.Status == "Chờ trả máy");
+        ViewBag.TotalRevenue = allTickets.Where(t => t.Status == "Đã trả máy").Sum(t => t.FinalCost);
+
+        return View(tickets);
+    }
+
+    /// <summary>
+    /// GET: /Admin/ServiceTicketDetails/{id}
+    /// Xem chi tiết phiếu dịch vụ, báo giá và lịch sử thao tác
+    /// </summary>
+    public async Task<IActionResult> ServiceTicketDetails(int id)
+    {
+        var ticket = await _warrantyService.GetTicketByIdAsync(id);
+        if (ticket == null)
+        {
+            TempData["Error"] = "Không tìm thấy phiếu dịch vụ yêu cầu.";
+            return RedirectToAction(nameof(ServiceTickets));
+        }
+
+        return View(ticket);
+    }
+
+    /// <summary>
+    /// POST: /Admin/UpdateServiceTicket
+    /// Cập nhật trạng thái phiếu tiếp nhận, tình trạng máy, phân công kỹ thuật viên
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateServiceTicket(
+        int ticketId,
+        string newStatus,
+        string? notes,
+        string? physicalCondition,
+        string? accessories,
+        string? rejectReason,
+        decimal? finalCost,
+        int? warrantyMonthsAfterRepair,
+        string? returnUrl = null)
+    {
+        var adminName = User.Identity?.Name ?? "Nhân viên kỹ thuật";
+        var (success, message) = await _warrantyService.UpdateTicketStatusByAdminAsync(
+            ticketId, newStatus, adminName, notes, physicalCondition, accessories, rejectReason, finalCost, warrantyMonthsAfterRepair);
+
+        if (success) TempData["Success"] = message;
+        else TempData["Error"] = message;
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(ServiceTickets));
+    }
+
+    /// <summary>
+    /// POST: /Admin/CreateServiceQuote
+    /// Kỹ thuật viên gửi báo giá chi phí sửa chữa / linh kiện cho khách duyệt
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateServiceQuote(int ticketId, string description, decimal amount, string? returnUrl = null)
+    {
+        var adminName = User.Identity?.Name ?? "Kỹ thuật viên";
+        var (success, message) = await _warrantyService.CreateQuoteAsync(ticketId, description, amount, adminName);
+
+        if (success) TempData["Success"] = message;
+        else TempData["Error"] = message;
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(ServiceTickets));
+    }
+
+    /// <summary>
+    /// GET: /Admin/SoldDevices
+    /// Quản lý Máy đã bán & Số Serial để phục vụ tra cứu và tiếp nhận bảo hành
+    /// </summary>
+    public async Task<IActionResult> SoldDevices(string? search = null)
+    {
+        var devices = await _warrantyService.GetAllSoldDevicesAsync(search);
+        ViewBag.Search = search ?? "";
+        return View(devices);
+    }
+
+    /// <summary>
+    /// POST: /Admin/AssignOrderSerials
+    /// Gán hoặc bổ sung số Serial cho các laptop trong đơn hàng đã giao
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignOrderSerials(int orderId, List<int> orderItemIds, List<string> serialLists, string? returnUrl = null)
+    {
+        var adminName = User.Identity?.Name ?? "Quản trị viên";
+        var inputs = new List<OrderItemSerialsInput>();
+
+        for (int i = 0; i < orderItemIds.Count; i++)
+        {
+            var rawSerials = (i < serialLists.Count ? serialLists[i] : "") ?? "";
+            var serials = rawSerials
+                .Split(new[] { '\r', '\n', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .ToList();
+
+            inputs.Add(new OrderItemSerialsInput
+            {
+                OrderItemId = orderItemIds[i],
+                SerialNumbers = serials
+            });
+        }
+
+        var (success, message) = await _warrantyService.AssignSerialsToOrderAsync(orderId, inputs, adminName);
+        if (success) TempData["Success"] = message;
+        else TempData["Error"] = message;
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(Orders));
+    }
+
+    /// <summary>
+    /// GET: /Admin/ServiceCatalog
+    /// Quản lý Danh mục dịch vụ Sửa chữa & Bảo hành
+    /// </summary>
+    public async Task<IActionResult> ServiceCatalog()
+    {
+        var items = await _warrantyService.GetCatalogAsync();
+        return View(items);
+    }
+
+    /// <summary>
+    /// POST: /Admin/ToggleServiceStatus
+    /// Bật/tắt trạng thái nhận một hạng mục dịch vụ
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleServiceStatus(int id)
+    {
+        var s = await _db.ServiceCatalog.FindAsync(id);
+        if (s != null)
+        {
+            s.IsActive = !s.IsActive;
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Đã cập nhật trạng thái dịch vụ '{s.ServiceName}' thành {(s.IsActive ? "Đang nhận" : "Tạm ngưng")}.";
+        }
+        return RedirectToAction(nameof(ServiceCatalog));
     }
 }

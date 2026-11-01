@@ -16,6 +16,7 @@ import ContactPage from './components/Pages/ContactPage';
 import GuidesPage from './components/Pages/GuidesPage';
 import PromosPage from './components/Pages/PromosPage';
 import SearchResultsPage from './components/Pages/SearchResultsPage';
+import ServicePage from './components/Pages/ServicePage';
 import Pagination from './components/Common/Pagination';
 
 import { PRODUCT_DATA } from './data/mockData';
@@ -158,6 +159,11 @@ export default function App() {
         setIsCartView(false);
         setAuthView(null);
         setSelectedProductId(null);
+      } else if (path.includes('/service') || path.includes('/bao-hanh') || path.includes('/sua-chua')) {
+        setActiveNav('service');
+        setIsCartView(false);
+        setAuthView(null);
+        setSelectedProductId(null);
       } else {
         setAuthView(null);
         setIsCartView(false);
@@ -211,6 +217,8 @@ export default function App() {
       window.history.pushState({}, '', '/guides');
     } else if (tab === 'contact') {
       window.history.pushState({}, '', '/contact');
+    } else if (tab === 'service') {
+      window.history.pushState({}, '', '/service');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -610,6 +618,7 @@ export default function App() {
         onSearch={handleSearch}
         searchKeyword={searchQuery.keyword}
         searchCategory={searchQuery.category}
+        onNavigate={handleNavigate}
       />
       <Navbar activeNav={activeNav} onNavigate={handleNavigate} onGoHome={() => handleNavigate('home')} />
 
@@ -673,6 +682,12 @@ export default function App() {
         <ContactPage onGoHome={() => handleNavigate('home')} />
       ) : activeNav === 'guides' ? (
         <GuidesPage onGoHome={() => handleNavigate('home')} />
+      ) : activeNav === 'service' ? (
+        <ServicePage
+          currentUser={currentUser}
+          onGoHome={() => handleNavigate('home')}
+          showToast={triggerToast}
+        />
       ) : (
         /* Trang danh sách sản phẩm - Đã xóa CategorySidebar theo yêu cầu */
         <div className="site-container py-3">

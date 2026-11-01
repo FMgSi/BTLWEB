@@ -192,13 +192,72 @@
                             <td class="text-muted small text-nowrap">
                                 @o.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                             </td>
-                            <td class="text-end">
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                        data-bs-toggle="modal" data-bs-target="#modal-serial-@o.OrderId" title="Gán hoặc bổ sung số Serial cho máy đã giao">
+                                    <i class="bi bi-upc-scan"></i> Serial
+                                </button>
                                 <button type="button" class="btn btn-sm btn-secondary-custom" 
                                         data-bs-toggle="modal" data-bs-target="#modal-order-@o.OrderId">
                                     <i class="bi bi-pencil-square"></i> Xử lý
                                 </button>
                             </td>
                         </tr>
+
+                        <!-- MODAL GÁN SỐ SERIAL CHO CÁC MÁY TRONG ĐƠN HÀNG -->
+                        <div class="modal fade" id="modal-serial-@o.OrderId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
+                                    <div class="modal-header border-bottom bg-light">
+                                        <h5 class="modal-title fs-6 fw-bold">
+                                            <i class="bi bi-upc-scan text-primary me-2"></i>Gán số Serial - Đơn hàng #@o.OrderCode
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="post" asp-action="AssignOrderSerials">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@o.OrderId" />
+                                        <input type="hidden" name="returnUrl" value="/Admin/Orders" />
+
+                                        <div class="modal-body text-start">
+                                            <div class="alert alert-info py-2 px-3 small mb-3">
+                                                <i class="bi bi-info-circle-fill me-1"></i> Nhập đúng số lượng Serial tương ứng cho từng sản phẩm. Mỗi máy 1 số Serial (phân cách bằng dấu phẩy hoặc xuống dòng).
+                                            </div>
+
+                                            @if (o.Items != null && o.Items.Any())
+                                            {
+                                                foreach (var item in o.Items)
+                                                {
+                                                    <div class="mb-3 p-3 bg-light rounded border">
+                                                        <div class="fw-bold text-dark small mb-1">
+                                                            @item.ProductName 
+                                                            <span class="badge bg-primary ms-1">Số lượng: @item.Quantity chiếc</span>
+                                                        </div>
+                                                        @if (!string.IsNullOrEmpty(item.SKU))
+                                                        {
+                                                            <div class="small text-muted font-monospace mb-2">SKU: @item.SKU</div>
+                                                        }
+                                                        <input type="hidden" name="orderItemIds" value="@item.OrderItemId" />
+                                                        <label class="form-label-dark small">Nhập @item.Quantity số Serial:</label>
+                                                        <textarea name="serialLists" class="form-control-dark font-monospace" rows="@Math.Min(4, Math.Max(2, item.Quantity))" placeholder="VD:&#10;SN-DELL-1001&#10;SN-DELL-1002" required></textarea>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div class="text-muted small">Đơn hàng không có sản phẩm nào.</div>
+                                            }
+                                        </div>
+                                        <div class="modal-footer border-top bg-light">
+                                            <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Đóng</button>
+                                            <button type="submit" class="btn-primary-custom">
+                                                <i class="bi bi-check2-circle"></i> Lưu danh sách Serial
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- MODAL CẬP NHẬT TRẠNG THÁI CHO TỪNG ĐƠN HÀNG -->
                         <div class="modal fade" id="modal-order-@o.OrderId" tabindex="-1" aria-hidden="true">

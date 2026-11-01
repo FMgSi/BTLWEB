@@ -1,0 +1,146 @@
+@model IEnumerable<LaptopStore.ViewModels.SoldDeviceDto>
+@{
+    ViewData["Title"] = "Quản lý máy đã bán & Số Serial";
+    var currentSearch = ViewBag.Search as string ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title"><i class="bi bi-laptop text-primary me-2"></i>Quản lý máy đã bán & Số Serial</h2>
+        <p class="text-muted small mb-0">Quản lý từng chiếc máy vật lý theo Serial duy nhất, kiểm tra hạn bảo hành chính hãng</p>
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a href="/Admin/Orders" class="btn-primary-custom">
+            <i class="bi bi-box-seam"></i> Gán Serial từ đơn hàng
+        </a>
+        <a href="/Admin/ServiceTickets" class="btn-secondary-custom">
+            <i class="bi bi-tools"></i> Phiếu bảo hành
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- FILTER BAR -->
+<div class="admin-card mb-4 p-3">
+    <form method="get" asp-action="SoldDevices" class="row g-3 align-items-center">
+        <div class="col-md-8">
+            <div class="position-relative">
+                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo số Serial, tên máy, mã đơn hàng, khách hàng..." />
+            </div>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn-primary-custom w-100">
+                <i class="bi bi-funnel"></i> Tìm kiếm
+            </button>
+            @if (!string.IsNullOrEmpty(currentSearch))
+            {
+                <a href="/Admin/SoldDevices" class="btn-secondary-custom">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<!-- BẢNG MÁY ĐÃ BÁN -->
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title-text mb-0"><i class="bi bi-cpu text-primary me-2"></i> Danh sách thiết bị đã xuất kho & giao hàng (@Model.Count())</h5>
+    </div>
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Số Serial</th>
+                    <th>Tên máy & Phiên bản</th>
+                    <th>Đơn hàng</th>
+                    <th>Khách hàng</th>
+                    <th>Ngày giao</th>
+                    <th>Thời hạn bảo hành</th>
+                    <th>Tình trạng bảo hành</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var d in Model)
+                    {
+                        var remainingDays = (d.WarrantyEndDate - DateTime.UtcNow).Days;
+                        <tr>
+                            <td class="font-monospace fw-bold text-primary fs-6">
+                                @d.SerialNumber
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">@d.ProductName</div>
+                                <div class="d-flex gap-1 my-1">
+                                    @if (!string.IsNullOrEmpty(d.ColorName))
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border small">@d.ColorName</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(d.SKU))
+                                    {
+                                        <span class="badge bg-light text-dark border font-monospace small">@d.SKU</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <a href="/Admin/Orders?search=@d.OrderCode" class="text-decoration-none fw-medium text-dark">
+                                    #@d.OrderCode
+                                </a>
+                            </td>
+                            <td>
+                                <div class="text-dark fw-medium">@d.CustomerName</div>
+                                <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@d.PhoneNumber</div>
+                            </td>
+                            <td class="small text-muted text-nowrap">
+                                @d.DeliveredAt.ToString("dd/MM/yyyy")
+                            </td>
+                            <td class="small text-nowrap">
+                                <div>Từ: @d.WarrantyStartDate.ToString("dd/MM/yyyy")</div>
+                                <div>Đến: <strong>@d.WarrantyEndDate.ToString("dd/MM/yyyy")</strong></div>
+                            </td>
+                            <td>
+                                @if (d.IsUnderWarranty)
+                                {
+                                    <span class="badge bg-success-subtle text-success border">
+                                        <i class="bi bi-check-circle-fill"></i> Còn bảo hành (@remainingDays ngày)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border">
+                                        <i class="bi bi-x-circle-fill"></i> Hết hạn bảo hành
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            Chưa có thiết bị nào được gán số Serial hoặc không khớp với từ khóa tìm kiếm.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

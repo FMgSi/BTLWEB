@@ -9,6 +9,7 @@ export default function TopHeader({
   onOpenCart,
   onSearch,
   searchKeyword = '',
+  onNavigate
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [keyword, setKeyword] = useState(searchKeyword || '');
@@ -47,7 +48,7 @@ export default function TopHeader({
             </a>
           </div>
 
-          {/* Search Box - Đã loại bỏ phần lọc danh mục theo yêu cầu */}
+          {/* Search Box */}
           <div className="col">
             <form onSubmit={handleSearchSubmit} className="input-group">
               <input
@@ -169,6 +170,24 @@ export default function TopHeader({
                         Vào trang Quản trị (Admin MVC)
                       </a>
                     )}
+
+                    <a 
+                      className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small mt-1"
+                      href="/service?tab=my-devices"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowDropdown(false);
+                        if (onNavigate) {
+                          onNavigate('service');
+                        } else {
+                          window.history.pushState({}, '', '/service');
+                          window.dispatchEvent(new PopStateEvent('popstate'));
+                        }
+                      }}
+                    >
+                      <i className="bi bi-shield-check text-success"></i>
+                      Máy đã mua & Hạn bảo hành
+                    </a>
 
                     <button 
                       className="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-1 mt-2"

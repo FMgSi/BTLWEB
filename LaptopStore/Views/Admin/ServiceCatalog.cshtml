@@ -1,0 +1,111 @@
+@model IEnumerable<LaptopStore.ViewModels.ServiceCatalogDto>
+@{
+    ViewData["Title"] = "Bảng giá Dịch vụ & Bảo hành";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title"><i class="bi bi-list-task text-primary me-2"></i>Bảng giá Dịch vụ Sửa chữa & Bảo hành</h2>
+        <p class="text-muted small mb-0">Danh mục định mức chi phí tham khảo, thời gian xử lý và thời hạn bảo hành dịch vụ</p>
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a href="/Admin/ServiceTickets" class="btn-primary-custom">
+            <i class="bi bi-tools"></i> Quản lý phiếu tiếp nhận
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title-text mb-0"><i class="bi bi-wrench-adjustable text-primary me-2"></i> Danh mục dịch vụ chuẩn (@Model.Count())</h5>
+    </div>
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Mã DV</th>
+                    <th>Loại dịch vụ</th>
+                    <th>Tên dịch vụ</th>
+                    <th>Triệu chứng / Điều kiện áp dụng</th>
+                    <th>Giá tham khảo</th>
+                    <th>Thời gian dự kiến</th>
+                    <th>BH dịch vụ</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model)
+                {
+                    <tr>
+                        <td class="font-monospace fw-bold text-primary">@s.ServiceCode</td>
+                        <td>
+                            @if (s.ServiceType == "Bảo hành")
+                            {
+                                <span class="badge bg-success-subtle text-success border">
+                                    <i class="bi bi-shield-check"></i> Bảo hành
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning-subtle text-warning-emphasis border">
+                                    <i class="bi bi-wrench"></i> Sửa chữa
+                                </span>
+                            }
+                        </td>
+                        <td class="fw-semibold text-dark">@s.ServiceName</td>
+                        <td class="small text-muted" style="max-width: 250px;">@s.ApplicableConditions</td>
+                        <td class="fw-bold text-dark text-nowrap">
+                            @if (s.ServiceType == "Bảo hành")
+                            {
+                                <span class="text-success">0đ (Hãng)</span>
+                            }
+                            else
+                            {
+                                <span>@string.Format("{0:N0}đ", s.EstimatedCost)</span>
+                            }
+                        </td>
+                        <td class="small text-secondary text-nowrap">@s.EstimatedTime</td>
+                        <td class="small text-nowrap">
+                            @if (s.ServiceWarrantyMonths > 0)
+                            {
+                                <span class="text-primary fw-medium">@s.ServiceWarrantyMonths tháng</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Không áp dụng</span>
+                            }
+                        </td>
+                        <td>
+                            @if (s.IsActive)
+                            {
+                                <span class="badge bg-success">Đang nhận</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Tạm ngưng</span>
+                            }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <form method="post" asp-action="ToggleServiceStatus" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@s.ServiceId" />
+                                <button type="submit" class="btn btn-sm @(s.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                    @(s.IsActive ? "Tạm ngưng" : "Kích hoạt")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

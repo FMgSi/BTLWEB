@@ -1,0 +1,321 @@
+@model IEnumerable<LaptopStore.ViewModels.ServiceTicketDetailDto>
+@{
+    ViewData["Title"] = "Quản lý Bảo hành & Sửa chữa";
+    var currentStatus = ViewBag.Status as string ?? "all";
+    var currentType = ViewBag.Type as string ?? "all";
+    var currentSearch = ViewBag.Search as string ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title"><i class="bi bi-tools text-primary me-2"></i>Dịch vụ sau bán hàng (Bảo hành & Sửa chữa)</h2>
+        <p class="text-muted small mb-0">Tiếp nhận yêu cầu, kiểm tra kỹ thuật, báo giá và bàn giao máy cho khách hàng</p>
+    </div>
+    <div class="page-actions">
+        <a href="/Admin/SoldDevices" class="btn-secondary-custom">
+            <i class="bi bi-laptop"></i> Tra cứu Serial máy đã bán
+        </a>
+        <a href="/Admin/ServiceCatalog" class="btn-secondary-custom">
+            <i class="bi bi-list-task"></i> Bảng giá dịch vụ
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- THỐNG KÊ NHANH -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3">
+            <div class="rounded-3 p-3 bg-warning-subtle text-warning fs-3">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Chờ tiếp nhận máy</div>
+                <h4 class="fw-bold mb-0 text-dark">@(ViewBag.PendingCount ?? 0)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3">
+            <div class="rounded-3 p-3 bg-primary-subtle text-primary fs-3">
+                <i class="bi bi-gear-wide-connected"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Đang xử lý / Kiểm tra</div>
+                <h4 class="fw-bold mb-0 text-dark">@(ViewBag.ProcessingCount ?? 0)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3">
+            <div class="rounded-3 p-3 bg-info-subtle text-info fs-3">
+                <i class="bi bi-box2-heart"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Chờ trả máy</div>
+                <h4 class="fw-bold mb-0 text-dark">@(ViewBag.WaitingReturnCount ?? 0)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3">
+            <div class="rounded-3 p-3 bg-success-subtle text-success fs-3">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div>
+                <div class="text-muted small">Tiền sửa chữa đã thu</div>
+                <h4 class="fw-bold mb-0 text-success">@string.Format("{0:N0}đ", ViewBag.TotalRevenue ?? 0)</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="admin-card mb-4 p-3">
+    <form method="get" asp-action="ServiceTickets" class="row g-3 align-items-center">
+        <div class="col-md-4">
+            <div class="position-relative">
+                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã phiếu, Serial, tên, SĐT..." />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select name="type" class="form-select-dark" onchange="this.form.submit()">
+                <option value="all" selected="@(currentType == "all" ? "selected" : null)">Tất cả loại dịch vụ</option>
+                <option value="Bảo hành" selected="@(currentType == "Bảo hành" ? "selected" : null)">Bảo hành máy đã mua</option>
+                <option value="Sửa chữa" selected="@(currentType == "Sửa chữa" ? "selected" : null)">Sửa chữa dịch vụ</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select-dark" onchange="this.form.submit()">
+                <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
+                <option value="Chờ tiếp nhận" selected="@(currentStatus == "Chờ tiếp nhận" ? "selected" : null)">1. Chờ tiếp nhận</option>
+                <option value="Đã tiếp nhận" selected="@(currentStatus == "Đã tiếp nhận" ? "selected" : null)">2. Đã tiếp nhận vật lý</option>
+                <option value="Đang kiểm tra" selected="@(currentStatus == "Đang kiểm tra" ? "selected" : null)">3. Đang kiểm tra</option>
+                <option value="Chờ duyệt báo giá" selected="@(currentStatus == "Chờ duyệt báo giá" ? "selected" : null)">4. Chờ duyệt báo giá</option>
+                <option value="Đang xử lý" selected="@(currentStatus == "Đang xử lý" ? "selected" : null)">5. Đang xử lý</option>
+                <option value="Chờ trả máy" selected="@(currentStatus == "Chờ trả máy" ? "selected" : null)">6. Chờ trả máy</option>
+                <option value="Đã trả máy" selected="@(currentStatus == "Đã trả máy" ? "selected" : null)">7. Đã trả máy (Hoàn tất)</option>
+                <option value="Đã hủy/Từ chối" selected="@(currentStatus == "Đã hủy/Từ chối" ? "selected" : null)">8. Đã hủy / Từ chối</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-primary-custom w-100">
+                <i class="bi bi-funnel"></i> Lọc
+            </button>
+            @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all" || currentType != "all")
+            {
+                <a href="/Admin/ServiceTickets" class="btn-secondary-custom">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<!-- BẢNG PHIẾU DỊCH VỤ -->
+<div class="admin-card">
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title-text mb-0"><i class="bi bi-card-checklist text-primary me-2"></i> Danh sách phiếu tiếp nhận (@Model.Count())</h5>
+    </div>
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Mã phiếu</th>
+                    <th>Loại & Thiết bị</th>
+                    <th>Khách hàng</th>
+                    <th>Hạng mục & Triệu chứng</th>
+                    <th>Chi phí</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var t in Model)
+                    {
+                        var statusBadgeClass = t.Status switch
+                        {
+                            "Chờ tiếp nhận" => "bg-warning text-dark border",
+                            "Đã tiếp nhận" => "bg-info text-white",
+                            "Đang kiểm tra" => "bg-primary text-white",
+                            "Chờ duyệt báo giá" => "bg-danger text-white",
+                            "Đang xử lý" => "bg-secondary text-white",
+                            "Chờ trả máy" => "bg-success-subtle text-success border border-success",
+                            "Đã trả máy" => "badge-paid",
+                            _ => "badge-out-of-stock"
+                        };
+
+                        <tr>
+                            <td class="fw-bold">
+                                <a href="/Admin/ServiceTicketDetails/@t.TicketId" class="text-primary text-decoration-none">
+                                    #@t.TicketCode
+                                </a>
+                            </td>
+                            <td>
+                                <div>
+                                    @if (t.TicketType == "Bảo hành")
+                                    {
+                                        <span class="badge bg-success-subtle text-success border small mb-1">
+                                            <i class="bi bi-shield-check"></i> Bảo hành
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border small mb-1">
+                                            <i class="bi bi-wrench"></i> Sửa chữa
+                                        </span>
+                                    }
+                                </div>
+                                <div class="fw-semibold text-dark small">@t.DeviceDisplayName</div>
+                                <div class="text-muted font-monospace small">Serial: @t.SerialNumber</div>
+                            </td>
+                            <td>
+                                <div class="text-dark fw-semibold">@t.CustomerName</div>
+                                <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@t.PhoneNumber</div>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(t.ServiceName))
+                                {
+                                    <div class="text-primary small fw-semibold">@t.ServiceName</div>
+                                }
+                                <div class="text-secondary small text-truncate" style="max-width: 220px;" title="@t.FaultDescription">
+                                    @t.FaultDescription
+                                </div>
+                                @if (!string.IsNullOrEmpty(t.PhysicalCondition))
+                                {
+                                    <div class="text-muted" style="font-size: 0.72rem;">Ngoại quan: @t.PhysicalCondition</div>
+                                }
+                            </td>
+                            <td class="fw-bold text-dark text-nowrap">
+                                @if (t.TicketType == "Bảo hành" && t.FinalCost == 0)
+                                {
+                                    <span class="text-success">0đ (Bảo hành)</span>
+                                }
+                                else
+                                {
+                                    <span>@string.Format("{0:N0}đ", t.FinalCost)</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @statusBadgeClass">
+                                    @t.Status
+                                </span>
+                            </td>
+                            <td class="text-muted small text-nowrap">
+                                @t.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a href="/Admin/ServiceTicketDetails/@t.TicketId" class="btn btn-sm btn-secondary-custom me-1" title="Xem chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modal-ticket-@t.TicketId">
+                                    <i class="bi bi-pencil-square"></i> Xử lý
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- MODAL XỬ LÝ NHANH CHO PHIẾU -->
+                        <div class="modal fade" id="modal-ticket-@t.TicketId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
+                                    <div class="modal-header border-bottom bg-light">
+                                        <h5 class="modal-title fs-6 fw-bold">
+                                            <i class="bi bi-tools text-primary me-2"></i>Phiếu #@t.TicketCode (@t.TicketType)
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="post" asp-action="UpdateServiceTicket">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ticketId" value="@t.TicketId" />
+                                        <input type="hidden" name="returnUrl" value="/Admin/ServiceTickets" />
+
+                                        <div class="modal-body text-start">
+                                            <div class="p-3 mb-3 bg-light rounded border small">
+                                                <div>Khách hàng: <strong>@t.CustomerName</strong> (@t.PhoneNumber)</div>
+                                                <div>Thiết bị: <strong>@t.DeviceDisplayName</strong> (Serial: @t.SerialNumber)</div>
+                                                <div>Triệu chứng: <span class="text-danger">@t.FaultDescription</span></div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Trạng thái mới *</label>
+                                                <select name="newStatus" class="form-select-dark">
+                                                    <option value="Chờ tiếp nhận" selected="@(t.Status == "Chờ tiếp nhận" ? "selected" : null)">1. Chờ tiếp nhận (Khách vừa gửi online)</option>
+                                                    <option value="Đã tiếp nhận" selected="@(t.Status == "Đã tiếp nhận" ? "selected" : null)">2. Đã tiếp nhận (Đã cầm máy tại quầy)</option>
+                                                    <option value="Đang kiểm tra" selected="@(t.Status == "Đang kiểm tra" ? "selected" : null)">3. Đang kiểm tra kỹ thuật</option>
+                                                    <option value="Chờ duyệt báo giá" selected="@(t.Status == "Chờ duyệt báo giá" ? "selected" : null)">4. Chờ duyệt báo giá</option>
+                                                    <option value="Đang xử lý" selected="@(t.Status == "Đang xử lý" ? "selected" : null)">5. Đang xử lý / Sửa chữa</option>
+                                                    <option value="Chờ trả máy" selected="@(t.Status == "Chờ trả máy" ? "selected" : null)">6. Chờ trả máy (Máy đã sửa xong)</option>
+                                                    <option value="Đã trả máy" selected="@(t.Status == "Đã trả máy" ? "selected" : null)">7. Đã trả máy (Bàn giao xong)</option>
+                                                    <option value="Đã hủy/Từ chối" selected="@(t.Status == "Đã hủy/Từ chối" ? "selected" : null)">8. Đã hủy / Từ chối</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Tình trạng ngoại quan khi nhận máy</label>
+                                                <input type="text" name="physicalCondition" value="@t.PhysicalCondition" class="form-control-dark" placeholder="VD: Vỏ xước nhẹ góc trái, màn hình dán chống trầy..." />
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Phụ kiện kèm theo</label>
+                                                <input type="text" name="accessories" value="@t.Accessories" class="form-control-dark" placeholder="VD: Sạc zin 65W, chuột không dây, túi chống sốc..." />
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Chi phí thực thu (VND)</label>
+                                                <input type="number" step="1000" name="finalCost" value="@Convert.ToInt64(t.FinalCost)" class="form-control-dark" />
+                                                <small class="text-muted">Bảo hành hợp lệ giữ 0đ. Sửa chữa nhập theo báo giá đã duyệt.</small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Thời hạn bảo hành sau sửa (tháng)</label>
+                                                <input type="number" name="warrantyMonthsAfterRepair" value="1" min="0" max="36" class="form-control-dark" />
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label-dark">Ghi chú hành động</label>
+                                                <input type="text" name="notes" class="form-control-dark" placeholder="VD: Kỹ thuật kiểm tra phát hiện hỏng quạt gió..." />
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-top bg-light">
+                                            <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Đóng</button>
+                                            <button type="submit" class="btn-primary-custom">
+                                                <i class="bi bi-check2-circle"></i> Lưu cập nhật
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            Không có phiếu dịch vụ nào phù hợp với bộ lọc tìm kiếm.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

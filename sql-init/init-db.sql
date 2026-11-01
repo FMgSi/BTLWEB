@@ -340,6 +340,106 @@ BEGIN
 END
 GO
 
+-- 15. Bảng Máy đã bàn giao theo số Serial (SoldDevices)
+IF OBJECT_ID('dbo.SoldDevices', 'U') IS NULL
+CREATE TABLE SoldDevices (
+    DeviceId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    OrderItemId INT NOT NULL,
+    SerialNumber NVARCHAR(100) NOT NULL,
+    DeliveredAt DATETIME NOT NULL DEFAULT GETDATE(),
+    WarrantyStartDate DATETIME NOT NULL DEFAULT GETDATE(),
+    WarrantyEndDate DATETIME NOT NULL,
+    WarrantyMonths INT NOT NULL DEFAULT 12,
+    Notes NVARCHAR(500) NULL,
+    CONSTRAINT IX_SoldDevices_SerialNumber UNIQUE (SerialNumber),
+    CONSTRAINT FK_SoldDevices_OrderItems_OrderItemId FOREIGN KEY (OrderItemId) REFERENCES OrderItems (OrderItemId) ON DELETE CASCADE,
+    CONSTRAINT CK_SoldDevices_WarrantyDate CHECK (WarrantyEndDate >= WarrantyStartDate)
+);
+GO
+
+-- 16. Bảng Danh mục dịch vụ Sửa chữa & Bảo hành (ServiceCatalog)
+IF OBJECT_ID('dbo.ServiceCatalog', 'U') IS NULL
+CREATE TABLE ServiceCatalog (
+    ServiceId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    ServiceCode NVARCHAR(50) NOT NULL,
+    ServiceName NVARCHAR(200) NOT NULL,
+    ServiceType NVARCHAR(50) NOT NULL,
+    ApplicableConditions NVARCHAR(500) NULL,
+    EstimatedCost DECIMAL(18,2) NOT NULL DEFAULT 0,
+    EstimatedTime NVARCHAR(100) NULL,
+    ServiceWarrantyMonths INT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CONSTRAINT IX_ServiceCatalog_ServiceCode UNIQUE (ServiceCode),
+    CONSTRAINT CK_ServiceCatalog_EstimatedCost CHECK (EstimatedCost >= 0)
+);
+GO
+
+-- 17. Bảng Phiếu tiếp nhận Dịch vụ & Bảo hành (ServiceTickets)
+IF OBJECT_ID('dbo.ServiceTickets', 'U') IS NULL
+CREATE TABLE ServiceTickets (
+    TicketId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    TicketCode NVARCHAR(50) NOT NULL,
+    TicketType NVARCHAR(50) NOT NULL,
+    ServiceId INT NULL,
+    SoldDeviceId INT NULL,
+    UserId INT NULL,
+    CustomerName NVARCHAR(100) NOT NULL,
+    PhoneNumber NVARCHAR(20) NOT NULL,
+    Email NVARCHAR(100) NULL,
+    Address NVARCHAR(255) NULL,
+    ExternalDeviceModel NVARCHAR(200) NULL,
+    ExternalSerialNumber NVARCHAR(100) NULL,
+    FaultDescription NVARCHAR(MAX) NOT NULL,
+    PhysicalCondition NVARCHAR(500) NULL,
+    Accessories NVARCHAR(255) NULL,
+    Status NVARCHAR(50) NOT NULL DEFAULT N'Chờ tiếp nhận',
+    RejectReason NVARCHAR(500) NULL,
+    AssignedStaff NVARCHAR(100) NULL,
+    FinalCost DECIMAL(18,2) NOT NULL DEFAULT 0,
+    ServiceWarrantyUntil DATETIME NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    ReceivedAt DATETIME NULL,
+    CompletedAt DATETIME NULL,
+    ReturnedAt DATETIME NULL,
+    Notes NVARCHAR(500) NULL,
+    CONSTRAINT IX_ServiceTickets_TicketCode UNIQUE (TicketCode),
+    CONSTRAINT FK_ServiceTickets_ServiceCatalog_ServiceId FOREIGN KEY (ServiceId) REFERENCES ServiceCatalog (ServiceId) ON DELETE SET NULL,
+    CONSTRAINT FK_ServiceTickets_SoldDevices_SoldDeviceId FOREIGN KEY (SoldDeviceId) REFERENCES SoldDevices (DeviceId) ON DELETE SET NULL,
+    CONSTRAINT FK_ServiceTickets_Users_UserId FOREIGN KEY (UserId) REFERENCES Users (UserId) ON DELETE SET NULL,
+    CONSTRAINT CK_ServiceTickets_FinalCost CHECK (FinalCost >= 0)
+);
+GO
+
+-- 18. Bảng Báo giá dịch vụ (ServiceQuotes)
+IF OBJECT_ID('dbo.ServiceQuotes', 'U') IS NULL
+CREATE TABLE ServiceQuotes (
+    QuoteId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    TicketId INT NOT NULL,
+    Description NVARCHAR(500) NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    CustomerDecision NVARCHAR(50) NOT NULL DEFAULT N'Chờ duyệt',
+    DecisionAt DATETIME NULL,
+    Notes NVARCHAR(500) NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_ServiceQuotes_ServiceTickets_TicketId FOREIGN KEY (TicketId) REFERENCES ServiceTickets (TicketId) ON DELETE CASCADE,
+    CONSTRAINT CK_ServiceQuotes_Amount CHECK (Amount >= 0)
+);
+GO
+
+-- 19. Bảng Nhật ký xử lý phiếu (ServiceTicketHistories)
+IF OBJECT_ID('dbo.ServiceTicketHistories', 'U') IS NULL
+CREATE TABLE ServiceTicketHistories (
+    HistoryId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    TicketId INT NOT NULL,
+    PreviousStatus NVARCHAR(50) NULL,
+    NewStatus NVARCHAR(50) NOT NULL,
+    ActionBy NVARCHAR(100) NOT NULL,
+    ActionAt DATETIME NOT NULL DEFAULT GETDATE(),
+    Notes NVARCHAR(500) NULL,
+    CONSTRAINT FK_ServiceTicketHistories_ServiceTickets_TicketId FOREIGN KEY (TicketId) REFERENCES ServiceTickets (TicketId) ON DELETE CASCADE
+);
+GO
+
 -- =============================================
 -- Brands (Bật IDENTITY_INSERT để nạp ID định sẵn)
 -- =============================================
@@ -828,5 +928,27 @@ BEGIN
     (3, 1, 2, 32, 1024, N'DELL-1-BLK-32-1TB', 0, 21990000, NULL, 1, GETDATE(), NULL);
     SET IDENTITY_INSERT ProductVariants OFF;
     UPDATE Products SET StockQuantity = 3 WHERE ProductId = 1;
+END
+GO
+
+-- 17. Dữ liệu mẫu Danh mục Dịch vụ Sửa chữa & Bảo hành (từ QuanLyBanLaptop)
+IF NOT EXISTS (SELECT 1 FROM ServiceCatalog WHERE ServiceCode = 'DV-SC01')
+BEGIN
+    INSERT INTO ServiceCatalog (ServiceCode, ServiceName, ServiceType, ApplicableConditions, EstimatedCost, EstimatedTime, ServiceWarrantyMonths, IsActive) VALUES
+    (N'DV-SC01', N'Vệ sinh laptop & Tra keo tản nhiệt gốm MX4', N'Sửa chữa', N'Máy nóng rực, quạt rú to, tự ngắt khi tải nặng', 150000, N'30 - 45 phút', 1, 1),
+    (N'DV-SC02', N'Thay màn hình Laptop Full HD IPS 144Hz', N'Sửa chữa', N'Sọc màn hình, nhấp nháy chập chờn, nứt vỡ LCD', 1650000, N'45 phút', 6, 1),
+    (N'DV-SC03', N'Sửa nguồn bo mạch chủ (Mainboard) chạm IC', N'Sửa chữa', N'Mất nguồn hoàn toàn, cắm sạc đèn không sáng', 650000, N'1 - 2 ngày', 3, 1),
+    (N'DV-SC04', N'Thay cụm bàn phím laptop chuẩn hãng', N'Sửa chữa', N'Liệt phím, kẹt phím, tự động nhảy ký tự liên tục', 450000, N'40 phút', 12, 1),
+    (N'DV-SC05', N'Thay pin laptop zin dung lượng cao', N'Sửa chữa', N'Pin chai phồng, pin ảo dùng 15 phút sập nguồn', 780000, N'30 phút', 6, 1),
+    (N'DV-SC06', N'Hàn phục hồi chân ốc & bản lề gãy vỡ', N'Sửa chữa', N'Vỏ bung cọt kẹt khi gập mở, hở mép viền', 350000, N'2 - 3 giờ', 3, 1),
+    (N'DV-SC07', N'Nâng cấp ổ cứng SSD NVMe PCIe 512GB', N'Sửa chữa', N'Máy khởi động rất chậm, ổ HDD cũ bị Bad Sector', 890000, N'30 phút', 36, 1),
+    (N'DV-SC08', N'Đóng lại / Thay thế Chipset VGA đồ họa rời', N'Sửa chữa', N'Rác hình, màn hình xanh BSOD khi bật game', 1250000, N'2 - 3 ngày', 3, 1),
+
+    (N'DV-BH01', N'Bảo hành đổi mới Pin linh kiện chính hãng', N'Bảo hành', N'Pin chai vượt mức 30% trong thời hạn bảo hành hãng', 0, N'1 - 2 ngày', 12, 1),
+    (N'DV-BH02', N'Bảo hành lỗi điểm chết & sọc màn hình LCD', N'Bảo hành', N'Xuất hiện trên 3 điểm chết hoặc sọc chỉ màn hình', 0, N'3 - 5 ngày', 12, 1),
+    (N'DV-BH03', N'Bảo hành bàn phím & Touchpad theo tiêu chuẩn hãng', N'Bảo hành', N'Liệt cụm phím, chập chuột cảm ứng do lỗi linh kiện', 0, N'2 - 4 ngày', 12, 1),
+    (N'DV-BH04', N'Bảo hành loa trong & cụm Micro đàm thoại', N'Bảo hành', N'Rè loa, mất tín hiệu mic thu âm không do ẩm nước', 0, N'1 - 2 ngày', 12, 1),
+    (N'DV-BH05', N'Bảo hành Bo mạch chủ (Mainboard)', N'Bảo hành', N'Lỗi nguồn chip, không nhận SSD/RAM theo tem bảo hành', 0, N'5 - 7 ngày', 12, 1),
+    (N'DV-BH06', N'Bảo hành sạc Adapter theo máy', N'Bảo hành', N'Không sạc vào điện, tiếp xúc chập chờn nguyên tem', 0, N'Đổi mới ngay', 12, 1);
 END
 GO

@@ -130,6 +130,28 @@
                     <span>Quản lý trả góp</span>
                 </a>
 
+                <!-- Dịch vụ sau bán hàng (Bảo hành & Sửa chữa) -->
+                <div>
+                    <a href="/Admin/ServiceTickets" class="nav-link-custom d-flex justify-content-between align-items-center @(currentCtrl == "admin" && (currentAction.StartsWith("service") || currentAction == "solddevices") ? "active" : "")">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-tools"></i>
+                            <span>Dịch vụ & Bảo hành</span>
+                        </div>
+                        <i class="bi bi-chevron-down small" style="font-size: 0.75rem;"></i>
+                    </a>
+                    <div class="sidebar-submenu">
+                        <a href="/Admin/ServiceTickets" class="@(currentCtrl == "admin" && currentAction == "servicetickets" ? "active" : "")">
+                            <i class="bi bi-dot"></i> Phiếu tiếp nhận
+                        </a>
+                        <a href="/Admin/SoldDevices" class="@(currentCtrl == "admin" && currentAction == "solddevices" ? "active" : "")">
+                            <i class="bi bi-dot"></i> Máy đã giao & Serial
+                        </a>
+                        <a href="/Admin/ServiceCatalog" class="@(currentCtrl == "admin" && currentAction == "servicecatalog" ? "active" : "")">
+                            <i class="bi bi-dot"></i> Danh mục dịch vụ
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Quản lý khách hàng -->
                 <a href="/Admin/Customers" class="nav-link-custom @(currentCtrl == "admin" && currentAction == "customers" ? "active" : "")">
                     <i class="bi bi-people-fill"></i>

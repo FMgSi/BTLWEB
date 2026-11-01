@@ -82,6 +82,31 @@ public class AppDbContext : DbContext
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
 
     /// <summary>
+    /// Bảng SoldDevices (Từng chiếc laptop thực tế đã bàn giao theo Serial duy nhất)
+    /// </summary>
+    public DbSet<SoldDevice> SoldDevices => Set<SoldDevice>();
+
+    /// <summary>
+    /// Bảng ServiceCatalog (Danh mục dịch vụ bảo hành & sửa chữa)
+    /// </summary>
+    public DbSet<ServiceCatalogItem> ServiceCatalog => Set<ServiceCatalogItem>();
+
+    /// <summary>
+    /// Bảng ServiceTickets (Phiếu tiếp nhận yêu cầu bảo hành / sửa chữa)
+    /// </summary>
+    public DbSet<ServiceTicket> ServiceTickets => Set<ServiceTicket>();
+
+    /// <summary>
+    /// Bảng ServiceQuotes (Báo giá dịch vụ cho khách hàng duyệt)
+    /// </summary>
+    public DbSet<ServiceQuote> ServiceQuotes => Set<ServiceQuote>();
+
+    /// <summary>
+    /// Bảng ServiceTicketHistories (Nhật ký xử lý phiếu bảo hành / sửa chữa)
+    /// </summary>
+    public DbSet<ServiceTicketHistory> ServiceTicketHistories => Set<ServiceTicketHistory>();
+
+    /// <summary>
     /// Cấu hình nâng cao cho các bảng và mối quan hệ (Fluent API)
     /// </summary>
     protected override void OnModelCreating(ModelBuilder mb)
@@ -244,6 +269,67 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(i => i.VariantId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Cấu hình bảng SoldDevices (Máy đã bán theo Serial)
+        mb.Entity<SoldDevice>(entity =>
+        {
+            entity.HasIndex(d => d.SerialNumber).IsUnique();
+
+            entity.HasOne(d => d.OrderItem)
+                .WithMany()
+                .HasForeignKey(d => d.OrderItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Cấu hình bảng ServiceCatalog (Danh mục dịch vụ)
+        mb.Entity<ServiceCatalogItem>(entity =>
+        {
+            entity.ToTable("ServiceCatalog");
+            entity.HasIndex(s => s.ServiceCode).IsUnique();
+            entity.Property(s => s.EstimatedCost).HasPrecision(18, 2);
+        });
+
+        // Cấu hình bảng ServiceTickets (Phiếu bảo hành / sửa chữa)
+        mb.Entity<ServiceTicket>(entity =>
+        {
+            entity.HasIndex(t => t.TicketCode).IsUnique();
+            entity.Property(t => t.FinalCost).HasPrecision(18, 2);
+
+            entity.HasOne(t => t.Service)
+                .WithMany()
+                .HasForeignKey(t => t.ServiceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.SoldDevice)
+                .WithMany(d => d.ServiceTickets)
+                .HasForeignKey(t => t.SoldDeviceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Cấu hình bảng ServiceQuotes (Báo giá sửa chữa)
+        mb.Entity<ServiceQuote>(entity =>
+        {
+            entity.Property(q => q.Amount).HasPrecision(18, 2);
+
+            entity.HasOne(q => q.Ticket)
+                .WithMany(t => t.Quotes)
+                .HasForeignKey(q => q.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Cấu hình bảng ServiceTicketHistories (Nhật ký xử lý phiếu)
+        mb.Entity<ServiceTicketHistory>(entity =>
+        {
+            entity.HasOne(h => h.Ticket)
+                .WithMany(t => t.Histories)
+                .HasForeignKey(h => h.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

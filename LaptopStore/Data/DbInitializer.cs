@@ -171,6 +171,106 @@ public static class DbInitializer
                         ALTER TABLE Payments ADD CONSTRAINT FK_Payments_InstallmentSchedules_ScheduleId 
                             FOREIGN KEY (ScheduleId) REFERENCES InstallmentSchedules (ScheduleId) ON DELETE NO ACTION;
                     END
+
+                    IF OBJECT_ID('dbo.SoldDevices', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE SoldDevices (
+                            DeviceId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            OrderItemId INT NOT NULL,
+                            SerialNumber NVARCHAR(100) NOT NULL,
+                            DeliveredAt DATETIME NOT NULL DEFAULT GETDATE(),
+                            WarrantyStartDate DATETIME NOT NULL DEFAULT GETDATE(),
+                            WarrantyEndDate DATETIME NOT NULL,
+                            WarrantyMonths INT NOT NULL DEFAULT 12,
+                            Notes NVARCHAR(500) NULL,
+                            CONSTRAINT IX_SoldDevices_SerialNumber UNIQUE (SerialNumber),
+                            CONSTRAINT FK_SoldDevices_OrderItems_OrderItemId FOREIGN KEY (OrderItemId) REFERENCES OrderItems (OrderItemId) ON DELETE CASCADE,
+                            CONSTRAINT CK_SoldDevices_WarrantyDate CHECK (WarrantyEndDate >= WarrantyStartDate)
+                        );
+                    END
+
+                    IF OBJECT_ID('dbo.ServiceCatalog', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE ServiceCatalog (
+                            ServiceId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            ServiceCode NVARCHAR(50) NOT NULL,
+                            ServiceName NVARCHAR(200) NOT NULL,
+                            ServiceType NVARCHAR(50) NOT NULL,
+                            ApplicableConditions NVARCHAR(500) NULL,
+                            EstimatedCost DECIMAL(18,2) NOT NULL DEFAULT 0,
+                            EstimatedTime NVARCHAR(100) NULL,
+                            ServiceWarrantyMonths INT NOT NULL DEFAULT 0,
+                            IsActive BIT NOT NULL DEFAULT 1,
+                            CONSTRAINT IX_ServiceCatalog_ServiceCode UNIQUE (ServiceCode),
+                            CONSTRAINT CK_ServiceCatalog_EstimatedCost CHECK (EstimatedCost >= 0)
+                        );
+                    END
+
+                    IF OBJECT_ID('dbo.ServiceTickets', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE ServiceTickets (
+                            TicketId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            TicketCode NVARCHAR(50) NOT NULL,
+                            TicketType NVARCHAR(50) NOT NULL,
+                            ServiceId INT NULL,
+                            SoldDeviceId INT NULL,
+                            UserId INT NULL,
+                            CustomerName NVARCHAR(100) NOT NULL,
+                            PhoneNumber NVARCHAR(20) NOT NULL,
+                            Email NVARCHAR(100) NULL,
+                            Address NVARCHAR(255) NULL,
+                            ExternalDeviceModel NVARCHAR(200) NULL,
+                            ExternalSerialNumber NVARCHAR(100) NULL,
+                            FaultDescription NVARCHAR(MAX) NOT NULL,
+                            PhysicalCondition NVARCHAR(500) NULL,
+                            Accessories NVARCHAR(255) NULL,
+                            Status NVARCHAR(50) NOT NULL DEFAULT N'Chờ tiếp nhận',
+                            RejectReason NVARCHAR(500) NULL,
+                            AssignedStaff NVARCHAR(100) NULL,
+                            FinalCost DECIMAL(18,2) NOT NULL DEFAULT 0,
+                            ServiceWarrantyUntil DATETIME NULL,
+                            CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                            ReceivedAt DATETIME NULL,
+                            CompletedAt DATETIME NULL,
+                            ReturnedAt DATETIME NULL,
+                            Notes NVARCHAR(500) NULL,
+                            CONSTRAINT IX_ServiceTickets_TicketCode UNIQUE (TicketCode),
+                            CONSTRAINT FK_ServiceTickets_ServiceCatalog_ServiceId FOREIGN KEY (ServiceId) REFERENCES ServiceCatalog (ServiceId) ON DELETE SET NULL,
+                            CONSTRAINT FK_ServiceTickets_SoldDevices_SoldDeviceId FOREIGN KEY (SoldDeviceId) REFERENCES SoldDevices (DeviceId) ON DELETE SET NULL,
+                            CONSTRAINT FK_ServiceTickets_Users_UserId FOREIGN KEY (UserId) REFERENCES Users (UserId) ON DELETE SET NULL,
+                            CONSTRAINT CK_ServiceTickets_FinalCost CHECK (FinalCost >= 0)
+                        );
+                    END
+
+                    IF OBJECT_ID('dbo.ServiceQuotes', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE ServiceQuotes (
+                            QuoteId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            TicketId INT NOT NULL,
+                            Description NVARCHAR(500) NOT NULL,
+                            Amount DECIMAL(18,2) NOT NULL,
+                            CustomerDecision NVARCHAR(50) NOT NULL DEFAULT N'Chờ duyệt',
+                            DecisionAt DATETIME NULL,
+                            Notes NVARCHAR(500) NULL,
+                            CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                            CONSTRAINT FK_ServiceQuotes_ServiceTickets_TicketId FOREIGN KEY (TicketId) REFERENCES ServiceTickets (TicketId) ON DELETE CASCADE,
+                            CONSTRAINT CK_ServiceQuotes_Amount CHECK (Amount >= 0)
+                        );
+                    END
+
+                    IF OBJECT_ID('dbo.ServiceTicketHistories', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE ServiceTicketHistories (
+                            HistoryId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            TicketId INT NOT NULL,
+                            PreviousStatus NVARCHAR(50) NULL,
+                            NewStatus NVARCHAR(50) NOT NULL,
+                            ActionBy NVARCHAR(100) NOT NULL,
+                            ActionAt DATETIME NOT NULL DEFAULT GETDATE(),
+                            Notes NVARCHAR(500) NULL,
+                            CONSTRAINT FK_ServiceTicketHistories_ServiceTickets_TicketId FOREIGN KEY (TicketId) REFERENCES ServiceTickets (TicketId) ON DELETE CASCADE
+                        );
+                    END
                 ");
             }
             catch (Exception ex)
@@ -189,6 +289,8 @@ public static class DbInitializer
             SeedColorsIfEmpty(context);
             SeedVariantsIfEmpty(context);
             SeedOrdersIfEmpty(context);
+            SeedServiceCatalogIfEmpty(context);
+            SeedSampleSoldDevicesIfEmpty(context);
             return;
         }
 
@@ -715,6 +817,96 @@ public static class DbInitializer
         catch (Exception ex)
         {
             Console.WriteLine("[DbInitializer] Lỗi SeedVariantsIfEmpty: " + ex.Message);
+        }
+    }
+
+    private static void SeedServiceCatalogIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            if (context.ServiceCatalog.Any()) return;
+
+            var services = new List<ServiceCatalogItem>
+            {
+                new() { ServiceCode = "DV-SC01", ServiceName = "Vệ sinh laptop & Tra keo tản nhiệt gốm MX4", ServiceType = "Sửa chữa", ApplicableConditions = "Máy nóng rực, quạt rú to, tự ngắt khi tải nặng", EstimatedCost = 150000, EstimatedTime = "30 - 45 phút", ServiceWarrantyMonths = 1, IsActive = true },
+                new() { ServiceCode = "DV-SC02", ServiceName = "Thay màn hình Laptop Full HD IPS 144Hz", ServiceType = "Sửa chữa", ApplicableConditions = "Sọc màn hình, nhấp nháy chập chờn, nứt vỡ LCD", EstimatedCost = 1650000, EstimatedTime = "45 phút", ServiceWarrantyMonths = 6, IsActive = true },
+                new() { ServiceCode = "DV-SC03", ServiceName = "Sửa nguồn bo mạch chủ (Mainboard) chạm IC", ServiceType = "Sửa chữa", ApplicableConditions = "Mất nguồn hoàn toàn, cắm sạc đèn không sáng", EstimatedCost = 650000, EstimatedTime = "1 - 2 ngày", ServiceWarrantyMonths = 3, IsActive = true },
+                new() { ServiceCode = "DV-SC04", ServiceName = "Thay cụm bàn phím laptop chuẩn hãng", ServiceType = "Sửa chữa", ApplicableConditions = "Liệt phím, kẹt phím, tự động nhảy ký tự liên tục", EstimatedCost = 450000, EstimatedTime = "40 phút", ServiceWarrantyMonths = 12, IsActive = true },
+                new() { ServiceCode = "DV-SC05", ServiceName = "Thay pin laptop zin dung lượng cao", ServiceType = "Sửa chữa", ApplicableConditions = "Pin chai phồng, pin ảo dùng 15 phút sập nguồn", EstimatedCost = 780000, EstimatedTime = "30 phút", ServiceWarrantyMonths = 6, IsActive = true },
+                new() { ServiceCode = "DV-SC06", ServiceName = "Hàn phục hồi chân ốc & bản lề gãy vỡ", ServiceType = "Sửa chữa", ApplicableConditions = "Vỏ bung cọt kẹt khi gập mở, hở mép viền", EstimatedCost = 350000, EstimatedTime = "2 - 3 giờ", ServiceWarrantyMonths = 3, IsActive = true },
+                new() { ServiceCode = "DV-SC07", ServiceName = "Nâng cấp ổ cứng SSD NVMe PCIe 512GB", ServiceType = "Sửa chữa", ApplicableConditions = "Máy khởi động rất chậm, ổ HDD cũ bị Bad Sector", EstimatedCost = 890000, EstimatedTime = "30 phút", ServiceWarrantyMonths = 36, IsActive = true },
+                new() { ServiceCode = "DV-SC08", ServiceName = "Đóng lại / Thay thế Chipset VGA đồ họa rời", ServiceType = "Sửa chữa", ApplicableConditions = "Rác hình, màn hình xanh BSOD khi bật game", EstimatedCost = 1250000, EstimatedTime = "2 - 3 ngày", ServiceWarrantyMonths = 3, IsActive = true },
+
+                new() { ServiceCode = "DV-BH01", ServiceName = "Bảo hành đổi mới Pin linh kiện chính hãng", ServiceType = "Bảo hành", ApplicableConditions = "Pin chai vượt mức 30% trong thời hạn bảo hành hãng", EstimatedCost = 0, EstimatedTime = "1 - 2 ngày", ServiceWarrantyMonths = 12, IsActive = true },
+                new() { ServiceCode = "DV-BH02", ServiceName = "Bảo hành lỗi điểm chết & sọc màn hình LCD", ServiceType = "Bảo hành", ApplicableConditions = "Xuất hiện trên 3 điểm chết hoặc sọc chỉ màn hình", EstimatedCost = 0, EstimatedTime = "3 - 5 ngày", ServiceWarrantyMonths = 12, IsActive = true },
+                new() { ServiceCode = "DV-BH03", ServiceName = "Bảo hành bàn phím & Touchpad theo tiêu chuẩn hãng", ServiceType = "Bảo hành", ApplicableConditions = "Liệt cụm phím, chập chuột cảm ứng do lỗi linh kiện", EstimatedCost = 0, EstimatedTime = "2 - 4 ngày", ServiceWarrantyMonths = 12, IsActive = true },
+                new() { ServiceCode = "DV-BH04", ServiceName = "Bảo hành loa trong & cụm Micro đàm thoại", ServiceType = "Bảo hành", ApplicableConditions = "Rè loa, mất tín hiệu mic thu âm không do ẩm nước", EstimatedCost = 0, EstimatedTime = "1 - 2 ngày", ServiceWarrantyMonths = 12, IsActive = true },
+                new() { ServiceCode = "DV-BH05", ServiceName = "Bảo hành Bo mạch chủ (Mainboard)", ServiceType = "Bảo hành", ApplicableConditions = "Lỗi nguồn chip, không nhận SSD/RAM theo tem bảo hành", EstimatedCost = 0, EstimatedTime = "5 - 7 ngày", ServiceWarrantyMonths = 12, IsActive = true },
+                new() { ServiceCode = "DV-BH06", ServiceName = "Bảo hành sạc Adapter theo máy", ServiceType = "Bảo hành", ApplicableConditions = "Không sạc vào điện, tiếp xúc chập chờn nguyên tem", EstimatedCost = 0, EstimatedTime = "Đổi mới ngay", ServiceWarrantyMonths = 12, IsActive = true }
+            };
+
+            context.ServiceCatalog.AddRange(services);
+            context.SaveChanges();
+            Console.WriteLine($"[DbInitializer] Đã nạp thành công {services.Count} dịch vụ Sửa chữa & Bảo hành.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Cảnh báo SeedServiceCatalogIfEmpty: " + ex.Message);
+        }
+    }
+
+    private static void SeedSampleSoldDevicesIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            if (context.SoldDevices.Any()) return;
+
+            // Tìm các đơn hàng Hoàn thành để gắn số Serial mẫu cho máy đã giao
+            var completedOrders = context.Orders
+                .Include(o => o.OrderItems)
+                .Where(o => o.OrderStatus == "Hoàn thành")
+                .ToList();
+
+            if (!completedOrders.Any()) return;
+
+            var devices = new List<SoldDevice>();
+            int serialCounter = 1001;
+
+            foreach (var order in completedOrders)
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    int qty = Math.Max(1, item.Quantity);
+                    for (int i = 0; i < qty; i++)
+                    {
+                        var prefix = item.ProductName.Contains("Dell", StringComparison.OrdinalIgnoreCase) ? "DELL" :
+                                     item.ProductName.Contains("Asus", StringComparison.OrdinalIgnoreCase) ? "ASUS" :
+                                     item.ProductName.Contains("MacBook", StringComparison.OrdinalIgnoreCase) ? "APPL" : "LPT";
+                        
+                        devices.Add(new SoldDevice
+                        {
+                            OrderItemId = item.OrderItemId,
+                            SerialNumber = $"SN-{prefix}-{serialCounter++}",
+                            DeliveredAt = order.CreatedAt,
+                            WarrantyStartDate = order.CreatedAt,
+                            WarrantyEndDate = order.CreatedAt.AddMonths(12),
+                            WarrantyMonths = 12,
+                            Notes = $"Xuất xưởng kèm đơn #{order.OrderCode} - {item.ProductName}"
+                        });
+                    }
+                }
+            }
+
+            if (devices.Any())
+            {
+                context.SoldDevices.AddRange(devices);
+                context.SaveChanges();
+                Console.WriteLine($"[DbInitializer] Đã gắn thành công {devices.Count} số Serial cho các laptop đã giao.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Cảnh báo SeedSampleSoldDevicesIfEmpty: " + ex.Message);
         }
     }
 }
