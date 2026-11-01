@@ -96,21 +96,47 @@
                         <i class="bi bi-motherboard text-primary me-1"></i> Cấu hình chi tiết
                     </h6>
                     <div class="row g-3 mb-4">
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <label class="form-label-dark">Vi xử lý (CPU)</label>
-                            <input asp-for="CPU" class="form-control-dark" placeholder="VD: Intel Core i7-13650HX" />
+                            <input asp-for="CPU" class="form-control-dark" placeholder="VD: Intel Core i7-13650HX hoặc AMD Ryzen 7" />
                         </div>
-                        <div class="col-6">
-                            <label class="form-label-dark">Bộ nhớ (RAM)</label>
-                            <input asp-for="RAM" class="form-control-dark" placeholder="VD: 16GB DDR5 4800MHz" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label-dark">Ổ cứng (SSD/HDD)</label>
-                            <input asp-for="Storage" class="form-control-dark" placeholder="VD: 512GB SSD NVMe Gen 4" />
-                        </div>
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <label class="form-label-dark">Card đồ họa (VGA)</label>
                             <input asp-for="GPU" class="form-control-dark" placeholder="VD: NVIDIA RTX 4060 8GB" />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label-dark">Bộ nhớ RAM <span class="text-danger">*</span></label>
+                            <select asp-for="RamGB" class="form-select-dark">
+                                <option value="4">4 GB</option>
+                                <option value="8">8 GB</option>
+                                <option value="12">12 GB</option>
+                                <option value="16" selected>16 GB (Tiêu chuẩn)</option>
+                                <option value="24">24 GB</option>
+                                <option value="32">32 GB (Cao cấp)</option>
+                                <option value="48">48 GB</option>
+                                <option value="64">64 GB (Workstation)</option>
+                                <option value="96">96 GB</option>
+                                <option value="128">128 GB</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label-dark">Dung lượng ổ cứng <span class="text-danger">*</span></label>
+                            <select asp-for="StorageGB" class="form-select-dark">
+                                <option value="128">128 GB</option>
+                                <option value="256">256 GB</option>
+                                <option value="512" selected>512 GB (Tiêu chuẩn)</option>
+                                <option value="1024">1 TB (1024 GB)</option>
+                                <option value="2048">2 TB (2048 GB)</option>
+                                <option value="4096">4 TB (4096 GB)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label-dark">Loại ổ cứng <span class="text-danger">*</span></label>
+                            <select asp-for="StorageType" class="form-select-dark">
+                                <option value="SSD NVMe" selected>SSD NVMe (Tốc độ cao)</option>
+                                <option value="SSD SATA">SSD SATA</option>
+                                <option value="HDD">HDD</option>
+                            </select>
                         </div>
                     </div>
 

@@ -189,11 +189,34 @@
                         <span>Cửa hàng</span>
                     </a>
 
-                    <!-- Notification -->
-                    <div class="topbar-notification">
-                        <i class="bi bi-bell"></i>
-                        <span class="notification-badge"></span>
-                        <span class="d-none d-sm-inline">Thông báo</span>
+                    <!-- Notification Dropdown -->
+                    <div class="dropdown">
+                        <div class="topbar-notification" data-bs-toggle="dropdown" aria-expanded="false" id="topbarNotificationBtn" role="button">
+                            <i class="bi bi-bell"></i>
+                            <span class="notification-badge d-none" id="notificationDot"></span>
+                            <span class="d-none d-sm-inline">Thông báo</span>
+                            <span class="badge bg-danger rounded-pill ms-1 d-none" id="notificationCountBadge" style="font-size: 0.68rem; padding: 0.25em 0.5em;">0</span>
+                        </div>
+                        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 rounded-3 mt-2" style="width: 370px; max-width: 92vw; z-index: 1060;" aria-labelledby="topbarNotificationBtn">
+                            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light rounded-top-3">
+                                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-bell-fill text-primary me-2"></i>Thông báo hệ thống</h6>
+                                <span class="badge bg-primary rounded-pill small" id="notificationHeaderBadge">0 việc cần làm</span>
+                            </div>
+                            <div class="list-group list-group-flush" id="notificationList" style="max-height: 380px; overflow-y: auto;">
+                                <div class="text-center py-4 text-muted small" id="notificationLoading">
+                                    <span class="spinner-border spinner-border-sm me-2 text-primary" role="status"></span> Đang tải...
+                                </div>
+                            </div>
+                            <div class="p-2 border-top bg-light text-center rounded-bottom-3 d-flex justify-content-around">
+                                <a href="/Admin/Orders" class="btn btn-link btn-sm text-decoration-none fw-semibold small p-1">
+                                    <i class="bi bi-box-seam me-1"></i> Quản lý đơn
+                                </a>
+                                <span class="text-muted align-self-center">|</span>
+                                <a href="/Admin/Installments" class="btn btn-link btn-sm text-decoration-none fw-semibold small p-1">
+                                    <i class="bi bi-credit-card-2-front me-1"></i> Quản lý trả góp
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- User Profile Dropdown -->
@@ -225,6 +248,120 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        async function fetchAdminNotifications() {
+            try {
+                const res = await fetch('/Admin/GetNotifications');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.success) return;
+
+                const dot = document.getElementById('notificationDot');
+                const countBadge = document.getElementById('notificationCountBadge');
+                const headerBadge = document.getElementById('notificationHeaderBadge');
+                const list = document.getElementById('notificationList');
+
+                if (data.totalCount > 0) {
+                    if (dot) dot.classList.remove('d-none');
+                    if (countBadge) {
+                        countBadge.innerText = data.totalCount > 99 ? '99+' : data.totalCount;
+                        countBadge.classList.remove('d-none');
+                    }
+                    if (headerBadge) {
+                        headerBadge.innerText = `${data.totalCount} cần xử lý`;
+                    }
+
+                    let itemsHtml = '';
+
+                    // 1. Kỳ trả góp đến hạn hoặc quá hạn
+                    if (data.installments && data.installments.length > 0) {
+                        data.installments.forEach(item => {
+                            const icon = item.badge === 'Quá hạn' ? 'bi-exclamation-triangle-fill text-danger' : 'bi-clock-history text-warning';
+                            itemsHtml += `
+                                <a href="${item.url}" class="list-group-item list-group-item-action p-3 border-bottom d-flex align-items-start gap-2">
+                                    <i class="bi ${icon} fs-5 mt-1"></i>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-semibold text-dark small text-truncate">${item.title}</span>
+                                            <span class="badge ${item.badgeClass} rounded-pill" style="font-size: 0.65rem;">${item.badge}</span>
+                                        </div>
+                                        <div class="text-secondary small text-truncate">${item.subtitle}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-calendar-event me-1"></i>Hạn: ${item.time}</div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+                    }
+
+                    // 2. Đơn hàng mới
+                    if (data.orders && data.orders.length > 0) {
+                        data.orders.forEach(item => {
+                            const icon = item.badge === 'Chờ trả trước' ? 'bi-credit-card-2-front text-warning' : 'bi-bag-check-fill text-primary';
+                            itemsHtml += `
+                                <a href="${item.url}" class="list-group-item list-group-item-action p-3 border-bottom d-flex align-items-start gap-2">
+                                    <i class="bi ${icon} fs-5 mt-1"></i>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-semibold text-dark small text-truncate">${item.title}</span>
+                                            <span class="badge ${item.badgeClass} rounded-pill" style="font-size: 0.65rem;">${item.badge}</span>
+                                        </div>
+                                        <div class="text-secondary small text-truncate">${item.subtitle}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-clock me-1"></i>${item.time}</div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+                    }
+
+                    // 3. Kho hàng
+                    if (data.stocks && data.stocks.length > 0) {
+                        data.stocks.forEach(item => {
+                            itemsHtml += `
+                                <a href="${item.url}" class="list-group-item list-group-item-action p-3 border-bottom d-flex align-items-start gap-2">
+                                    <i class="bi bi-box-seam text-danger fs-5 mt-1"></i>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-semibold text-dark small text-truncate">${item.title}</span>
+                                            <span class="badge ${item.badgeClass} rounded-pill" style="font-size: 0.65rem;">${item.badge}</span>
+                                        </div>
+                                        <div class="text-secondary small text-truncate">${item.subtitle}</div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+                    }
+
+                    list.innerHTML = itemsHtml;
+                } else {
+                    if (dot) dot.classList.add('d-none');
+                    if (countBadge) countBadge.classList.add('d-none');
+                    if (headerBadge) headerBadge.innerText = '0 việc mới';
+                    list.innerHTML = `
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-check2-circle text-success fs-3 d-block mb-1"></i>
+                            Không có thông báo mới.<br/>Hệ thống đang hoạt động tối ưu!
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Lỗi khi tải thông báo:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchAdminNotifications();
+            // Cập nhật lại sau mỗi 60 giây
+            setInterval(fetchAdminNotifications, 60000);
+
+            // Nạp mới khi mở dropdown
+            const btn = document.getElementById('topbarNotificationBtn');
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    fetchAdminNotifications();
+                });
+            }
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

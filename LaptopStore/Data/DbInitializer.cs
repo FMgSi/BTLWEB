@@ -143,12 +143,15 @@ public static class DbInitializer
                             CollectedBy NVARCHAR(100) NULL,
                             CONSTRAINT IX_InstallmentSchedules_Contract_Period UNIQUE (ContractId, PeriodNumber),
                             CONSTRAINT FK_InstallmentSchedules_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES InstallmentContracts (ContractId) ON DELETE CASCADE,
-                            CONSTRAINT FK_InstallmentSchedules_Payments_PaymentId FOREIGN KEY (PaymentId) REFERENCES Payments (PaymentId) ON DELETE SET NULL
+                            CONSTRAINT FK_InstallmentSchedules_Payments_PaymentId FOREIGN KEY (PaymentId) REFERENCES Payments (PaymentId) ON DELETE NO ACTION
                         );
                     END
                 ");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DbInitializer] Cảnh báo khởi tạo bảng Hợp đồng/Trả góp: {ex.Message}");
+            }
         }
 
         // 2. Nạp tài khoản mẫu nếu bảng Users còn trống

@@ -453,8 +453,18 @@ public class ProductService : IProductService
                     IsActive = true
                 };
 
-                // Phân tích RAM và Storage
-                var (ramGb, storageGb, storageType) = ParseSpecs(vm.RAM, vm.Storage);
+                // Phân tích RAM và Storage (ưu tiên dropdown chuẩn RamGB/StorageGB, tương thích ngược với chuỗi)
+                int ramGb = vm.RamGB ?? 16;
+                int storageGb = vm.StorageGB ?? 512;
+                string storageType = !string.IsNullOrWhiteSpace(vm.StorageType) ? vm.StorageType : "SSD NVMe";
+
+                if (!vm.RamGB.HasValue || !vm.StorageGB.HasValue || string.IsNullOrWhiteSpace(vm.StorageType))
+                {
+                    var parsed = ParseSpecs(vm.RAM, vm.Storage);
+                    if (!vm.RamGB.HasValue) ramGb = parsed.RamGb;
+                    if (!vm.StorageGB.HasValue) storageGb = parsed.StorageGb;
+                    if (string.IsNullOrWhiteSpace(vm.StorageType)) storageType = parsed.StorageType;
+                }
 
                 product.Specification = new ProductSpecification
                 {
@@ -511,7 +521,18 @@ public class ProductService : IProductService
                 p.StockQuantity = vm.StockQuantity;
                 p.Description = vm.Description;
 
-                var (ramGb, storageGb, storageType) = ParseSpecs(vm.RAM, vm.Storage);
+                // Phân tích RAM và Storage (ưu tiên dropdown chuẩn RamGB/StorageGB, tương thích ngược với chuỗi)
+                int ramGb = vm.RamGB ?? 16;
+                int storageGb = vm.StorageGB ?? 512;
+                string storageType = !string.IsNullOrWhiteSpace(vm.StorageType) ? vm.StorageType : "SSD NVMe";
+
+                if (!vm.RamGB.HasValue || !vm.StorageGB.HasValue || string.IsNullOrWhiteSpace(vm.StorageType))
+                {
+                    var parsed = ParseSpecs(vm.RAM, vm.Storage);
+                    if (!vm.RamGB.HasValue) ramGb = parsed.RamGb;
+                    if (!vm.StorageGB.HasValue) storageGb = parsed.StorageGb;
+                    if (string.IsNullOrWhiteSpace(vm.StorageType)) storageType = parsed.StorageType;
+                }
 
                 if (p.Specification == null)
                 {

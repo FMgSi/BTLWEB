@@ -652,4 +652,109 @@ public class AdminController : Controller
         var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
         return File(bytes, "text/csv", $"DanhSach_SanPham_{DateTime.Now:yyyyMMdd_HHmm}.csv");
     }
+
+    /// <summary>
+    /// API trả dữ liệu thông báo thời gian thực cho Dropdown trên Topbar
+    /// GET: /Admin/GetNotifications
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetNotifications()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var sevenDaysLater = now.AddDays(7);
+
+            // 1. Đơn hàng mới / Chờ xử lý / Chờ trả trước
+            var pendingOrders = await _db.Orders
+                .AsNoTracking()
+                .Where(o => o.OrderStatus == "Chờ xử lý" || o.PaymentStatus == "Chờ trả trước")
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(5)
+                .Select(o => new
+                {
+                    type = "order",
+                    id = o.OrderId,
+                    code = o.OrderCode,
+                    title = o.PurchaseMode == "Installment"
+                        ? $"Đơn trả góp #{o.OrderCode}"
+                        : $"Đơn hàng mới #{o.OrderCode}",
+                    subtitle = $"{o.CustomerName} • {o.TotalAmount:N0}₫",
+                    badge = o.PurchaseMode == "Installment" ? "Chờ trả trước" : "Chờ xử lý",
+                    badgeClass = o.PurchaseMode == "Installment" ? "bg-warning text-dark" : "bg-primary text-white",
+                    url = o.PurchaseMode == "Installment"
+                        ? $"/Admin/Installments?search={o.OrderCode}"
+                        : $"/Admin/Orders?search={o.OrderCode}",
+                    time = o.CreatedAt.ToLocalTime().ToString("HH:mm dd/MM")
+                })
+                .ToListAsync();
+
+            // 2. Kỳ trả góp đến hạn hoặc quá hạn
+            var urgentSchedules = await _db.InstallmentSchedules
+                .AsNoTracking()
+                .Include(s => s.Contract)
+                    .ThenInclude(c => c!.Order)
+                .Where(s => s.Status != "Đã thanh toán" && s.DueDate <= sevenDaysLater)
+                .OrderBy(s => s.DueDate)
+                .Take(5)
+                .Select(s => new
+                {
+                    type = "installment",
+                    id = s.ScheduleId,
+                    contractId = s.ContractId,
+                    code = s.Contract != null ? s.Contract.ContractCode : "",
+                    title = s.DueDate < now
+                        ? $"Quá hạn kỳ {s.PeriodNumber} - {(s.Contract != null ? s.Contract.ContractCode : "")}"
+                        : $"Đến hạn kỳ {s.PeriodNumber} - {(s.Contract != null ? s.Contract.ContractCode : "")}",
+                    subtitle = $"{(s.Contract != null && s.Contract.Order != null ? s.Contract.Order.CustomerName : "Khách hàng")} • {s.Amount:N0}₫",
+                    badge = s.DueDate < now ? "Quá hạn" : "Sắp đến hạn",
+                    badgeClass = s.DueDate < now ? "bg-danger text-white" : "bg-warning text-dark",
+                    url = $"/Admin/InstallmentDetails/{s.ContractId}",
+                    time = s.DueDate.ToLocalTime().ToString("dd/MM/yyyy")
+                })
+                .ToListAsync();
+
+            // 3. Cảnh báo tồn kho thấp (<= 2 máy)
+            var lowStockItems = await _db.Products
+                .AsNoTracking()
+                .Where(p => p.IsActive && p.StockQuantity <= 2)
+                .OrderBy(p => p.StockQuantity)
+                .Take(3)
+                .Select(p => new
+                {
+                    type = "stock",
+                    id = p.ProductId,
+                    code = $"SP{p.ProductId:D3}",
+                    title = p.StockQuantity == 0 ? $"Hết hàng: {p.ProductName}" : $"Sắp hết hàng: {p.ProductName}",
+                    subtitle = $"Tồn kho hiện tại: {p.StockQuantity} máy",
+                    badge = p.StockQuantity == 0 ? "Hết hàng" : "Tồn thấp",
+                    badgeClass = p.StockQuantity == 0 ? "bg-danger text-white" : "bg-secondary text-white",
+                    url = $"/Product/Edit/{p.ProductId}",
+                    time = "Kho hàng"
+                })
+                .ToListAsync();
+
+            int pendingOrdersCount = await _db.Orders
+                .CountAsync(o => o.OrderStatus == "Chờ xử lý" || o.PaymentStatus == "Chờ trả trước");
+            int urgentSchedulesCount = await _db.InstallmentSchedules
+                .CountAsync(s => s.Status != "Đã thanh toán" && s.DueDate <= sevenDaysLater);
+            int lowStockCount = await _db.Products
+                .CountAsync(p => p.IsActive && p.StockQuantity <= 2);
+
+            int totalCount = pendingOrdersCount + urgentSchedulesCount + lowStockCount;
+
+            return Json(new
+            {
+                success = true,
+                totalCount,
+                orders = pendingOrders,
+                installments = urgentSchedules,
+                stocks = lowStockItems
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message, totalCount = 0 });
+        }
+    }
 }

@@ -94,21 +94,80 @@
                         <i class="bi bi-motherboard text-primary me-1"></i> Cấu hình chi tiết
                     </h6>
                     <div class="row g-3 mb-4">
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <label class="form-label-dark">Vi xử lý (CPU)</label>
-                            <input asp-for="CPU" class="form-control-dark" placeholder="VD: Intel Core i7-13650HX" />
+                            <input asp-for="CPU" class="form-control-dark" placeholder="VD: Intel Core i7-13650HX hoặc AMD Ryzen 7" />
                         </div>
-                        <div class="col-6">
-                            <label class="form-label-dark">Bộ nhớ (RAM)</label>
-                            <input asp-for="RAM" class="form-control-dark" placeholder="VD: 16GB DDR5" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label-dark">Ổ cứng (SSD/HDD)</label>
-                            <input asp-for="Storage" class="form-control-dark" placeholder="VD: 512GB SSD NVMe" />
-                        </div>
-                        <div class="col-6">
+                        <div class="col-md-6 col-12">
                             <label class="form-label-dark">Card đồ họa (VGA)</label>
                             <input asp-for="GPU" class="form-control-dark" placeholder="VD: NVIDIA RTX 4060 8GB" />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label-dark">Bộ nhớ RAM <span class="text-danger">*</span></label>
+                            <select asp-for="RamGB" class="form-select-dark">
+                                @{
+                                    var stdRams = new[] { 4, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
+                                    int curRam = Model.RamGB ?? 16;
+                                    bool matchedRam = false;
+                                    foreach (var r in stdRams)
+                                    {
+                                        bool isSel = (r == curRam);
+                                        if (isSel) matchedRam = true;
+                                        <option value="@r" selected="@(isSel ? "selected" : null)">@r GB@(r == 16 ? " (Tiêu chuẩn)" : r == 32 ? " (Cao cấp)" : "")</option>
+                                    }
+                                    if (!matchedRam && curRam > 0)
+                                    {
+                                        <option value="@curRam" selected>@curRam GB (Hiện tại)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label-dark">Dung lượng ổ cứng <span class="text-danger">*</span></label>
+                            <select asp-for="StorageGB" class="form-select-dark">
+                                @{
+                                    var stdStorages = new (int val, string text)[] {
+                                        (128, "128 GB"),
+                                        (256, "256 GB"),
+                                        (512, "512 GB (Tiêu chuẩn)"),
+                                        (1024, "1 TB (1024 GB)"),
+                                        (2048, "2 TB (2048 GB)"),
+                                        (4096, "4 TB (4096 GB)")
+                                    };
+                                    int curStorage = Model.StorageGB ?? 512;
+                                    bool matchedStorage = false;
+                                    foreach (var s in stdStorages)
+                                    {
+                                        bool isSel = (s.val == curStorage);
+                                        if (isSel) matchedStorage = true;
+                                        <option value="@s.val" selected="@(isSel ? "selected" : null)">@s.text</option>
+                                    }
+                                    if (!matchedStorage && curStorage > 0)
+                                    {
+                                        <option value="@curStorage" selected>@curStorage GB (Hiện tại)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="form-label-dark">Loại ổ cứng <span class="text-danger">*</span></label>
+                            <select asp-for="StorageType" class="form-select-dark">
+                                @{
+                                    var stdTypes = new[] { "SSD NVMe", "SSD SATA", "HDD" };
+                                    string curType = Model.StorageType ?? "SSD NVMe";
+                                    bool matchedType = false;
+                                    foreach (var t in stdTypes)
+                                    {
+                                        bool isSel = (string.Equals(t, curType, StringComparison.OrdinalIgnoreCase));
+                                        if (isSel) matchedType = true;
+                                        <option value="@t" selected="@(isSel ? "selected" : null)">@t@(t == "SSD NVMe" ? " (Tốc độ cao)" : "")</option>
+                                    }
+                                    if (!matchedType && !string.IsNullOrWhiteSpace(curType))
+                                    {
+                                        <option value="@curType" selected>@curType (Hiện tại)</option>
+                                    }
+                                }
+                            </select>
                         </div>
                     </div>
 

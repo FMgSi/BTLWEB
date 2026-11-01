@@ -103,15 +103,54 @@
                         </div>
                     </div>
 
-                    <!-- RAM & Storage -->
+                    <!-- RAM & Storage (Dropdown chuẩn hóa) -->
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label fw-semibold small">RAM (GB) <span class="text-danger">*</span></label>
-                            <input type="number" name="RamGB" class="form-control" value="@(Model.Specification?.RamGB ?? 16)" min="4" max="128" step="4" required />
+                            <label class="form-label fw-semibold small">RAM <span class="text-danger">*</span></label>
+                            <select name="RamGB" class="form-select" required>
+                                @{
+                                    var varRams = new[] { 4, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
+                                    int defaultRam = Model.Specification?.RamGB ?? 16;
+                                    bool matchedVarRam = false;
+                                    foreach (var r in varRams)
+                                    {
+                                        bool isSel = (r == defaultRam);
+                                        if (isSel) matchedVarRam = true;
+                                        <option value="@r" selected="@(isSel ? "selected" : null)">@r GB</option>
+                                    }
+                                    if (!matchedVarRam && defaultRam > 0)
+                                    {
+                                        <option value="@defaultRam" selected>@defaultRam GB (Khác)</option>
+                                    }
+                                }
+                            </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label fw-semibold small">SSD (GB) <span class="text-danger">*</span></label>
-                            <input type="number" name="StorageGB" class="form-control" value="@(Model.Specification?.StorageGB ?? 512)" min="128" max="4096" step="128" required />
+                            <label class="form-label fw-semibold small">SSD <span class="text-danger">*</span></label>
+                            <select name="StorageGB" class="form-select" required>
+                                @{
+                                    var varStorages = new (int val, string text)[] {
+                                        (128, "128 GB"),
+                                        (256, "256 GB"),
+                                        (512, "512 GB"),
+                                        (1024, "1 TB (1024 GB)"),
+                                        (2048, "2 TB (2048 GB)"),
+                                        (4096, "4 TB (4096 GB)")
+                                    };
+                                    int defaultStorage = Model.Specification?.StorageGB ?? 512;
+                                    bool matchedVarStorage = false;
+                                    foreach (var s in varStorages)
+                                    {
+                                        bool isSel = (s.val == defaultStorage);
+                                        if (isSel) matchedVarStorage = true;
+                                        <option value="@s.val" selected="@(isSel ? "selected" : null)">@s.text</option>
+                                    }
+                                    if (!matchedVarStorage && defaultStorage > 0)
+                                    {
+                                        <option value="@defaultStorage" selected>@defaultStorage GB (Khác)</option>
+                                    }
+                                }
+                            </select>
                         </div>
                     </div>
 

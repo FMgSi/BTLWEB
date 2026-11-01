@@ -48,10 +48,19 @@ public class ProductEditViewModel : IValidatableObject
     [Display(Name = "Vi xử lý (CPU)")]
     public string? CPU { get; set; }
 
-    [Display(Name = "Bộ nhớ RAM")]
+    [Display(Name = "Dung lượng RAM (GB)")]
+    public int? RamGB { get; set; } = 16;
+
+    [Display(Name = "Bộ nhớ RAM (Chuỗi)")]
     public string? RAM { get; set; }
 
-    [Display(Name = "Ổ cứng (SSD/HDD)")]
+    [Display(Name = "Dung lượng ổ cứng (GB)")]
+    public int? StorageGB { get; set; } = 512;
+
+    [Display(Name = "Loại ổ cứng")]
+    public string? StorageType { get; set; } = "SSD NVMe";
+
+    [Display(Name = "Ổ cứng (SSD/HDD - Chuỗi)")]
     public string? Storage { get; set; }
 
     [Display(Name = "Card đồ hoạ (VGA/GPU)")]

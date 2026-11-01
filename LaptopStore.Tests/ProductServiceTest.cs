@@ -172,4 +172,38 @@ public class ProductServiceTests
         Assert.True(PasswordHelper.VerifyPassword(rawPassword, legacyHash));
         Assert.False(PasswordHelper.VerifyPassword("WrongPassword", legacyHash));
     }
+
+    [Fact]
+    public async Task CreateProduct_WithStandardDropdownSpecs_SavesCorrectRamAndStorage()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var productService = new ProductService(db, null!);
+
+        var vm = new ProductEditViewModel
+        {
+            ProductName = "Asus ROG Zephyrus G16",
+            BrandId = 1,
+            CategoryId = 1,
+            Price = 45000000,
+            StockQuantity = 5,
+            CPU = "Intel Core i9-14900HX",
+            GPU = "NVIDIA RTX 4080",
+            RamGB = 32,
+            StorageGB = 1024,
+            StorageType = "SSD NVMe"
+        };
+
+        // Act
+        var result = await productService.CreateProductAsync(vm);
+
+        // Assert
+        Assert.True(result);
+        var created = await db.Products.Include(p => p.Specification).FirstOrDefaultAsync(p => p.ProductName == "Asus ROG Zephyrus G16");
+        Assert.NotNull(created);
+        Assert.NotNull(created.Specification);
+        Assert.Equal(32, created.Specification.RamGB);
+        Assert.Equal(1024, created.Specification.StorageGB);
+        Assert.Equal("SSD NVMe", created.Specification.StorageType);
+    }
 }

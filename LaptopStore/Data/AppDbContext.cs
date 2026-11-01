@@ -199,7 +199,7 @@ public class AppDbContext : DbContext
             entity.HasOne(s => s.Payment)
                 .WithMany()
                 .HasForeignKey(s => s.PaymentId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         // Cấu hình bảng Colors
