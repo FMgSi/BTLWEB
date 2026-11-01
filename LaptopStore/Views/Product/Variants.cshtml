@@ -134,6 +134,13 @@
                         </div>
                     </div>
 
+                    <!-- Ảnh riêng của phiên bản (URL) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Ảnh riêng của màu này (URL)</label>
+                        <input type="text" name="ImageUrl" class="form-control form-control-sm" placeholder="https://... hoặc /images/products/..." />
+                        <div class="form-text small">Để trống để kế thừa ảnh đại diện chung của máy</div>
+                    </div>
+
                     <!-- Mã SKU tùy chỉnh -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Mã SKU (Tùy chọn)</label>
@@ -163,6 +170,7 @@
                         <thead class="table-light small">
                             <tr>
                                 <th class="ps-3">Màu sắc</th>
+                                <th>Ảnh</th>
                                 <th>Cấu hình</th>
                                 <th>Mã SKU</th>
                                 <th>Giá bán</th>
@@ -182,6 +190,26 @@
                                             <span class="rounded-circle border shadow-sm" 
                                                   style="width: 22px; height: 22px; background-color: @(v.Color?.HexCode ?? "#ccc"); flex-shrink: 0;"></span>
                                             <span class="fw-semibold">@(v.Color?.Name ?? "Chưa rõ")</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <img src="@(string.IsNullOrEmpty(v.ImageUrl) ? (Model.ThumbnailUrl ?? "/images/default.png") : v.ImageUrl)" 
+                                                 alt="Ảnh phiên bản" class="rounded border p-0" style="width: 38px; height: 30px; object-fit: contain; background: #fff;" />
+                                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-primary" 
+                                                    data-bs-toggle="modal" data-bs-target="#imgModal_@v.VariantId" title="Đổi ảnh">
+                                                <i class="bi bi-pencil-square" style="font-size: 0.85rem;"></i>
+                                            </button>
+                                        </div>
+                                        <div class="mt-1">
+                                            @if (!string.IsNullOrEmpty(v.ImageUrl))
+                                            {
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 9px;">Ảnh riêng</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-muted border" style="font-size: 9px;">Ảnh chung</span>
+                                            }
                                         </div>
                                     </td>
                                     <td>
@@ -245,7 +273,7 @@
                         else
                         {
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     <i class="bi bi-palette fs-2 text-secondary d-block mb-1"></i>
                                     Sản phẩm này chưa được cấu hình phiên bản màu sắc nào.<br />
                                     Vui lòng dùng form bên trái để thêm phiên bản đầu tiên!
@@ -259,3 +287,43 @@
         </div>
     </div>
 </div>
+
+<!-- CÁC MODAL ĐỔI ẢNH CHO TỪNG PHIÊN BẢN -->
+@if (Model.Variants != null && Model.Variants.Any())
+{
+    @foreach (var v in Model.Variants)
+    {
+        <div class="modal fade" id="imgModal_@v.VariantId" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <form asp-action="UpdateVariantImage" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="VariantId" value="@v.VariantId" />
+                        <div class="modal-header py-2">
+                            <h6 class="modal-title fw-bold">Ảnh: @v.SKU (@v.Color?.Name)</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3 text-center">
+                                <img src="@(string.IsNullOrEmpty(v.ImageUrl) ? (Model.ThumbnailUrl ?? "/images/default.png") : v.ImageUrl)" 
+                                     alt="Ảnh hiện tại" class="img-fluid rounded border p-1" style="max-height: 120px; object-fit: contain;" />
+                                <div class="small text-muted mt-1">
+                                    @(string.IsNullOrEmpty(v.ImageUrl) ? "Đang kế thừa ảnh đại diện chung" : "Đang dùng ảnh riêng")
+                                </div>
+                            </div>
+                            <label class="form-label small fw-semibold">Đường dẫn ảnh riêng (URL):</label>
+                            <input type="text" name="ImageUrl" value="@v.ImageUrl" class="form-control form-control-sm" placeholder="https://... hoặc /images/products/..." />
+                            <div class="form-text small" style="font-size: 11px;">
+                                Để trống để xóa ảnh riêng và quay về dùng chung ảnh của máy
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-sm btn-primary">Lưu ảnh</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}

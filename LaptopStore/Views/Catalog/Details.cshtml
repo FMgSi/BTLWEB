@@ -548,6 +548,18 @@
         const displayPriceEl = document.getElementById('detailDisplayPrice');
         if (displayPriceEl) displayPriceEl.textContent = formatVND(TOTAL_PRICE);
 
+        // Cập nhật ảnh chính theo biến thể / màu sắc
+        const genericImg = '@(string.IsNullOrEmpty(Model.Image) ? "/images/products/placeholder.png" : Model.Image)';
+        let variantImg = (variant.ImageUrl && variant.ImageUrl !== genericImg) ? variant.ImageUrl : null;
+        if (!variantImg && variant.ColorId && VARIANTS) {
+            const sibling = VARIANTS.find(v => v.ColorId === variant.ColorId && v.ImageUrl && v.ImageUrl !== genericImg);
+            if (sibling) variantImg = sibling.ImageUrl;
+        }
+        const mainImg = document.getElementById('mainProductImg');
+        if (mainImg) {
+            mainImg.src = variantImg || genericImg;
+        }
+
         // Cập nhật tình trạng kho của biến thể
         const stockInfo = document.getElementById('variantStockInfo');
         const stockBadgeWrap = document.getElementById('stockBadgeWrap');

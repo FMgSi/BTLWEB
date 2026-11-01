@@ -1,4 +1,4 @@
-﻿-- =========================================================================
+-- =========================================================================
 -- KHỞI TẠO CƠ SỞ DỮ LIỆU MICROSOFT SQL SERVER CHO LAPTOPSTORE
 -- Hỗ trợ đầy đủ Unicode tiếng Việt (NVARCHAR), chuẩn hóa 3NF, ràng buộc khóa ngoại
 -- =========================================================================
@@ -802,10 +802,10 @@ GO
 IF NOT EXISTS (SELECT 1 FROM ProductVariants)
 BEGIN
     SET IDENTITY_INSERT ProductVariants ON;
-    INSERT INTO ProductVariants (VariantId, ProductId, ColorId, RamGB, StorageGB, SKU, StockQuantity, Price, DiscountPrice, IsActive, CreatedAt) VALUES
-    (1, 1, 1, 16, 512, N'DELL-1-SLV-16-512', 1, NULL, NULL, 1, GETDATE()),
-    (2, 1, 2, 16, 512, N'DELL-1-BLK-16-512', 2, NULL, NULL, 1, GETDATE()),
-    (3, 1, 2, 32, 1024, N'DELL-1-BLK-32-1TB', 0, 21990000, NULL, 1, GETDATE());
+    INSERT INTO ProductVariants (VariantId, ProductId, ColorId, RamGB, StorageGB, SKU, StockQuantity, Price, DiscountPrice, IsActive, CreatedAt, ImageUrl) VALUES
+    (1, 1, 1, 16, 512, N'DELL-1-SLV-16-512', 1, NULL, NULL, 1, GETDATE(), N'/images/products/dell-inspiron-14-5430.png'),
+    (2, 1, 2, 16, 512, N'DELL-1-BLK-16-512', 2, NULL, NULL, 1, GETDATE(), N'/images/products/asus-tuf-gaming-f15-fx507zc4.png'),
+    (3, 1, 2, 32, 1024, N'DELL-1-BLK-32-1TB', 0, 21990000, NULL, 1, GETDATE(), NULL);
     SET IDENTITY_INSERT ProductVariants OFF;
     UPDATE Products SET StockQuantity = 3 WHERE ProductId = 1;
 END

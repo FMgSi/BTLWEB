@@ -356,9 +356,11 @@ public class ProductController : Controller
             StorageGB = model.StorageGB,
             SKU = sku,
             StockQuantity = Math.Max(0, model.StockQuantity),
-            Price = model.Price > 0 ? model.Price : product.Price,
+            Price = model.Price > 0 ? model.Price : null,
             DiscountPrice = model.DiscountPrice,
-            ImageUrl = !string.IsNullOrWhiteSpace(model.ImageUrl) ? model.ImageUrl.Trim() : product.ThumbnailUrl,
+            ImageUrl = (!string.IsNullOrWhiteSpace(model.ImageUrl) && model.ImageUrl.Trim() != product.ThumbnailUrl)
+                ? model.ImageUrl.Trim()
+                : null,
             IsActive = true
         };
 
@@ -409,6 +411,35 @@ public class ProductController : Controller
         }
 
         TempData["SuccessMessage"] = $"Đã cập nhật tồn kho phiên bản '{variant.SKU}' ({variant.Color?.Name}) thành {model.NewStockQuantity} máy!";
+        return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
+    }
+
+    /// <summary>
+    /// Cập nhật ảnh riêng cho phiên bản cụ thể (POST: /Product/UpdateVariantImage)
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateVariantImage(UpdateVariantImageViewModel model)
+    {
+        var variant = await _db.ProductVariants
+            .Include(v => v.Color)
+            .Include(v => v.Product)
+            .FirstOrDefaultAsync(v => v.VariantId == model.VariantId);
+
+        if (variant == null)
+        {
+            return NotFound();
+        }
+
+        var trimmedUrl = model.ImageUrl?.Trim();
+        // Nếu để trống hoặc trùng với ảnh đại diện chính của mẫu máy thì lưu null để kế thừa
+        variant.ImageUrl = (!string.IsNullOrWhiteSpace(trimmedUrl) && trimmedUrl != variant.Product?.ThumbnailUrl)
+            ? trimmedUrl
+            : null;
+
+        await _db.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Đã cập nhật ảnh cho phiên bản SKU '{variant.SKU}' ({variant.Color?.Name}) thành công!";
         return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
     }
 

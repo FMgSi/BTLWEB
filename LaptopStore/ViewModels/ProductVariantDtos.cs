@@ -86,3 +86,12 @@ public class AdjustVariantStockViewModel
     [StringLength(255)]
     public string? Reason { get; set; } = "Cập nhật tồn kho";
 }
+
+public class UpdateVariantImageViewModel
+{
+    [Required]
+    public int VariantId { get; set; }
+
+    [StringLength(500)]
+    public string? ImageUrl { get; set; }
+}

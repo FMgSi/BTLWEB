@@ -626,6 +626,7 @@ export default function App() {
         />
       ) : selectedProductId ? (
         <ProductDetail
+          key={selectedProductId}
           productId={selectedProductId}
           onBack={() => handleNavigate(activeNav === 'home' ? 'home' : 'products')}
           onSelectProduct={handleSelectProduct}

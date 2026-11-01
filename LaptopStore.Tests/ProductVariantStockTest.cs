@@ -636,4 +636,50 @@ public class ProductVariantStockTest
             // Bỏ qua nếu SQL Server không reachable trong runner
         }
     }
+
+    [Fact]
+    public async Task Admin_UpdateVariantImage_SavesUniqueImage_OrNullWhenEmpty()
+    {
+        var (db, product, _, _, vSilver, _) = CreateTestSetup();
+        var controller = new ProductController(db, null!, null!)
+        {
+            TempData = new TempDataDictionary(new Microsoft.AspNetCore.Http.DefaultHttpContext(), new FakeTempDataProvider())
+        };
+
+        // 1. Cập nhật ảnh riêng cho phiên bản Bạc
+        var model = new UpdateVariantImageViewModel
+        {
+            VariantId = vSilver.VariantId,
+            ImageUrl = "https://example.com/silver-laptop.png"
+        };
+
+        var result = await controller.UpdateVariantImage(model);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Variants", redirect.ActionName);
+
+        var updatedSilver = await db.ProductVariants.FindAsync(vSilver.VariantId);
+        Assert.Equal("https://example.com/silver-laptop.png", updatedSilver!.ImageUrl);
+
+        // 2. Cập nhật để trống -> Tự động chuyển về NULL để kế thừa
+        var emptyModel = new UpdateVariantImageViewModel
+        {
+            VariantId = vSilver.VariantId,
+            ImageUrl = "   "
+        };
+
+        await controller.UpdateVariantImage(emptyModel);
+        var clearedSilver = await db.ProductVariants.FindAsync(vSilver.VariantId);
+        Assert.Null(clearedSilver!.ImageUrl);
+
+        // 3. Cập nhật trùng thumbnail mẫu máy -> Cũng lưu NULL
+        var inheritModel = new UpdateVariantImageViewModel
+        {
+            VariantId = vSilver.VariantId,
+            ImageUrl = product.ThumbnailUrl
+        };
+
+        await controller.UpdateVariantImage(inheritModel);
+        var inheritedSilver = await db.ProductVariants.FindAsync(vSilver.VariantId);
+        Assert.Null(inheritedSilver!.ImageUrl);
+    }
 }

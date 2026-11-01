@@ -604,6 +604,7 @@ public static class DbInitializer
                         StockQuantity = 1,
                         Price = null, // Kế thừa giá gốc của sản phẩm
                         DiscountPrice = null,
+                        ImageUrl = "/images/products/dell-inspiron-14-5430.png",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     });
@@ -619,11 +620,12 @@ public static class DbInitializer
                         StockQuantity = 2,
                         Price = null, // Kế thừa giá gốc của sản phẩm
                         DiscountPrice = null,
+                        ImageUrl = "/images/products/asus-tuf-gaming-f15-fx507zc4.png",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     });
 
-                    // 3. Dell - Đen - 32GB - 1TB: Tồn 0 (cấu hình cao giá riêng)
+                    // 3. Dell - Đen - 32GB - 1TB: Tồn 0 (cấu hình cao giá riêng, kế thừa ảnh đen từ SKU 16-512)
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -634,6 +636,7 @@ public static class DbInitializer
                         StockQuantity = 0,
                         Price = prod.Price + 4000000,
                         DiscountPrice = null,
+                        ImageUrl = null,
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     });
