@@ -49,18 +49,20 @@
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <span class="badge bg-primary">@Model.Brand</span>
                     <span class="badge bg-light text-secondary border">@Model.Category</span>
-                    @if (Model.StockQuantity > 0)
-                    {
-                        <span class="badge bg-success-subtle text-success border border-success-subtle">
-                            <i class="bi bi-check-circle-fill me-1"></i> Còn @Model.StockQuantity máy
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                            <i class="bi bi-x-circle-fill me-1"></i> Tạm hết hàng
-                        </span>
-                    }
+                    <span id="stockBadgeWrap">
+                        @if (Model.StockQuantity > 0)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle-fill me-1"></i> Còn @Model.StockQuantity máy
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                <i class="bi bi-x-circle-fill me-1"></i> Tạm hết hàng
+                            </span>
+                        }
+                    </span>
                 </div>
 
                 <h1 class="h4 fw-bold text-dark mb-3">@Model.Name</h1>
@@ -68,7 +70,7 @@
                 <!-- Hộp giá -->
                 <div class="detail-price-box mb-4">
                     <div class="d-flex align-items-baseline gap-3">
-                        <span class="fs-2 fw-extrabold text-danger">@Model.Price.ToString("N0")đ</span>
+                        <span class="fs-2 fw-extrabold text-danger" id="detailDisplayPrice">@Model.Price.ToString("N0")đ</span>
                         @if (Model.OriginalPrice.HasValue && Model.OriginalPrice > Model.Price)
                         {
                             <span class="text-muted text-decoration-line-through fs-5">@Model.OriginalPrice.Value.ToString("N0")đ</span>
@@ -83,23 +85,11 @@
                 <!-- Cấu hình tóm tắt -->
                 @if (Model.Specification != null)
                 {
-                    <div class="row g-2 mb-4">
+                    <div class="row g-2 mb-3">
                         <div class="col-6">
                             <div class="p-2 border rounded bg-light small">
                                 <div class="text-muted">Vi xử lý (CPU)</div>
                                 <strong class="text-dark">@Model.Specification.CPU</strong>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2 border rounded bg-light small">
-                                <div class="text-muted">Bộ nhớ RAM</div>
-                                <strong class="text-dark">@Model.Specification.RamGB GB</strong>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2 border rounded bg-light small">
-                                <div class="text-muted">Ổ cứng lưu trữ</div>
-                                <strong class="text-dark">@Model.Specification.StorageGB GB @Model.Specification.StorageType</strong>
                             </div>
                         </div>
                         <div class="col-6">
@@ -111,31 +101,58 @@
                     </div>
                 }
 
+                <!-- CHỌN PHIÊN BẢN & MÀU SẮC (PRODUCT VARIANTS) -->
+                @if (Model.Variants != null && Model.Variants.Any())
+                {
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold text-dark small text-uppercase mb-0">
+                                <i class="bi bi-palette-fill text-primary me-1"></i> 1. Chọn màu sắc máy:
+                            </label>
+                            <span id="selectedColorNameBadge" class="badge bg-primary"></span>
+                        </div>
+                        
+                        <!-- Danh sách Màu sắc Swatches -->
+                        <div class="d-flex flex-wrap gap-2 mb-3" id="colorSelectorWrap"></div>
+
+                        <!-- Cấu hình RAM & SSD tương ứng với màu -->
+                        <label class="form-label fw-bold text-dark small text-uppercase mb-1">
+                            <i class="bi bi-cpu text-primary me-1"></i> 2. Cấu hình có sẵn:
+                        </label>
+                        <div class="d-flex flex-wrap gap-2 mb-2" id="configSelectorWrap"></div>
+
+                        <!-- Trạng thái tồn kho của màu/cấu hình đã chọn -->
+                        <div id="variantStockInfo" class="mt-2 pt-2 border-top small"></div>
+                    </div>
+                }
+
                 <!-- Nút hành động đặt hàng -->
-                <div class="row g-2 mb-3">
-                    @if (Model.StockQuantity > 0)
-                    {
-                        <div class="col-12 col-md-6">
-                            <button type="button" class="btn btn-danger btn-lg fw-bold w-100 py-3 shadow-sm" onclick="openOrderModal('Full')">
-                                <i class="bi bi-cart-check me-1"></i> MUA TRẢ THẲNG
-                                <span class="d-block small fw-normal" style="font-size: 0.75rem;">Giao tận nơi hoặc nhận tại cửa hàng</span>
-                            </button>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <button type="button" class="btn btn-primary btn-lg fw-bold w-100 py-3 shadow-sm" onclick="openOrderModal('Installment')">
-                                <i class="bi bi-credit-card-2-front me-1"></i> MUA TRẢ GÓP 0%
-                                <span class="d-block small fw-normal" style="font-size: 0.75rem;">Trả trước 30% • Duyệt nhanh</span>
-                            </button>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="col-12">
-                            <button class="btn btn-secondary btn-lg fw-bold w-100 py-3" disabled>
-                                <i class="bi bi-bell me-2"></i> SẢN PHẨM TẠM HẾT HÀNG
-                            </button>
-                        </div>
-                    }
+                <div id="orderActionButtonsWrap" class="mb-3">
+                    <div class="row g-2">
+                        @if (Model.StockQuantity > 0)
+                        {
+                            <div class="col-12 col-md-6">
+                                <button type="button" id="btnBuyFull" class="btn btn-danger btn-lg fw-bold w-100 py-3 shadow-sm" onclick="openOrderModal('Full')">
+                                    <i class="bi bi-cart-check me-1"></i> MUA TRẢ THẲNG
+                                    <span class="d-block small fw-normal" style="font-size: 0.75rem;">Giao tận nơi hoặc nhận tại cửa hàng</span>
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <button type="button" id="btnBuyInstallment" class="btn btn-primary btn-lg fw-bold w-100 py-3 shadow-sm" onclick="openOrderModal('Installment')">
+                                    <i class="bi bi-credit-card-2-front me-1"></i> MUA TRẢ GÓP 0%
+                                    <span class="d-block small fw-normal" style="font-size: 0.75rem;">Trả trước 30% • Duyệt nhanh</span>
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-12">
+                                <button class="btn btn-secondary btn-lg fw-bold w-100 py-3" disabled>
+                                    <i class="bi bi-bell me-2"></i> SẢN PHẨM TẠM HẾT HÀNG
+                                </button>
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 <!-- Thông tin khuyến mãi bổ sung -->
@@ -396,13 +413,192 @@
 
 <script>
     const PRODUCT_ID = @Model.Id;
-    const TOTAL_PRICE = @Model.Price;
+    let TOTAL_PRICE = @Model.Price;
     let selectedMode = 'Full';
     let selectedTerm = 6;
+    const VARIANTS = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Variants));
+    let selectedColorId = null;
+    let selectedVariant = null;
 
     function formatVND(num) {
         return num.toLocaleString('vi-VN') + 'đ';
     }
+
+    // Khởi tạo bộ chọn màu sắc và cấu hình
+    function initVariantSelector() {
+        if (!VARIANTS || VARIANTS.length === 0) return;
+
+        const colorMap = new Map();
+        VARIANTS.forEach(v => {
+            if (!colorMap.has(v.ColorId)) {
+                colorMap.set(v.ColorId, {
+                    colorId: v.ColorId,
+                    colorName: v.ColorName,
+                    hexCode: v.HexCode || '#6B7280',
+                    variants: []
+                });
+            }
+            colorMap.get(v.ColorId).variants.push(v);
+        });
+
+        const colorSelectorWrap = document.getElementById('colorSelectorWrap');
+        if (!colorSelectorWrap) return;
+
+        colorSelectorWrap.innerHTML = '';
+        const colors = Array.from(colorMap.values());
+
+        // Ưu tiên chọn màu đầu tiên có hàng, nếu không thì chọn màu đầu tiên
+        let defaultColor = colors.find(c => c.variants.some(v => v.StockQuantity > 0)) || colors[0];
+        selectedColorId = defaultColor.colorId;
+
+        colors.forEach(c => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn btn-sm d-flex align-items-center gap-2 p-2 rounded-3 border color-btn ${c.colorId === selectedColorId ? 'btn-primary text-white border-primary shadow-sm' : 'btn-outline-secondary bg-white'}`;
+            btn.setAttribute('data-color-id', c.colorId);
+
+            const totalColorStock = c.variants.reduce((acc, curr) => acc + curr.StockQuantity, 0);
+
+            btn.innerHTML = `
+                <span class="rounded-circle border shadow-sm" style="width: 18px; height: 18px; background-color: ${c.hexCode};"></span>
+                <span class="fw-semibold">${c.colorName}</span>
+                <small class="${totalColorStock > 0 ? (c.colorId === selectedColorId ? 'text-white-50' : 'text-muted') : 'text-danger'}" style="font-size: 0.7rem;">(${totalColorStock > 0 ? 'còn ' + totalColorStock : 'hết'})</small>
+            `;
+
+            btn.onclick = () => selectColor(c.colorId);
+            colorSelectorWrap.appendChild(btn);
+        });
+
+        renderConfigOptions(colorMap.get(selectedColorId).variants);
+    }
+
+    function selectColor(colorId) {
+        selectedColorId = colorId;
+
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            const cid = parseInt(btn.getAttribute('data-color-id'));
+            if (cid === colorId) {
+                btn.className = 'btn btn-sm d-flex align-items-center gap-2 p-2 rounded-3 border color-btn btn-primary text-white border-primary shadow-sm';
+            } else {
+                btn.className = 'btn btn-sm d-flex align-items-center gap-2 p-2 rounded-3 border color-btn btn-outline-secondary bg-white';
+            }
+        });
+
+        const colorVariants = VARIANTS.filter(v => v.ColorId === colorId);
+        renderConfigOptions(colorVariants);
+    }
+
+    function renderConfigOptions(variants) {
+        const configWrap = document.getElementById('configSelectorWrap');
+        if (!configWrap) return;
+
+        configWrap.innerHTML = '';
+        if (!variants || variants.length === 0) return;
+
+        // Chọn biến thể đầu tiên còn hàng, hoặc biến thể đầu tiên
+        let chosen = variants.find(v => v.StockQuantity > 0) || variants[0];
+        selectedVariant = chosen;
+
+        variants.forEach(v => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            const isSelected = (v.VariantId === chosen.VariantId);
+            const inStock = v.StockQuantity > 0;
+
+            btn.className = `btn btn-sm config-btn p-2 rounded-3 border text-start ${isSelected ? 'btn-primary text-white border-primary shadow-sm' : 'btn-outline-secondary bg-white'}`;
+            btn.setAttribute('data-variant-id', v.VariantId);
+
+            const storageText = (v.StorageGB >= 1024) ? `${v.StorageGB / 1024}TB` : `${v.StorageGB}GB`;
+            const priceText = formatVND(v.EffectivePrice > 0 ? v.EffectivePrice : TOTAL_PRICE);
+
+            btn.innerHTML = `
+                <div class="fw-bold">RAM ${v.RamGB}GB • ${storageText}</div>
+                <div class="small ${isSelected ? 'text-white-50' : 'text-muted'}" style="font-size: 0.72rem;">${priceText} • ${inStock ? 'Còn ' + v.StockQuantity + ' máy' : '<span class="text-danger">Hết hàng</span>'}</div>
+            `;
+
+            btn.onclick = () => selectVariant(v);
+            configWrap.appendChild(btn);
+        });
+
+        applySelectedVariant(chosen);
+    }
+
+    function selectVariant(variant) {
+        selectedVariant = variant;
+
+        document.querySelectorAll('.config-btn').forEach(btn => {
+            const vid = parseInt(btn.getAttribute('data-variant-id'));
+            if (vid === variant.VariantId) {
+                btn.className = 'btn btn-sm config-btn p-2 rounded-3 border text-start btn-primary text-white border-primary shadow-sm';
+            } else {
+                btn.className = 'btn btn-sm config-btn p-2 rounded-3 border text-start btn-outline-secondary bg-white';
+            }
+        });
+
+        applySelectedVariant(variant);
+    }
+
+    function applySelectedVariant(variant) {
+        selectedVariant = variant;
+        const colorBadge = document.getElementById('selectedColorNameBadge');
+        if (colorBadge) colorBadge.textContent = variant.ColorName;
+
+        // Cập nhật giá theo biến thể
+        TOTAL_PRICE = (variant.EffectivePrice > 0) ? variant.EffectivePrice : @Model.Price;
+        const displayPriceEl = document.getElementById('detailDisplayPrice');
+        if (displayPriceEl) displayPriceEl.textContent = formatVND(TOTAL_PRICE);
+
+        // Cập nhật tình trạng kho của biến thể
+        const stockInfo = document.getElementById('variantStockInfo');
+        const stockBadgeWrap = document.getElementById('stockBadgeWrap');
+        const buyFullBtn = document.getElementById('btnBuyFull');
+        const buyInstallmentBtn = document.getElementById('btnBuyInstallment');
+
+        if (variant.StockQuantity > 0) {
+            if (stockInfo) {
+                stockInfo.innerHTML = `
+                    <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Có sẵn ${variant.StockQuantity} máy</span>
+                    <span class="text-muted ms-2">• Màu ${variant.ColorName} (RAM ${variant.RamGB}GB/SSD ${variant.StorageGB}GB) • Mã SKU: <code>${variant.SKU}</code></span>
+                `;
+            }
+            if (stockBadgeWrap) {
+                stockBadgeWrap.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i> Còn ${variant.StockQuantity} máy</span>`;
+            }
+            if (buyFullBtn) {
+                buyFullBtn.disabled = false;
+                buyFullBtn.className = "btn btn-danger btn-lg fw-bold w-100 py-3 shadow-sm";
+            }
+            if (buyInstallmentBtn) {
+                buyInstallmentBtn.disabled = false;
+                buyInstallmentBtn.className = "btn btn-primary btn-lg fw-bold w-100 py-3 shadow-sm";
+            }
+        } else {
+            if (stockInfo) {
+                stockInfo.innerHTML = `
+                    <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Tạm hết hàng</span>
+                    <span class="text-muted ms-2">• Màu ${variant.ColorName} (RAM ${variant.RamGB}GB/SSD ${variant.StorageGB}GB) hiện có 0 máy trong kho. Vui lòng chọn màu hoặc cấu hình khác!</span>
+                `;
+            }
+            if (stockBadgeWrap) {
+                stockBadgeWrap.innerHTML = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle-fill me-1"></i> Tạm hết hàng</span>`;
+            }
+            if (buyFullBtn) {
+                buyFullBtn.disabled = true;
+                buyFullBtn.className = "btn btn-secondary btn-lg fw-bold w-100 py-3";
+            }
+            if (buyInstallmentBtn) {
+                buyInstallmentBtn.disabled = true;
+                buyInstallmentBtn.className = "btn btn-secondary btn-lg fw-bold w-100 py-3";
+            }
+        }
+
+        // Cập nhật tính toán trả góp
+        if (selectedMode === 'Installment') {
+            selectTerm(selectedTerm);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initVariantSelector);
 
     function openOrderModal(mode) {
         selectedMode = mode;
@@ -493,6 +689,10 @@
         const notes = document.getElementById('custNotes').value.trim();
         const payMethod = document.querySelector('input[name="payMethodRadio"]:checked').value;
 
+        const specText = selectedVariant
+            ? `Màu ${selectedVariant.ColorName} • RAM ${selectedVariant.RamGB}GB • SSD ${selectedVariant.StorageGB}GB`
+            : '@(Model.Specification != null ? $"RAM {Model.Specification.RamGB}GB • {Model.Specification.StorageGB}GB {Model.Specification.StorageType}" : "Tiêu chuẩn")';
+
         const payload = {
             customerName: name,
             phoneNumber: phone,
@@ -503,8 +703,10 @@
             termMonths: selectedMode === 'Installment' ? selectedTerm : null,
             items: [{
                 productId: PRODUCT_ID,
+                variantId: selectedVariant ? selectedVariant.VariantId : null,
+                colorName: selectedVariant ? selectedVariant.ColorName : null,
                 quantity: 1,
-                selectedSpecs: '@(Model.Specification != null ? $"RAM {Model.Specification.RamGB}GB • {Model.Specification.StorageGB}GB {Model.Specification.StorageType}" : "Tiêu chuẩn")'
+                selectedSpecs: specText
             }]
         };
 
@@ -524,7 +726,7 @@
             }
 
             // Đặt hàng thành công: hiển thị thông báo kết quả
-            renderOrderSuccess(data.orderCode, payMethod, selectedMode, selectedTerm, phone);
+            renderOrderSuccess(data.orderCode, payMethod, selectedMode, selectedTerm, phone, specText);
         } catch (err) {
             alert('Lỗi kết nối máy chủ: ' + err.message);
             submitBtn.disabled = false;
@@ -532,7 +734,7 @@
         }
     }
 
-    function renderOrderSuccess(orderCode, payMethod, mode, term, phone) {
+    function renderOrderSuccess(orderCode, payMethod, mode, term, phone, specText) {
         const modalBody = document.getElementById('orderModalBody');
         const prepayAmount = Math.round(TOTAL_PRICE * 0.30);
         const amountToPayNow = (mode === 'Installment') ? prepayAmount : TOTAL_PRICE;
@@ -561,6 +763,7 @@
                 </div>
                 <h4 class="fw-bold text-dark">Đặt hàng ${mode === 'Installment' ? 'trả góp ' : ''}thành công!</h4>
                 <div class="fs-5 text-primary fw-bold my-2">Mã đơn hàng: #${orderCode}</div>
+                ${specText ? `<div class="badge bg-light text-dark border p-2 mb-2">${specText}</div>` : ''}
                 <p class="text-muted small">
                     ${mode === 'Installment' 
                         ? `Đơn hàng trả góp <strong>${term} tháng</strong> đã được chuyển tới bộ phận kế toán. Vui lòng hoàn tất khoản trả trước <strong>${formatVND(prepayAmount)} (30%)</strong> để nhân viên kích hoạt hợp đồng và giao máy.`

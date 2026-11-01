@@ -161,6 +161,8 @@ CREATE TABLE OrderItems (
     OrderItemId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     OrderId INT NOT NULL,
     ProductId INT NOT NULL,
+    VariantId INT NULL,
+    ColorName NVARCHAR(100) NULL,
     ProductName NVARCHAR(200) NOT NULL,
     SelectedSpecs NVARCHAR(255) NULL,
     ThumbnailUrl NVARCHAR(500) NULL,
@@ -253,6 +255,46 @@ CREATE TABLE InstallmentSchedules (
 );
 GO
 
+
+-- 13. Bảng Màu sắc (Colors)
+IF OBJECT_ID('dbo.Colors', 'U') IS NULL
+CREATE TABLE Colors (
+    ColorId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL,
+    HexCode NVARCHAR(20) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CONSTRAINT IX_Colors_Name UNIQUE (Name)
+);
+GO
+
+-- 14. Bảng Phiên bản cấu hình & Màu sắc (ProductVariants)
+IF OBJECT_ID('dbo.ProductVariants', 'U') IS NULL
+CREATE TABLE ProductVariants (
+    VariantId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    ProductId INT NOT NULL,
+    ColorId INT NOT NULL,
+    RamGB INT NOT NULL,
+    StorageGB INT NOT NULL,
+    SKU NVARCHAR(100) NOT NULL,
+    StockQuantity INT NOT NULL DEFAULT 0,
+    Price DECIMAL(18,2) NOT NULL DEFAULT 0,
+    DiscountPrice DECIMAL(18,2) NULL,
+    ImageUrl NVARCHAR(500) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CONSTRAINT IX_ProductVariants_SKU UNIQUE (SKU),
+    CONSTRAINT IX_ProductVariants_UniqueCombo UNIQUE (ProductId, ColorId, RamGB, StorageGB),
+    CONSTRAINT FK_ProductVariants_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE,
+    CONSTRAINT FK_ProductVariants_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId),
+    CONSTRAINT CK_ProductVariants_Stock CHECK (StockQuantity >= 0)
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_OrderItems_ProductVariants_VariantId')
+BEGIN
+    ALTER TABLE OrderItems ADD CONSTRAINT FK_OrderItems_ProductVariants_VariantId 
+        FOREIGN KEY (VariantId) REFERENCES ProductVariants (VariantId) ON DELETE SET NULL;
+END
+GO
 
 -- =============================================
 -- Brands (Bật IDENTITY_INSERT để nạp ID định sẵn)
@@ -716,4 +758,31 @@ INSERT INTO ProductSpecifications (ProductId, CPU, RamGB, StorageGB, StorageType
 (198, N'Intel Core Ultra 5 135H', 16, 512, N'SSD NVMe PCIe 4.0', N'Intel Arc Graphics', 13.5, 60, 1.38, 47, N'Windows 11 Pro'),
 (199, N'Intel Core i5-1235U', 8, 256, N'SSD NVMe PCIe', N'Intel Iris Xe Graphics', 13.0, 120, 0.88, 47, N'Windows 11 Home'),
 (200, N'Intel Core i7-13700H', 32, 1024, N'SSD NVMe PCIe 4.0', N'NVIDIA GeForce RTX 4060 8GB', 14.4, 120, 1.98, 80, N'Windows 11 Home');
+GO
+
+-- 15. Dữ liệu mẫu Màu sắc (Colors)
+IF NOT EXISTS (SELECT 1 FROM Colors)
+BEGIN
+    SET IDENTITY_INSERT Colors ON;
+    INSERT INTO Colors (ColorId, Name, HexCode, IsActive) VALUES
+    (1, N'Bạc', N'#E5E7EB', 1),
+    (2, N'Đen', N'#18181B', 1),
+    (3, N'Xám không gian', N'#4B5563', 1),
+    (4, N'Trắng', N'#F8FAFC', 1),
+    (5, N'Xanh navy', N'#1E3A8A', 1);
+    SET IDENTITY_INSERT Colors OFF;
+END
+GO
+
+-- 16. Dữ liệu mẫu Phiên bản cho Dell Inspiron 15 (Mẫu nghiệp vụ cốt lõi)
+IF NOT EXISTS (SELECT 1 FROM ProductVariants)
+BEGIN
+    SET IDENTITY_INSERT ProductVariants ON;
+    INSERT INTO ProductVariants (VariantId, ProductId, ColorId, RamGB, StorageGB, SKU, StockQuantity, Price, DiscountPrice, IsActive) VALUES
+    (1, 1, 1, 16, 512, N'DELL-1-SLV-16-512', 1, 17990000, 16490000, 1),
+    (2, 1, 2, 16, 512, N'DELL-1-BLK-16-512', 2, 17990000, 16490000, 1),
+    (3, 1, 2, 32, 1024, N'DELL-1-BLK-32-1TB', 0, 21990000, NULL, 1);
+    SET IDENTITY_INSERT ProductVariants OFF;
+    UPDATE Products SET StockQuantity = 3 WHERE ProductId = 1;
+END
 GO

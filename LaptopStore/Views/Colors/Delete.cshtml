@@ -1,0 +1,73 @@
+@model LaptopStore.Models.Color
+
+@{
+    ViewData["Title"] = $"Xác nhận xóa màu: {Model.Name}";
+    bool hasVariants = Model.Variants != null && Model.Variants.Any();
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xác nhận xóa Màu Sắc</h5>
+            </div>
+            <div class="card-body p-4">
+                @if (hasVariants)
+                {
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-shield-exclamation fs-4 d-block mb-2"></i>
+                        <h6 class="alert-heading fw-bold">Không thể xóa màu sắc này!</h6>
+                        <p class="mb-0">
+                            Hiện đang có <strong>@Model.Variants!.Count</strong> phiên bản laptop sử dụng màu <strong>@Model.Name</strong>. 
+                            Để bảo toàn tính toàn vẹn dữ liệu đơn hàng và kho hàng, bạn hãy chuyển trạng thái của màu sang <em>Ngừng áp dụng</em> thay vì xóa vĩnh viễn.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-trash fs-4 d-block mb-2"></i>
+                        <h6 class="alert-heading fw-bold">Cảnh báo hành động xóa!</h6>
+                        <p class="mb-0">
+                            Bạn có chắc chắn muốn xóa vĩnh viễn màu sắc <strong>@Model.Name</strong> khỏi hệ thống? 
+                            Hành động này không thể hoàn tác.
+                        </p>
+                    </div>
+                }
+
+                <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 mb-4">
+                    <span class="rounded-circle border shadow-sm" style="width: 44px; height: 44px; background-color: @Model.HexCode; flex-shrink: 0;"></span>
+                    <div>
+                        <div class="fw-bold fs-5">@Model.Name</div>
+                        <code class="text-dark">@Model.HexCode</code>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Hủy và quay lại
+                    </a>
+                    @if (!hasVariants)
+                    {
+                        <form asp-action="Delete" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="ColorId" />
+                            <button type="submit" class="btn btn-danger px-4">
+                                <i class="bi bi-trash me-1"></i> Xác nhận xóa
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="ToggleActive" asp-route-id="@Model.ColorId" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-warning text-dark px-3 fw-semibold">
+                                <i class="bi bi-pause-circle me-1"></i> Chuyển sang Ngừng áp dụng
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

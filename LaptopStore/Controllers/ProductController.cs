@@ -280,6 +280,162 @@ public class ProductController : Controller
     }
 
     /// <summary>
+    /// 7. Giao diện quản lý các phiên bản cấu hình & Màu sắc của một Laptop (GET: /Product/Variants/5)
+    /// </summary>
+    public async Task<IActionResult> Variants(int id)
+    {
+        var product = await _db.Products
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .Include(p => p.Specification)
+            .Include(p => p.Variants)
+                .ThenInclude(v => v.Color)
+            .FirstOrDefaultAsync(p => p.ProductId == id);
+
+        if (product == null)
+        {
+            return NotFound();
+        }
+
+        ViewBag.ActiveColors = await _db.Colors
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        return View(product);
+    }
+
+    /// <summary>
+    /// 8. Thêm mới một phiên bản cấu hình & màu sắc cho Laptop (POST: /Product/AddVariant)
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddVariant(CreateProductVariantViewModel model)
+    {
+        var product = await _db.Products
+            .Include(p => p.Specification)
+            .Include(p => p.Variants)
+            .FirstOrDefaultAsync(p => p.ProductId == model.ProductId);
+
+        if (product == null)
+        {
+            return NotFound();
+        }
+
+        var color = await _db.Colors.FindAsync(model.ColorId);
+        if (color == null)
+        {
+            TempData["ErrorMessage"] = "Màu sắc đã chọn không tồn tại.";
+            return RedirectToAction(nameof(Variants), new { id = model.ProductId });
+        }
+
+        // Tự động sinh mã SKU nếu để trống
+        string sku = string.IsNullOrWhiteSpace(model.SKU)
+            ? $"SKU-{product.ProductId}-{color.Name.ToUpper().Replace(" ", "")}-{model.RamGB}-{model.StorageGB}"
+            : model.SKU.Trim().ToUpper();
+
+        // Kiểm tra trùng SKU
+        if (await _db.ProductVariants.AnyAsync(v => v.SKU == sku))
+        {
+            TempData["ErrorMessage"] = $"Mã SKU '{sku}' đã tồn tại trên hệ thống. Vui lòng chọn mã SKU khác.";
+            return RedirectToAction(nameof(Variants), new { id = model.ProductId });
+        }
+
+        // Kiểm tra trùng tổ hợp (ProductId, ColorId, RamGB, StorageGB)
+        if (await _db.ProductVariants.AnyAsync(v => v.ProductId == model.ProductId && v.ColorId == model.ColorId && v.RamGB == model.RamGB && v.StorageGB == model.StorageGB))
+        {
+            TempData["ErrorMessage"] = $"Sản phẩm đã có phiên bản Màu '{color.Name}' với RAM {model.RamGB}GB và SSD {model.StorageGB}GB. Không thể thêm phiên bản trùng lặp.";
+            return RedirectToAction(nameof(Variants), new { id = model.ProductId });
+        }
+
+        var variant = new ProductVariant
+        {
+            ProductId = model.ProductId,
+            ColorId = model.ColorId,
+            RamGB = model.RamGB,
+            StorageGB = model.StorageGB,
+            SKU = sku,
+            StockQuantity = Math.Max(0, model.StockQuantity),
+            Price = model.Price > 0 ? model.Price : product.Price,
+            DiscountPrice = model.DiscountPrice,
+            ImageUrl = !string.IsNullOrWhiteSpace(model.ImageUrl) ? model.ImageUrl.Trim() : product.ThumbnailUrl,
+            IsActive = true
+        };
+
+        _db.ProductVariants.Add(variant);
+        await _db.SaveChangesAsync();
+
+        // Đồng bộ lại tổng tồn kho Product = tổng tồn kho các variant
+        var totalStock = await _db.ProductVariants.Where(v => v.ProductId == model.ProductId).SumAsync(v => v.StockQuantity);
+        product.StockQuantity = totalStock;
+        await _db.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Đã thêm thành công phiên bản Màu {color.Name} (RAM {variant.RamGB}GB / SSD {variant.StorageGB}GB, tồn kho: {variant.StockQuantity})!";
+        return RedirectToAction(nameof(Variants), new { id = model.ProductId });
+    }
+
+    /// <summary>
+    /// 9. Điều chỉnh số lượng tồn kho của một phiên bản cụ thể (POST: /Product/AdjustVariantStock)
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AdjustVariantStock(AdjustVariantStockViewModel model)
+    {
+        var variant = await _db.ProductVariants
+            .Include(v => v.Color)
+            .FirstOrDefaultAsync(v => v.VariantId == model.VariantId);
+
+        if (variant == null)
+        {
+            return NotFound();
+        }
+
+        if (model.NewStockQuantity < 0)
+        {
+            TempData["ErrorMessage"] = "Số lượng tồn kho không được âm.";
+            return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
+        }
+
+        variant.StockQuantity = model.NewStockQuantity;
+        await _db.SaveChangesAsync();
+
+        // Đồng bộ tổng tồn kho trên Product
+        var totalStock = await _db.ProductVariants.Where(v => v.ProductId == variant.ProductId).SumAsync(v => v.StockQuantity);
+        var product = await _db.Products.FindAsync(variant.ProductId);
+        if (product != null)
+        {
+            product.StockQuantity = totalStock;
+            await _db.SaveChangesAsync();
+        }
+
+        TempData["SuccessMessage"] = $"Đã cập nhật tồn kho phiên bản '{variant.SKU}' ({variant.Color?.Name}) thành {model.NewStockQuantity} máy!";
+        return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
+    }
+
+    /// <summary>
+    /// 10. Chuyển trạng thái kích hoạt phiên bản (POST: /Product/ToggleVariant/5)
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleVariant(int id)
+    {
+        var variant = await _db.ProductVariants
+            .Include(v => v.Color)
+            .FirstOrDefaultAsync(v => v.VariantId == id);
+
+        if (variant == null)
+        {
+            return NotFound();
+        }
+
+        variant.IsActive = !variant.IsActive;
+        await _db.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Đã {(variant.IsActive ? "kích hoạt" : "vô hiệu hóa")} phiên bản {variant.SKU} ({variant.Color?.Name})!";
+        return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
+    }
+
+    /// <summary>
     /// Chuyển hướng nhanh sang trang Quản lý sản phẩm
     /// </summary>
     public IActionResult Dashboard() => RedirectToAction("Index");

@@ -25,6 +25,21 @@ public class OrderItem
     public Product? Product { get; set; }
 
     /// <summary>
+    /// Khóa ngoại liên kết tới phiên bản cụ thể (Màu sắc + RAM + SSD)
+    /// Cho phép null đối với các đơn hàng lịch sử trước khi nâng cấp hệ thống phiên bản
+    /// </summary>
+    public int? VariantId { get; set; }
+
+    [ForeignKey("VariantId")]
+    public ProductVariant? Variant { get; set; }
+
+    /// <summary>
+    /// Tên màu sắc tại thời điểm mua (vd: "Bạc", "Đen", "Xám không gian")
+    /// </summary>
+    [StringLength(100)]
+    public string? ColorName { get; set; }
+
+    /// <summary>
     /// Tên sản phẩm tại thời điểm mua (tránh bị đổi tên trong DB sau này)
     /// </summary>
     [Required]

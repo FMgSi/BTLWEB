@@ -37,6 +37,48 @@ public static class DbInitializer
                         ALTER TABLE Payments ADD ScheduleId INT NULL;
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Payments') AND name = 'ConfirmedBy')
                         ALTER TABLE Payments ADD ConfirmedBy NVARCHAR(100) NULL;
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('OrderItems') AND name = 'VariantId')
+                        ALTER TABLE OrderItems ADD VariantId INT NULL;
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('OrderItems') AND name = 'ColorName')
+                        ALTER TABLE OrderItems ADD ColorName NVARCHAR(100) NULL;
+
+                    IF OBJECT_ID('dbo.Colors', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE Colors (
+                            ColorId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            Name NVARCHAR(100) NOT NULL,
+                            HexCode NVARCHAR(20) NOT NULL,
+                            IsActive BIT NOT NULL DEFAULT 1,
+                            CONSTRAINT IX_Colors_Name UNIQUE (Name)
+                        );
+                    END
+
+                    IF OBJECT_ID('dbo.ProductVariants', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE ProductVariants (
+                            VariantId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            ProductId INT NOT NULL,
+                            ColorId INT NOT NULL,
+                            RamGB INT NOT NULL,
+                            StorageGB INT NOT NULL,
+                            SKU NVARCHAR(100) NOT NULL,
+                            StockQuantity INT NOT NULL DEFAULT 0,
+                            Price DECIMAL(18,2) NOT NULL DEFAULT 0,
+                            DiscountPrice DECIMAL(18,2) NULL,
+                            ImageUrl NVARCHAR(500) NULL,
+                            IsActive BIT NOT NULL DEFAULT 1,
+                            CONSTRAINT IX_ProductVariants_SKU UNIQUE (SKU),
+                            CONSTRAINT IX_ProductVariants_UniqueCombo UNIQUE (ProductId, ColorId, RamGB, StorageGB),
+                            CONSTRAINT FK_ProductVariants_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE,
+                            CONSTRAINT FK_ProductVariants_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId)
+                        );
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_OrderItems_ProductVariants_VariantId')
+                    BEGIN
+                        ALTER TABLE OrderItems ADD CONSTRAINT FK_OrderItems_ProductVariants_VariantId 
+                            FOREIGN KEY (VariantId) REFERENCES ProductVariants (VariantId) ON DELETE SET NULL;
+                    END
 
                     IF OBJECT_ID('dbo.InstallmentContracts', 'U') IS NULL
                     BEGIN
@@ -91,6 +133,8 @@ public static class DbInitializer
         if (context.Products.Any())
         {
             SeedProductImagesIfEmpty(context);
+            SeedColorsIfEmpty(context);
+            SeedVariantsIfEmpty(context);
             SeedOrdersIfEmpty(context);
             return;
         }
@@ -141,6 +185,8 @@ public static class DbInitializer
                 if (context.Products.Any())
                 {
                     SeedProductImagesIfEmpty(context);
+                    SeedColorsIfEmpty(context);
+                    SeedVariantsIfEmpty(context);
                     SeedOrdersIfEmpty(context);
                     return;
                 }
@@ -158,6 +204,8 @@ public static class DbInitializer
         // 5. Fallback Seed nếu không tìm thấy file SQL
         SeedFallbackProducts(context);
         SeedProductImagesIfEmpty(context);
+        SeedColorsIfEmpty(context);
+        SeedVariantsIfEmpty(context);
         SeedOrdersIfEmpty(context);
     }
 
@@ -464,6 +512,148 @@ public static class DbInitializer
         catch (Exception ex)
         {
             Console.WriteLine("[DbInitializer] Lỗi SeedOrdersIfEmpty: " + ex.Message);
+        }
+    }
+
+    private static void SeedColorsIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            if (!context.Colors.Any())
+            {
+                var defaultColors = new List<Color>
+                {
+                    new() { Name = "Bạc", HexCode = "#E5E7EB", IsActive = true },
+                    new() { Name = "Đen", HexCode = "#18181B", IsActive = true },
+                    new() { Name = "Xám không gian", HexCode = "#4B5563", IsActive = true },
+                    new() { Name = "Trắng", HexCode = "#F8FAFC", IsActive = true },
+                    new() { Name = "Xanh navy", HexCode = "#1E3A8A", IsActive = true }
+                };
+                context.Colors.AddRange(defaultColors);
+                context.SaveChanges();
+                Console.WriteLine("[DbInitializer] Đã nạp bảng màu mặc định thành công.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Lỗi SeedColorsIfEmpty: " + ex.Message);
+        }
+    }
+
+    private static void SeedVariantsIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            if (context.ProductVariants.Any()) return;
+            if (!context.Products.Any() || !context.Colors.Any()) return;
+
+            var colors = context.Colors.ToList();
+            var silver = colors.FirstOrDefault(c => c.Name == "Bạc") ?? colors.First();
+            var black = colors.FirstOrDefault(c => c.Name == "Đen") ?? colors.First();
+            var spaceGray = colors.FirstOrDefault(c => c.Name == "Xám không gian") ?? colors.First();
+
+            var products = context.Products
+                .Include(p => p.Specification)
+                .ToList();
+
+            var variants = new List<ProductVariant>();
+
+            foreach (var prod in products)
+            {
+                int ram = prod.Specification?.RamGB ?? 16;
+                int storage = prod.Specification?.StorageGB ?? 512;
+
+                bool isDellDemo = prod.ProductName.Contains("Dell", StringComparison.OrdinalIgnoreCase) || prod.ProductId == 1;
+
+                if (isDellDemo)
+                {
+                    // Nghiệp vụ cốt lõi theo kịch bản:
+                    // 1. Dell - Bạc - 16GB - 512GB: Tồn 1
+                    variants.Add(new ProductVariant
+                    {
+                        ProductId = prod.ProductId,
+                        ColorId = silver.ColorId,
+                        RamGB = 16,
+                        StorageGB = 512,
+                        SKU = $"DELL-{prod.ProductId}-SLV-16-512",
+                        StockQuantity = 1,
+                        Price = prod.Price,
+                        DiscountPrice = prod.DiscountPrice,
+                        IsActive = true
+                    });
+
+                    // 2. Dell - Đen - 16GB - 512GB: Tồn 2
+                    variants.Add(new ProductVariant
+                    {
+                        ProductId = prod.ProductId,
+                        ColorId = black.ColorId,
+                        RamGB = 16,
+                        StorageGB = 512,
+                        SKU = $"DELL-{prod.ProductId}-BLK-16-512",
+                        StockQuantity = 2,
+                        Price = prod.Price,
+                        DiscountPrice = prod.DiscountPrice,
+                        IsActive = true
+                    });
+
+                    // 3. Dell - Đen - 32GB - 1TB: Tồn 0
+                    variants.Add(new ProductVariant
+                    {
+                        ProductId = prod.ProductId,
+                        ColorId = black.ColorId,
+                        RamGB = 32,
+                        StorageGB = 1024,
+                        SKU = $"DELL-{prod.ProductId}-BLK-32-1TB",
+                        StockQuantity = 0,
+                        Price = prod.Price + 4000000,
+                        DiscountPrice = null,
+                        IsActive = true
+                    });
+
+                    // Cập nhật tổng tồn kho của Dell = 1 + 2 + 0 = 3
+                    prod.StockQuantity = 3;
+                }
+                else
+                {
+                    // Các laptop khác: Tạo 2 biến thể màu với thông số sẵn có
+                    int halfStock = Math.Max(1, prod.StockQuantity / 2);
+                    int remainingStock = Math.Max(0, prod.StockQuantity - halfStock);
+
+                    variants.Add(new ProductVariant
+                    {
+                        ProductId = prod.ProductId,
+                        ColorId = spaceGray.ColorId,
+                        RamGB = ram,
+                        StorageGB = storage,
+                        SKU = $"SKU-{prod.ProductId}-SGRY-{ram}-{storage}",
+                        StockQuantity = halfStock,
+                        Price = prod.Price,
+                        DiscountPrice = prod.DiscountPrice,
+                        IsActive = true
+                    });
+
+                    variants.Add(new ProductVariant
+                    {
+                        ProductId = prod.ProductId,
+                        ColorId = silver.ColorId,
+                        RamGB = ram,
+                        StorageGB = storage,
+                        SKU = $"SKU-{prod.ProductId}-SLV-{ram}-{storage}",
+                        StockQuantity = remainingStock,
+                        Price = prod.Price,
+                        DiscountPrice = prod.DiscountPrice,
+                        IsActive = true
+                    });
+                }
+            }
+
+            context.ProductVariants.AddRange(variants);
+            context.SaveChanges();
+            Console.WriteLine($"[DbInitializer] Đã nạp thành công {variants.Count} phiên bản (Variants) cho các laptop.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Lỗi SeedVariantsIfEmpty: " + ex.Message);
         }
     }
 }

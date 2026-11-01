@@ -1,0 +1,140 @@
+@model LaptopStore.Models.Color
+
+@{
+    ViewData["Title"] = $"Chi tiết màu sắc: {Model.Name}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 text-primary mb-1"><i class="bi bi-info-circle-fill me-2"></i>Chi tiết Màu Sắc: @Model.Name</h1>
+        <p class="text-muted mb-0">Xem thông tin màu sắc và các phiên bản cấu hình laptop đang liên kết với màu này</p>
+    </div>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model.ColorId" class="btn btn-warning me-2 text-dark fw-semibold">
+            <i class="bi bi-pencil me-1"></i> Chỉnh sửa
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 rounded-3 h-100">
+            <div class="card-header bg-light py-3">
+                <h5 class="card-title mb-0 fw-bold"><i class="bi bi-card-heading me-2"></i>Thông số màu</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-3">
+                    <div class="rounded-circle border shadow-sm mx-auto mb-3" 
+                         style="width: 80px; height: 80px; background-color: @Model.HexCode;"></div>
+                    <h4 class="fw-bold mb-1">@Model.Name</h4>
+                    <code class="fs-5 px-3 py-1 bg-light border rounded text-dark">@Model.HexCode</code>
+                </div>
+
+                <hr />
+
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-5 text-muted">Mã ID hệ thống:</dt>
+                    <dd class="col-sm-7 fw-bold">#@Model.ColorId</dd>
+
+                    <dt class="col-sm-5 text-muted">Trạng thái:</dt>
+                    <dd class="col-sm-7">
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">Đang kích hoạt</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Ngừng áp dụng</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5 text-muted">Số phiên bản dùng:</dt>
+                    <dd class="col-sm-7 fw-bold text-primary">@(Model.Variants?.Count ?? 0) phiên bản</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold"><i class="bi bi-laptop me-2"></i>Danh sách phiên bản laptop sử dụng màu @Model.Name</h5>
+                <span class="badge bg-primary">@(Model.Variants?.Count ?? 0) mẫu</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Sản phẩm laptop</th>
+                                <th>Mã SKU</th>
+                                <th>RAM / SSD</th>
+                                <th>Tồn kho</th>
+                                <th>Giá bán</th>
+                                <th class="text-end pe-3">Quản lý</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Variants != null && Model.Variants.Any())
+                        {
+                            @foreach (var v in Model.Variants)
+                            {
+                                <tr>
+                                    <td class="ps-3 fw-semibold">
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrWhiteSpace(v.Product?.ThumbnailUrl))
+                                            {
+                                                <img src="@v.Product.ThumbnailUrl" style="width: 36px; height: 36px; object-fit: contain;" class="rounded border" />
+                                            }
+                                            <span>@(v.Product?.ProductName ?? "Sản phẩm")</span>
+                                        </div>
+                                    </td>
+                                    <td><code>@v.SKU</code></td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @v.RamGB GB / @(v.StorageGB >= 1024 ? $"{v.StorageGB / 1024}TB" : $"{v.StorageGB}GB")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (v.StockQuantity > 0)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                @v.StockQuantity máy
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                Hết hàng (0)
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="fw-bold text-danger">
+                                        @((v.EffectivePrice > 0 ? v.EffectivePrice : (v.Product?.DiscountPrice ?? v.Product?.Price ?? 0)).ToString("N0")) ₫
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="/Product/Variants/@v.ProductId" class="btn btn-sm btn-outline-primary" title="Xem chi tiết các phiên bản">
+                                            <i class="bi bi-gear"></i> Biến thể
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Chưa có máy laptop nào sử dụng màu sắc này.
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

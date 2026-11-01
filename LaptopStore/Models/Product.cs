@@ -94,4 +94,9 @@ public class Product
     /// Quan hệ 1-Nhiều với bộ sưu tập hình ảnh bổ sung
     /// </summary>
     public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+
+    /// <summary>
+    /// Danh sách các phiên bản cụ thể (Màu sắc + RAM + SSD) của mẫu laptop này
+    /// </summary>
+    public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
 }

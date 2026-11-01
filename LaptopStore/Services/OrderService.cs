@@ -51,72 +51,184 @@ public class OrderService : IOrderService
                     .Where(p => productIds.Contains(p.ProductId))
                     .ToDictionaryAsync(p => p.ProductId);
 
+                var variantIds = req.Items.Where(i => i.VariantId.HasValue).Select(i => i.VariantId!.Value).Distinct().ToList();
+                var variants = new Dictionary<int, ProductVariant>();
+                if (variantIds.Any())
+                {
+                    variants = await _db.ProductVariants
+                        .Include(v => v.Color)
+                        .Where(v => variantIds.Contains(v.VariantId))
+                        .ToDictionaryAsync(v => v.VariantId);
+                }
+
                 decimal subTotal = 0;
                 var orderItems = new List<OrderItem>();
+                var inMemoryDeductions = new List<(ProductVariant? v, Product p, int qty)>();
+
+                async Task RollbackAsync()
+                {
+                    await tx.RollbackAsync();
+                    if (!_db.Database.IsRelational())
+                    {
+                        foreach (var d in inMemoryDeductions)
+                        {
+                            if (d.v != null) d.v.StockQuantity += d.qty;
+                            d.p.StockQuantity += d.qty;
+                        }
+                        await _db.SaveChangesAsync();
+                    }
+                }
 
                 foreach (var itemReq in req.Items)
                 {
                     if (!products.TryGetValue(itemReq.ProductId, out var product))
                     {
-                        await tx.RollbackAsync();
+                        await RollbackAsync();
                         return (false, $"Sản phẩm mã #{itemReq.ProductId} không tồn tại trên hệ thống.", null);
                     }
 
                     if (!product.IsActive)
                     {
-                        await tx.RollbackAsync();
+                        await RollbackAsync();
                         return (false, $"Sản phẩm '{product.ProductName}' hiện đã ngừng kinh doanh.", null);
                     }
 
-                    // CHỐNG BÁN VƯỢT TỒN KHO (CONCURRENCY SAFE):
-                    // Thực thi UPDATE nguyên tử có điều kiện trực tiếp dưới SQL Server với kiểm tra số dòng bị ảnh hưởng
-                    int rowsAffected;
-                    if (_db.Database.IsRelational())
+                    decimal unitPrice;
+                    string specSnapshot = itemReq.SelectedSpecs ?? "";
+                    string? colorName = itemReq.ColorName;
+                    int? variantId = null;
+                    string? itemThumbnail = product.ThumbnailUrl;
+
+                    if (itemReq.VariantId.HasValue)
                     {
-                        rowsAffected = await _db.Products
-                            .Where(p => p.ProductId == itemReq.ProductId && p.IsActive && p.StockQuantity >= itemReq.Quantity)
-                            .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity - itemReq.Quantity));
-                    }
-                    else
-                    {
-                        // Fallback cho môi trường test InMemory (không hỗ trợ ExecuteUpdateAsync quan hệ)
-                        if (product.StockQuantity >= itemReq.Quantity)
+                        if (!variants.TryGetValue(itemReq.VariantId.Value, out var variant))
                         {
-                            product.StockQuantity -= itemReq.Quantity;
-                            await _db.SaveChangesAsync();
-                            rowsAffected = 1;
+                            await RollbackAsync();
+                            return (false, $"Phiên bản sản phẩm #{itemReq.VariantId.Value} không tồn tại trên hệ thống.", null);
+                        }
+
+                        if (variant.ProductId != itemReq.ProductId)
+                        {
+                            await RollbackAsync();
+                            return (false, $"Phiên bản '{variant.SKU}' không thuộc sản phẩm '{product.ProductName}'.", null);
+                        }
+
+                        if (!variant.IsActive)
+                        {
+                            await RollbackAsync();
+                            return (false, $"Phiên bản '{variant.SKU}' ({variant.Color?.Name}) hiện đã ngừng kinh doanh.", null);
+                        }
+
+                        // CHỐNG BÁN VƯỢT TỒN KHO TRÊN PHIÊN BẢN (MÀU SẮC + CẤU HÌNH CONCURRENCY SAFE):
+                        int variantRowsAffected;
+                        if (_db.Database.IsRelational())
+                        {
+                            variantRowsAffected = await _db.ProductVariants
+                                .Where(v => v.VariantId == variant.VariantId && v.IsActive && v.StockQuantity >= itemReq.Quantity)
+                                .ExecuteUpdateAsync(s => s.SetProperty(v => v.StockQuantity, v => v.StockQuantity - itemReq.Quantity));
                         }
                         else
                         {
-                            rowsAffected = 0;
+                            if (variant.StockQuantity >= itemReq.Quantity)
+                            {
+                                variant.StockQuantity -= itemReq.Quantity;
+                                await _db.SaveChangesAsync();
+                                variantRowsAffected = 1;
+                            }
+                            else
+                            {
+                                variantRowsAffected = 0;
+                            }
+                        }
+
+                        if (variantRowsAffected == 0)
+                        {
+                            await RollbackAsync();
+                            var freshV = await _db.ProductVariants.AsNoTracking().FirstOrDefaultAsync(v => v.VariantId == variant.VariantId);
+                            int currentStock = freshV?.StockQuantity ?? 0;
+                            string cName = variant.Color?.Name ?? "đã chọn";
+                            return (false, $"Sản phẩm '{product.ProductName}' - Màu {cName} (RAM {variant.RamGB}GB/SSD {variant.StorageGB}GB) không đủ tồn kho (chỉ còn {currentStock} máy). Vui lòng điều chỉnh giỏ hàng!", null);
+                        }
+
+                        // Đồng thời trừ tổng tồn kho trên Product:
+                        if (_db.Database.IsRelational())
+                        {
+                            await _db.Products
+                                .Where(p => p.ProductId == itemReq.ProductId && p.StockQuantity >= itemReq.Quantity)
+                                .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity - itemReq.Quantity));
+                        }
+                        else
+                        {
+                            product.StockQuantity -= itemReq.Quantity;
+                            await _db.SaveChangesAsync();
+                            inMemoryDeductions.Add((variant, product, itemReq.Quantity));
+                        }
+
+                        variantId = variant.VariantId;
+                        colorName = variant.Color?.Name ?? itemReq.ColorName;
+                        unitPrice = variant.EffectivePrice > 0 ? variant.EffectivePrice : (product.DiscountPrice ?? product.Price);
+                        if (!string.IsNullOrWhiteSpace(variant.ImageUrl))
+                        {
+                            itemThumbnail = variant.ImageUrl;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(specSnapshot))
+                        {
+                            specSnapshot = $"Màu {colorName} • RAM {variant.RamGB}GB • SSD {variant.StorageGB}GB";
+                        }
+                    }
+                    else
+                    {
+                        // FALLBACK: Đơn hàng theo sản phẩm gốc (dành cho dữ liệu cũ hoặc không chọn variant)
+                        int rowsAffected;
+                        if (_db.Database.IsRelational())
+                        {
+                            rowsAffected = await _db.Products
+                                .Where(p => p.ProductId == itemReq.ProductId && p.IsActive && p.StockQuantity >= itemReq.Quantity)
+                                .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity - itemReq.Quantity));
+                        }
+                        else
+                        {
+                            // Fallback cho môi trường test InMemory (không hỗ trợ ExecuteUpdateAsync quan hệ)
+                            if (product.StockQuantity >= itemReq.Quantity)
+                            {
+                                product.StockQuantity -= itemReq.Quantity;
+                                await _db.SaveChangesAsync();
+                                rowsAffected = 1;
+                                inMemoryDeductions.Add((null, product, itemReq.Quantity));
+                            }
+                            else
+                            {
+                                rowsAffected = 0;
+                            }
+                        }
+
+                        if (rowsAffected == 0)
+                        {
+                            await RollbackAsync();
+                            var freshP = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == itemReq.ProductId);
+                            int currentStock = freshP?.StockQuantity ?? 0;
+                            return (false, $"Sản phẩm '{product.ProductName}' không đủ tồn kho (chỉ còn {currentStock} máy). Vui lòng điều chỉnh giỏ hàng!", null);
+                        }
+
+                        unitPrice = product.DiscountPrice ?? product.Price;
+                        if (string.IsNullOrWhiteSpace(specSnapshot) && product.Specification != null)
+                        {
+                            specSnapshot = $"RAM {product.Specification.RamGB}GB • {product.Specification.StorageGB}GB {product.Specification.StorageType}";
                         }
                     }
 
-                    if (rowsAffected == 0)
-                    {
-                        await tx.RollbackAsync();
-                        var freshP = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == itemReq.ProductId);
-                        int currentStock = freshP?.StockQuantity ?? 0;
-                        return (false, $"Sản phẩm '{product.ProductName}' không đủ tồn kho (chỉ còn {currentStock} máy). Vui lòng điều chỉnh giỏ hàng!", null);
-                    }
-
-                    // Chụp lại giá và cấu hình tại thời điểm mua (Phi chuẩn hóa kế toán có chủ đích)
-                    decimal unitPrice = product.DiscountPrice ?? product.Price;
                     decimal itemTotal = unitPrice * itemReq.Quantity;
                     subTotal += itemTotal;
-
-                    string specSnapshot = itemReq.SelectedSpecs ?? "";
-                    if (string.IsNullOrWhiteSpace(specSnapshot) && product.Specification != null)
-                    {
-                        specSnapshot = $"RAM {product.Specification.RamGB}GB • {product.Specification.StorageGB}GB {product.Specification.StorageType}";
-                    }
 
                     orderItems.Add(new OrderItem
                     {
                         ProductId = product.ProductId,
+                        VariantId = variantId,
+                        ColorName = colorName,
                         ProductName = product.ProductName,
                         SelectedSpecs = specSnapshot,
-                        ThumbnailUrl = product.ThumbnailUrl,
+                        ThumbnailUrl = itemThumbnail,
                         UnitPrice = unitPrice,
                         Quantity = itemReq.Quantity,
                         TotalPrice = itemTotal
@@ -262,6 +374,7 @@ public class OrderService : IOrderService
         var query = _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
+                .ThenInclude(i => i.Variant)
             .Include(o => o.Payments)
             .Include(o => o.InstallmentContract)
                 .ThenInclude(c => c!.Schedules)
@@ -305,6 +418,7 @@ public class OrderService : IOrderService
         var o = await _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
+                .ThenInclude(i => i.Variant)
             .Include(o => o.Payments)
             .Include(o => o.InstallmentContract)
                 .ThenInclude(c => c!.Schedules)
@@ -318,6 +432,7 @@ public class OrderService : IOrderService
         var orders = await _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
+                .ThenInclude(i => i.Variant)
             .Include(o => o.Payments)
             .Include(o => o.InstallmentContract)
                 .ThenInclude(c => c!.Schedules)
@@ -402,21 +517,52 @@ public class OrderService : IOrderService
                     }
 
                     // Hoàn lại số lượng tồn kho chính xác một lần duy nhất bằng UPDATE nguyên tử
+                    // Hoàn trả đúng phiên bản (Màu sắc + Cấu hình) nếu đơn có liên kết VariantId, đồng thời cập nhật Product
                     foreach (var item in order.OrderItems)
                     {
-                        if (_db.Database.IsRelational())
+                        if (item.VariantId.HasValue)
                         {
-                            await _db.Products
-                                .Where(p => p.ProductId == item.ProductId)
-                                .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity + item.Quantity));
+                            if (_db.Database.IsRelational())
+                            {
+                                await _db.ProductVariants
+                                    .Where(v => v.VariantId == item.VariantId.Value)
+                                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.StockQuantity, v => v.StockQuantity + item.Quantity));
+
+                                await _db.Products
+                                    .Where(p => p.ProductId == item.ProductId)
+                                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity + item.Quantity));
+                            }
+                            else
+                            {
+                                var v = await _db.ProductVariants.FindAsync(item.VariantId.Value);
+                                if (v != null)
+                                {
+                                    v.StockQuantity += item.Quantity;
+                                }
+                                var p = await _db.Products.FindAsync(item.ProductId);
+                                if (p != null)
+                                {
+                                    p.StockQuantity += item.Quantity;
+                                }
+                                await _db.SaveChangesAsync();
+                            }
                         }
                         else
                         {
-                            var p = await _db.Products.FindAsync(item.ProductId);
-                            if (p != null)
+                            if (_db.Database.IsRelational())
                             {
-                                p.StockQuantity += item.Quantity;
-                                await _db.SaveChangesAsync();
+                                await _db.Products
+                                    .Where(p => p.ProductId == item.ProductId)
+                                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.StockQuantity, p => p.StockQuantity + item.Quantity));
+                            }
+                            else
+                            {
+                                var p = await _db.Products.FindAsync(item.ProductId);
+                                if (p != null)
+                                {
+                                    p.StockQuantity += item.Quantity;
+                                    await _db.SaveChangesAsync();
+                                }
                             }
                         }
                     }
@@ -728,6 +874,9 @@ public class OrderService : IOrderService
             {
                 OrderItemId = i.OrderItemId,
                 ProductId = i.ProductId,
+                VariantId = i.VariantId,
+                ColorName = i.ColorName,
+                SKU = i.Variant?.SKU,
                 ProductName = i.ProductName,
                 SelectedSpecs = i.SelectedSpecs,
                 ThumbnailUrl = i.ThumbnailUrl,

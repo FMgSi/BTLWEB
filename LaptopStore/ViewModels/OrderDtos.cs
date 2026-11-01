@@ -50,6 +50,16 @@ public class CreateOrderItemRequest
     [Required]
     public int ProductId { get; set; }
 
+    /// <summary>
+    /// ID phiên bản cụ thể (Màu + RAM + SSD). Bắt buộc đối với các đơn hàng mới.
+    /// </summary>
+    public int? VariantId { get; set; }
+
+    /// <summary>
+    /// Tên màu đã chọn (vd: "Bạc", "Đen")
+    /// </summary>
+    public string? ColorName { get; set; }
+
     [Range(1, 100, ErrorMessage = "Số lượng mỗi sản phẩm từ 1 đến 100")]
     public int Quantity { get; set; } = 1;
 
@@ -79,6 +89,9 @@ public class OrderItemResponseDto
 {
     public int OrderItemId { get; set; }
     public int ProductId { get; set; }
+    public int? VariantId { get; set; }
+    public string? ColorName { get; set; }
+    public string? SKU { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string? SelectedSpecs { get; set; }
     public string? ThumbnailUrl { get; set; }

@@ -256,6 +256,8 @@ public class ProductService : IProductService
             .Include(x => x.Category)
             .Include(x => x.Specification)
             .Include(x => x.Images)
+            .Include(x => x.Variants)
+                .ThenInclude(v => v.Color)
             .FirstOrDefaultAsync(x => x.ProductId == id && x.IsActive);
 
         if (p == null) return null;
@@ -274,6 +276,32 @@ public class ProductService : IProductService
             imageList.Insert(0, p.ThumbnailUrl);
         }
 
+        var variantsDto = p.Variants
+            .Where(v => v.IsActive)
+            .OrderBy(v => v.Color?.Name)
+            .ThenBy(v => v.RamGB)
+            .ThenBy(v => v.StorageGB)
+            .Select(v => new ProductVariantDto
+            {
+                VariantId = v.VariantId,
+                ProductId = v.ProductId,
+                ProductName = p.ProductName,
+                ColorId = v.ColorId,
+                ColorName = v.Color?.Name ?? "Mặc định",
+                HexCode = v.Color?.HexCode ?? "#CBD5E1",
+                RamGB = v.RamGB,
+                StorageGB = v.StorageGB,
+                SKU = v.SKU,
+                StockQuantity = v.StockQuantity,
+                Price = v.Price,
+                DiscountPrice = v.DiscountPrice,
+                EffectivePrice = v.EffectivePrice,
+                ImageUrl = v.ImageUrl,
+                IsActive = v.IsActive
+            }).ToList();
+
+        int totalStock = variantsDto.Any() ? variantsDto.Sum(v => v.StockQuantity) : p.StockQuantity;
+
         return new ProductDetailDto
         {
             Id = p.ProductId,
@@ -283,7 +311,7 @@ public class ProductService : IProductService
             Price = curPrice,
             OriginalPrice = oldPrice,
             DiscountPercent = discountPercent,
-            StockQuantity = p.StockQuantity,
+            StockQuantity = totalStock,
             Image = p.ThumbnailUrl ?? "/images/default.png",
             Images = imageList,
             Description = p.Description ?? "Sản phẩm chính hãng với bảo hành 12-24 tháng.",
@@ -299,7 +327,8 @@ public class ProductService : IProductService
                 WeightKg = p.Specification.WeightKg,
                 BatteryWh = p.Specification.BatteryWh,
                 OS = p.Specification.OS ?? "Windows 11"
-            }
+            },
+            Variants = variantsDto
         };
     }
 

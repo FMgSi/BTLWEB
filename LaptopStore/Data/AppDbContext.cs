@@ -72,6 +72,16 @@ public class AppDbContext : DbContext
     public DbSet<InstallmentSchedule> InstallmentSchedules => Set<InstallmentSchedule>();
 
     /// <summary>
+    /// Bảng Colors (Danh mục Màu sắc)
+    /// </summary>
+    public DbSet<Color> Colors => Set<Color>();
+
+    /// <summary>
+    /// Bảng ProductVariants (Các phiên bản cụ thể của laptop: Màu + RAM + SSD)
+    /// </summary>
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+
+    /// <summary>
     /// Cấu hình nâng cao cho các bảng và mối quan hệ (Fluent API)
     /// </summary>
     protected override void OnModelCreating(ModelBuilder mb)
@@ -190,6 +200,41 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(s => s.PaymentId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Cấu hình bảng Colors
+        mb.Entity<Color>(entity =>
+        {
+            entity.HasIndex(c => c.Name).IsUnique();
+        });
+
+        // Cấu hình bảng ProductVariants
+        mb.Entity<ProductVariant>(entity =>
+        {
+            entity.HasIndex(v => v.SKU).IsUnique();
+            entity.HasIndex(v => new { v.ProductId, v.ColorId, v.RamGB, v.StorageGB }).IsUnique();
+
+            entity.Property(v => v.Price).HasPrecision(18, 2);
+            entity.Property(v => v.DiscountPrice).HasPrecision(18, 2);
+
+            entity.HasOne(v => v.Product)
+                .WithMany(p => p.Variants)
+                .HasForeignKey(v => v.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(v => v.Color)
+                .WithMany(c => c.Variants)
+                .HasForeignKey(v => v.ColorId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Cấu hình liên kết OrderItem -> ProductVariant
+        mb.Entity<OrderItem>(entity =>
+        {
+            entity.HasOne(i => i.Variant)
+                .WithMany()
+                .HasForeignKey(i => i.VariantId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

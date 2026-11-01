@@ -222,6 +222,16 @@
                                                 }
                                                 <div>
                                                     <div class="fw-semibold">@item.ProductName</div>
+                                                    <div class="d-flex flex-wrap gap-1 my-1">
+                                                        @if (!string.IsNullOrEmpty(item.ColorName))
+                                                        {
+                                                            <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.7rem;">Màu: @item.ColorName</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.SKU))
+                                                        {
+                                                            <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.7rem;">SKU: @item.SKU</span>
+                                                        }
+                                                    </div>
                                                     @if (!string.IsNullOrEmpty(item.SelectedSpecs))
                                                     {
                                                         <div class="text-muted" style="font-size: 0.75rem;">@item.SelectedSpecs</div>

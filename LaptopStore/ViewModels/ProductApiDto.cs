@@ -43,6 +43,7 @@ public class ProductDetailDto
     public List<string> Images { get; set; } = new();
     public string Description { get; set; } = string.Empty;
     public ProductSpecDto? Specification { get; set; }
+    public List<ProductVariantDto> Variants { get; set; } = new();
 }
 
 public class PagedResult<T>

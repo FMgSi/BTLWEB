@@ -84,6 +84,8 @@ export default function CartPage({
         termMonths: purchaseMode === 'Installment' ? termMonths : null,
         items: checkedItems.map((item) => ({
           productId: item.productId || item.id,
+          variantId: item.variantId || null,
+          colorName: item.colorName || item.color || null,
           quantity: item.quantity || 1,
           selectedSpecs: item.specs || (item.ram ? `RAM: ${item.ram} • ${item.storage}` : 'Cấu hình tiêu chuẩn'),
         })),
