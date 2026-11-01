@@ -141,3 +141,4 @@ public class ServiceTicket
     /// </summary>
     public ICollection<ServiceTicketHistory> Histories { get; set; } = new List<ServiceTicketHistory>();
 }
+

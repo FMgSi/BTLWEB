@@ -48,3 +48,4 @@ public class ServiceQuote
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+

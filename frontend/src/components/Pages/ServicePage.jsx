@@ -1033,3 +1033,4 @@ export default function ServicePage({ currentUser, initialTab = 'catalog', onGoH
     </div>
   );
 }
+

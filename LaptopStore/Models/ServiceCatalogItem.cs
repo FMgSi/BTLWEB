@@ -55,3 +55,4 @@ public class ServiceCatalogItem
 
     public bool IsActive { get; set; } = true;
 }
+

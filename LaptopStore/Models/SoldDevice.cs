@@ -59,3 +59,4 @@ public class SoldDevice
     [NotMapped]
     public bool IsUnderWarranty => DateTime.UtcNow <= WarrantyEndDate;
 }
+

@@ -347,3 +347,4 @@ public class WarrantyServiceTests
         Assert.Equal("Từ chối", updated.Quotes.First().CustomerDecision);
     }
 }
+

@@ -186,3 +186,4 @@ public class OrderItemSerialsInput
     public int OrderItemId { get; set; }
     public List<string> SerialNumbers { get; set; } = new();
 }
+

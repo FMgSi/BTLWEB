@@ -36,3 +36,4 @@ public class ServiceTicketHistory
     [StringLength(500)]
     public string? Notes { get; set; }
 }
+
