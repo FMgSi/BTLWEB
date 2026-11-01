@@ -5,12 +5,14 @@ export default function CartPage({
   cartItems = [],
   onUpdateQuantity,
   onRemoveItem,
+  onRemovePurchasedItems,
   onClearCart,
   onToggleCheck,
   onToggleAll,
   onGoHome,
   onSelectProduct,
   currentUser,
+  showToast,
 }) {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -19,6 +21,7 @@ export default function CartPage({
   const [copiedKey, setCopiedKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+  const [formError, setFormError] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState('');
 
   // Form đặt hàng
@@ -33,6 +36,7 @@ export default function CartPage({
   const handleOpenCheckoutModal = () => {
     setIdempotencyKey(`IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
     setPhoneError('');
+    setFormError('');
     setShowCheckoutModal(true);
   };
 
@@ -76,7 +80,7 @@ export default function CartPage({
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
-      alert('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
+      setFormError('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng!');
       return;
     }
 
@@ -87,6 +91,7 @@ export default function CartPage({
       return;
     }
     setPhoneError('');
+    setFormError('');
 
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -122,7 +127,7 @@ export default function CartPage({
         });
       } catch (networkErr) {
         console.error('Lỗi mạng kết nối API /api/orders:', networkErr);
-        alert('Không thể kết nối đến máy chủ backend (Cổng 5148 đang tắt hoặc mất mạng). Vui lòng thử lại!');
+        setFormError('Không thể kết nối đến máy chủ backend (Cổng 5148 đang tắt hoặc mất mạng). Vui lòng thử lại!');
         return;
       }
 
@@ -133,13 +138,13 @@ export default function CartPage({
           data = await res.json();
         } catch (jsonErr) {
           console.error('Lỗi phân tích cú pháp JSON phản hồi:', jsonErr);
-          alert('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau!');
+          setFormError('Máy chủ trả về phản hồi không hợp lệ. Vui lòng thử lại sau!');
           return;
         }
       } else {
         const text = await res.text();
         console.error('Máy chủ phản hồi nội dung non-JSON:', text);
-        alert(`Máy chủ phản hồi mã trạng thái HTTP ${res.status}. Vui lòng kiểm tra lại dịch vụ backend!`);
+        setFormError(`Máy chủ phản hồi mã trạng thái HTTP ${res.status}. Vui lòng kiểm tra lại dịch vụ backend!`);
         return;
       }
 
@@ -153,77 +158,87 @@ export default function CartPage({
         if (!errorMsg && data.title) {
           errorMsg = data.title;
         }
-        alert(errorMsg || 'Đặt hàng thất bại. Vui lòng kiểm tra lại thông tin giỏ hàng!');
+        setFormError(errorMsg || 'Đặt hàng thất bại. Vui lòng kiểm tra lại thông tin giỏ hàng!');
         return;
       }
 
-      const realOrderCode = data.orderCode || data.order?.orderCode || 'PC000000';
+      const realOrderCode = data.orderCode || data.order?.orderCode;
+      if (!realOrderCode) {
+        setFormError('Phản hồi từ máy chủ không chứa mã đơn hàng hợp lệ. Vui lòng thử lại!');
+        return;
+      }
 
-      try {
-        // Lấy chính xác tổng tiền đã được máy chủ Backend kiểm tra và chốt từ CSDL
-        const confirmedTotal = (data.order && typeof data.order.totalAmount === 'number')
-          ? data.order.totalAmount
-          : (typeof data.totalAmount === 'number' ? data.totalAmount : totalPayable);
+      // Lấy chính xác tổng tiền đã được máy chủ Backend kiểm tra và chốt từ CSDL
+      const confirmedTotal = (data.order && typeof data.order.totalAmount === 'number')
+        ? data.order.totalAmount
+        : (typeof data.totalAmount === 'number' ? data.totalAmount : totalPayable);
 
-        const orderData = {
-          orderId: realOrderCode,
-          name: customerName,
-          phone: cleanPhone,
-          address: customerAddress,
-          notes: orderNotes,
-          total: confirmedTotal,
-          purchaseMode: purchaseMode,
-          termMonths: termMonths,
-          prepayAmount: Math.round(confirmedTotal * 0.30),
-          remainingDebt: confirmedTotal - Math.round(confirmedTotal * 0.30),
-          items: (data.order?.items && data.order.items.length > 0)
-            ? data.order.items.map((i) => ({
-                ...i,
-                name: i.productName,
-                price: i.unitPrice,
-                specs: i.selectedSpecs,
-                image: i.thumbnailUrl,
-              }))
-            : [...checkedItems],
-          paymentMethod: paymentMethod === 'cod'
-            ? (purchaseMode === 'Installment'
-                ? 'Trả góp - Tiền mặt 30% khi giao máy (COD)'
-                : 'Thanh toán tiền mặt khi nhận hàng (COD)')
-            : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
-        };
+      const orderData = {
+        orderId: realOrderCode,
+        name: customerName,
+        phone: cleanPhone,
+        address: customerAddress,
+        notes: orderNotes,
+        total: confirmedTotal,
+        purchaseMode: purchaseMode,
+        termMonths: termMonths,
+        prepayAmount: Math.round(confirmedTotal * 0.30),
+        remainingDebt: confirmedTotal - Math.round(confirmedTotal * 0.30),
+        items: (data.order?.items && data.order.items.length > 0)
+          ? data.order.items.map((i) => ({
+              ...i,
+              name: i.productName,
+              price: i.unitPrice,
+              specs: i.selectedSpecs,
+              image: i.thumbnailUrl,
+            }))
+          : [...checkedItems],
+        paymentMethod: paymentMethod === 'cod'
+          ? (purchaseMode === 'Installment'
+              ? 'Trả góp - Tiền mặt 30% khi giao máy (COD)'
+              : 'Thanh toán tiền mặt khi nhận hàng (COD)')
+          : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
+      };
 
-        setShowCheckoutModal(false);
+      // Dọn đúng các dòng sản phẩm đã mua khỏi giỏ (một thao tác duy nhất, đồng bộ localStorage)
+      const purchasedKeys = checkedItems.map((item) => item.cartItemId || item.id);
+      if (onRemovePurchasedItems) {
+        onRemovePurchasedItems(purchasedKeys);
+      } else {
+        checkedItems.forEach((item) => {
+          onRemoveItem(item.cartItemId || item.id);
+        });
+      }
 
-        // Nếu chọn chuyển khoản ngân hàng -> Mở modal quét mã VietQR kèm mã đơn thật
-        if (paymentMethod === 'banking') {
-          setPendingOrder(orderData);
-          setShowQrModal(true);
-        } else {
-          // Nếu chọn COD -> Hoàn tất đặt hàng trực tiếp và xóa các món đã mua khỏi giỏ
-          checkedItems.forEach((item) => {
-            onRemoveItem(item.cartItemId || item.id);
-          });
-          setOrderSuccess(orderData);
+      setShowCheckoutModal(false);
+      setFormError('');
+
+      // Phân tách luồng COD và VietQR:
+      if (paymentMethod === 'banking') {
+        // VietQR: Chuyển sang modal quét mã QR riêng
+        setPendingOrder(orderData);
+        setShowQrModal(true);
+      } else {
+        // COD: Thoát checkout ngay lập tức, chuyển về trang chủ và hiển thị toast thông báo
+        if (showToast) {
+          showToast(`🎉 Đặt hàng thành công! Mã đơn: #${realOrderCode}`, 5000);
         }
-      } catch (uiErr) {
-        console.error('Lỗi cập nhật giao diện sau khi tạo đơn:', uiErr);
-        alert(`Đơn hàng của bạn đã được ghi nhận thành công với mã #${realOrderCode}! Bạn có thể tra cứu đơn hàng bằng số điện thoại.`);
+        onGoHome();
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Xác nhận đã thanh toán xong từ màn hình VietQR
-  const handleConfirmPaidQr = () => {
-    if (pendingOrder) {
-      checkedItems.forEach((item) => {
-        onRemoveItem(item.cartItemId || item.id);
-      });
-      setOrderSuccess(pendingOrder);
-      setPendingOrder(null);
-    }
+  // Đóng hoặc xác nhận từ màn hình VietQR -> điều hướng về trang chủ
+  const handleCloseQrModal = () => {
+    const code = pendingOrder?.orderId || '';
     setShowQrModal(false);
+    setPendingOrder(null);
+    if (showToast && code) {
+      showToast(`🎉 Đã tiếp nhận đơn hàng #${code}. Cửa hàng sẽ liên hệ xác nhận sớm nhất!`, 5000);
+    }
+    onGoHome();
   };
 
   // Đường link tạo mã QR VietQR tự động theo số tiền đã chốt từ máy chủ và mã đơn hàng
@@ -513,6 +528,13 @@ export default function CartPage({
 
               <form onSubmit={handleConfirmOrder}>
                 <div className="modal-body py-2">
+                  {formError && (
+                    <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                      <i className="bi bi-exclamation-triangle-fill fs-6 flex-shrink-0"></i>
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
                   {/* Chọn hình thức mua */}
                   <div className="mb-3 p-2 bg-light rounded-3 border">
                     <label className="form-label small fw-bold text-dark d-block mb-2">Hình thức mua hàng:</label>
@@ -727,7 +749,7 @@ export default function CartPage({
                 <button
                   type="button"
                   className="btn-close btn-close-white"
-                  onClick={() => setShowQrModal(false)}
+                  onClick={handleCloseQrModal}
                 ></button>
               </div>
 
@@ -809,7 +831,7 @@ export default function CartPage({
                   <button
                     type="button"
                     className="btn btn-light w-50"
-                    onClick={() => setShowQrModal(false)}
+                    onClick={handleCloseQrModal}
                   >
                     Đóng
                   </button>
@@ -817,7 +839,7 @@ export default function CartPage({
                     type="button"
                     className="btn btn-danger w-50 fw-bold"
                     style={{ backgroundColor: '#e11b1e' }}
-                    onClick={handleConfirmPaidQr}
+                    onClick={handleCloseQrModal}
                   >
                     <i className="bi bi-check-circle me-1"></i> Tôi đã chuyển khoản
                   </button>

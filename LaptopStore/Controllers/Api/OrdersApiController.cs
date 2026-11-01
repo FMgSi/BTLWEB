@@ -9,9 +9,11 @@ namespace LaptopStore.Controllers.Api;
 
 /// <summary>
 /// Web API Quản lý và Tiếp nhận Đơn đặt hàng từ khách hàng (React Frontend)
-/// Đường dẫn gốc: /api/orders
+/// Đường dẫn gốc chuẩn hóa: /api/orders
+/// Alias tương thích ngược: /api/OrdersApi
 /// </summary>
 [ApiController]
+[Route("api/orders")]
 [Route("api/[controller]")]
 public class OrdersApiController : ControllerBase
 {
@@ -59,13 +61,20 @@ public class OrdersApiController : ControllerBase
             return BadRequest(new { success = false, message = string.Join("; ", errors) });
         }
 
-        // Lấy UserId từ Session nếu khách đã đăng nhập
+        // Lấy UserId từ Session nếu khách đã đăng nhập (kiểm tra an toàn tránh exception khi Session chưa kích hoạt)
         int? userId = null;
-        var userIdStr = HttpContext.Session.GetString("UserId");
-        if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+        try
         {
-            userId = parsedId;
+            if (HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.ISessionFeature>()?.Session != null)
+            {
+                var userIdStr = HttpContext.Session.GetString("UserId");
+                if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+                {
+                    userId = parsedId;
+                }
+            }
         }
+        catch { }
 
         var (success, message, order) = await _orderService.CreateOrderAsync(request, userId);
 

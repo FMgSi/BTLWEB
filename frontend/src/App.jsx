@@ -365,6 +365,14 @@ export default function App() {
     setCartItems((prev) => prev.filter((item) => (item.cartItemId || item.id) !== cartItemId));
   };
 
+  // Xóa danh sách các sản phẩm đã thanh toán khỏi giỏ (một thao tác duy nhất, tự động đồng bộ localStorage)
+  const handleRemovePurchasedItems = (purchasedItemKeys) => {
+    setCartItems((prev) => {
+      const keys = new Set(purchasedItemKeys);
+      return prev.filter((item) => !keys.has(item.cartItemId) && !keys.has(item.id));
+    });
+  };
+
   // Xóa toàn bộ giỏ
   const handleClearCart = () => {
     setCartItems([]);
@@ -617,12 +625,14 @@ export default function App() {
           cartItems={cartItems}
           onUpdateQuantity={handleUpdateCartQuantity}
           onRemoveItem={handleRemoveCartItem}
+          onRemovePurchasedItems={handleRemovePurchasedItems}
           onClearCart={handleClearCart}
           onToggleCheck={handleToggleCartCheck}
           onToggleAll={handleToggleAllCart}
           onGoHome={() => handleNavigate('home')}
           onSelectProduct={handleSelectProduct}
           currentUser={currentUser}
+          showToast={showToast}
         />
       ) : selectedProductId ? (
         <ProductDetail

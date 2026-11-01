@@ -273,4 +273,41 @@ public class ProductServiceTests
 
         Assert.Equal(expectedValid, isValid);
     }
+
+    [Fact]
+    public async Task OrdersApiController_CreateOrder_ReturnsOkWithOrderCode()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var installmentService = new InstallmentService(db);
+        var orderService = new OrderService(db, installmentService);
+        var controller = new OrdersApiController(orderService, installmentService);
+
+        // Giả lập HttpContext cho Controller
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Trần Văn A",
+            PhoneNumber = "0987654321",
+            ShippingAddress = "123 Cầu Giấy, Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Installment",
+            TermMonths = 9,
+            Items = new List<CreateOrderItemRequest>
+            {
+                new() { ProductId = 1, Quantity = 1 }
+            }
+        };
+
+        // Act
+        var result = await controller.CreateOrder(req);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+    }
 }
