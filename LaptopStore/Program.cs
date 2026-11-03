@@ -103,6 +103,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IInstallmentService, InstallmentService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IWarrantyService, WarrantyService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
 
 // 1.3. Kích hoạt mô hình ASP.NET Core MVC (hỗ trợ cả Razor Views và Web API Controllers)
 builder.Services.AddControllersWithViews();

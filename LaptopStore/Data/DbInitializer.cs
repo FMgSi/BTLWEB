@@ -271,6 +271,33 @@ public static class DbInitializer
                             CONSTRAINT FK_ServiceTicketHistories_ServiceTickets_TicketId FOREIGN KEY (TicketId) REFERENCES ServiceTickets (TicketId) ON DELETE CASCADE
                         );
                     END
+
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'DiscountCode')
+                    BEGIN
+                        ALTER TABLE Orders ADD DiscountCode NVARCHAR(50) NULL;
+                    END
+
+                    IF OBJECT_ID('dbo.Discounts', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE Discounts (
+                            DiscountId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            Code NVARCHAR(50) NOT NULL,
+                            Title NVARCHAR(200) NOT NULL,
+                            Description NVARCHAR(500) NULL,
+                            DiscountType NVARCHAR(20) NOT NULL DEFAULT 'Percentage',
+                            DiscountValue DECIMAL(18,2) NOT NULL,
+                            MaxDiscountAmount DECIMAL(18,2) NULL,
+                            MinOrderAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+                            StartDate DATETIME NOT NULL DEFAULT GETDATE(),
+                            EndDate DATETIME NULL,
+                            UsageLimit INT NULL,
+                            UsedCount INT NOT NULL DEFAULT 0,
+                            ApplicableScope NVARCHAR(50) NOT NULL DEFAULT 'All',
+                            IsActive BIT NOT NULL DEFAULT 1,
+                            CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+                            CONSTRAINT IX_Discounts_Code UNIQUE (Code)
+                        );
+                    END
                 ");
             }
             catch (Exception ex)
@@ -291,6 +318,7 @@ public static class DbInitializer
             SeedOrdersIfEmpty(context);
             SeedServiceCatalogIfEmpty(context);
             SeedSampleSoldDevicesIfEmpty(context);
+            SeedDiscountsIfEmpty(context);
             return;
         }
 
@@ -545,9 +573,33 @@ public static class DbInitializer
                     CreatedAt = DateTime.UtcNow
                 };
 
-                context.Users.AddRange(admin, customer);
+                var staff = new User
+                {
+                    Username = "nhanvien",
+                    Email = "nhanvien@pcstore.vn",
+                    FullName = "Nhân Viên Cửa Hàng",
+                    PasswordHash = LaptopStore.Helpers.PasswordHelper.HashPassword("Staff@123"),
+                    Role = "Staff",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                context.Users.AddRange(admin, staff, customer);
                 context.SaveChanges();
-                Console.WriteLine("[DbInitializer] Đã nạp thành công tài khoản mẫu: admin@pcstore.vn (Admin@123) và khachhang@gmail.com (User@123)");
+                Console.WriteLine("[DbInitializer] Đã nạp thành công tài khoản mẫu: admin@pcstore.vn (Admin@123), nhanvien@pcstore.vn (Staff@123) và khachhang@gmail.com (User@123)");
+            }
+            else if (!context.Users.Any(u => u.Username == "nhanvien"))
+            {
+                var staff = new User
+                {
+                    Username = "nhanvien",
+                    Email = "nhanvien@pcstore.vn",
+                    FullName = "Nhân Viên Cửa Hàng",
+                    PasswordHash = LaptopStore.Helpers.PasswordHelper.HashPassword("Staff@123"),
+                    Role = "Staff",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Users.Add(staff);
+                context.SaveChanges();
             }
         }
         catch (Exception ex)
@@ -907,6 +959,122 @@ public static class DbInitializer
         catch (Exception ex)
         {
             Console.WriteLine("[DbInitializer] Cảnh báo SeedSampleSoldDevicesIfEmpty: " + ex.Message);
+        }
+    }
+
+    public static void SeedDiscountsIfEmpty(AppDbContext context)
+    {
+        try
+        {
+            if (context.Discounts.Any()) return;
+
+            var discounts = new List<Discount>
+            {
+                new Discount
+                {
+                    Code = "LAPTOP2026",
+                    Title = "Ưu đãi Laptop Học tập - Văn phòng",
+                    Description = "Giảm 10% (tối đa 1.500.000đ) cho đơn hàng laptop Văn phòng & Học tập từ 10 triệu.",
+                    DiscountType = "Percentage",
+                    DiscountValue = 10,
+                    MaxDiscountAmount = 1500000,
+                    MinOrderAmount = 10000000,
+                    StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    EndDate = new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc),
+                    UsageLimit = 500,
+                    UsedCount = 45,
+                    ApplicableScope = "OfficeOnly",
+                    IsActive = true
+                },
+                new Discount
+                {
+                    Code = "GAMING500K",
+                    Title = "Đại tiệc Laptop Gaming",
+                    Description = "Giảm ngay 500.000đ khi mua Laptop Gaming ASUS, Acer, MSI, Lenovo từ 18 triệu.",
+                    DiscountType = "FixedAmount",
+                    DiscountValue = 500000,
+                    MaxDiscountAmount = 500000,
+                    MinOrderAmount = 18000000,
+                    StartDate = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
+                    EndDate = new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc),
+                    UsageLimit = 200,
+                    UsedCount = 89,
+                    ApplicableScope = "GamingOnly",
+                    IsActive = true
+                },
+                new Discount
+                {
+                    Code = "APPLE",
+                    Title = "Trợ giá mua sắm Apple MacBook",
+                    Description = "Giảm ngay 2.000.000đ khi mua Apple MacBook M2/M3 chính hãng từ 25 triệu.",
+                    DiscountType = "FixedAmount",
+                    DiscountValue = 2000000,
+                    MaxDiscountAmount = 2000000,
+                    MinOrderAmount = 25000000,
+                    StartDate = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
+                    EndDate = new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc),
+                    UsageLimit = 100,
+                    UsedCount = 30,
+                    ApplicableScope = "AppleOnly",
+                    IsActive = true
+                },
+                new Discount
+                {
+                    Code = "WELCOME",
+                    Title = "Chào mừng thành viên mới",
+                    Description = "Giảm 3% (tối đa 200.000đ) cho đơn hàng đầu tiên của khách hàng mới từ 5 triệu.",
+                    DiscountType = "Percentage",
+                    DiscountValue = 3,
+                    MaxDiscountAmount = 200000,
+                    MinOrderAmount = 5000000,
+                    StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    EndDate = new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc),
+                    UsageLimit = null,
+                    UsedCount = 120,
+                    ApplicableScope = "FirstOrderOnly",
+                    IsActive = true
+                },
+                new Discount
+                {
+                    Code = "TRIAN99",
+                    Title = "Tri ân khách hàng thân thiết",
+                    Description = "Giảm 200.000đ cho đơn hàng từ 10.000.000đ.",
+                    DiscountType = "FixedAmount",
+                    DiscountValue = 200000,
+                    MaxDiscountAmount = 200000,
+                    MinOrderAmount = 10000000,
+                    StartDate = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
+                    EndDate = new DateTime(2026, 10, 31, 23, 59, 59, DateTimeKind.Utc), // Hết hạn ngày 31/10/2026
+                    UsageLimit = 200,
+                    UsedCount = 89,
+                    ApplicableScope = "All",
+                    IsActive = true
+                },
+                new Discount
+                {
+                    Code = "GAMINGX",
+                    Title = "Flash Sale Laptop Gaming Giới Hạn",
+                    Description = "Giảm ngay 1.000.000đ cho khách hàng mua Laptop Gaming (giới hạn 10 suất).",
+                    DiscountType = "FixedAmount",
+                    DiscountValue = 1000000,
+                    MaxDiscountAmount = 1000000,
+                    MinOrderAmount = 18000000,
+                    StartDate = new DateTime(2026, 10, 10, 0, 0, 0, DateTimeKind.Utc),
+                    EndDate = new DateTime(2026, 10, 15, 23, 59, 59, DateTimeKind.Utc), // Đã hết hạn & hết lượt
+                    UsageLimit = 10,
+                    UsedCount = 10,
+                    ApplicableScope = "GamingOnly",
+                    IsActive = true
+                }
+            };
+
+            context.Discounts.AddRange(discounts);
+            context.SaveChanges();
+            Console.WriteLine($"[DbInitializer] Đã nạp thành công {discounts.Count} mã giảm giá vào CSDL.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Cảnh báo SeedDiscountsIfEmpty: " + ex.Message);
         }
     }
 }

@@ -128,6 +128,7 @@ CREATE TABLE Orders (
     Notes NVARCHAR(500) NULL,
     SubTotal DECIMAL(18,2) NOT NULL,
     DiscountAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    DiscountCode NVARCHAR(50) NULL,
     TotalAmount DECIMAL(18,2) NOT NULL,
     PurchaseMode NVARCHAR(50) NOT NULL DEFAULT 'Full',
     PaymentMethod NVARCHAR(50) NOT NULL DEFAULT 'COD',
@@ -152,6 +153,8 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Orders_IdempotencyKey'
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'PurchaseMode')
     ALTER TABLE Orders ADD PurchaseMode NVARCHAR(50) NOT NULL DEFAULT 'Full';
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'DiscountCode')
+    ALTER TABLE Orders ADD DiscountCode NVARCHAR(50) NULL;
 GO
 
 -- Ràng buộc CHECK constraints bảo vệ tính toàn vẹn dữ liệu Products
@@ -950,5 +953,42 @@ BEGIN
     (N'DV-BH04', N'Bảo hành loa trong & cụm Micro đàm thoại', N'Bảo hành', N'Rè loa, mất tín hiệu mic thu âm không do ẩm nước', 0, N'1 - 2 ngày', 12, 1),
     (N'DV-BH05', N'Bảo hành Bo mạch chủ (Mainboard)', N'Bảo hành', N'Lỗi nguồn chip, không nhận SSD/RAM theo tem bảo hành', 0, N'5 - 7 ngày', 12, 1),
     (N'DV-BH06', N'Bảo hành sạc Adapter theo máy', N'Bảo hành', N'Không sạc vào điện, tiếp xúc chập chờn nguyên tem', 0, N'Đổi mới ngay', 12, 1);
+END
+GO
+
+-- 18. Bảng Mã giảm giá & Khuyến mãi (Discounts)
+IF OBJECT_ID('dbo.Discounts', 'U') IS NULL
+BEGIN
+    CREATE TABLE Discounts (
+        DiscountId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        Code NVARCHAR(50) NOT NULL,
+        Title NVARCHAR(200) NOT NULL,
+        Description NVARCHAR(500) NULL,
+        DiscountType NVARCHAR(20) NOT NULL DEFAULT 'Percentage',
+        DiscountValue DECIMAL(18,2) NOT NULL,
+        MaxDiscountAmount DECIMAL(18,2) NULL,
+        MinOrderAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+        StartDate DATETIME NOT NULL DEFAULT GETDATE(),
+        EndDate DATETIME NULL,
+        UsageLimit INT NULL,
+        UsedCount INT NOT NULL DEFAULT 0,
+        ApplicableScope NVARCHAR(50) NOT NULL DEFAULT 'All',
+        IsActive BIT NOT NULL DEFAULT 1,
+        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT IX_Discounts_Code UNIQUE (Code)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Discounts WHERE Code = 'LAPTOP2026')
+BEGIN
+    INSERT INTO Discounts (Code, Title, Description, DiscountType, DiscountValue, MaxDiscountAmount, MinOrderAmount, StartDate, EndDate, UsageLimit, UsedCount, ApplicableScope, IsActive, CreatedAt)
+    VALUES
+    (N'LAPTOP2026', N'Ưu đãi Laptop Học tập - Văn phòng', N'Giảm 10% (tối đa 1.500.000đ) cho đơn hàng laptop Văn phòng & Học tập từ 10 triệu.', 'Percentage', 10, 1500000, 10000000, '2026-01-01', '2026-12-31', 500, 45, 'OfficeOnly', 1, GETDATE()),
+    (N'GAMING500K', N'Đại tiệc Laptop Gaming', N'Giảm ngay 500.000đ khi mua Laptop Gaming ASUS, Acer, MSI, Lenovo từ 18 triệu.', 'FixedAmount', 500000, 500000, 18000000, '2026-10-01', '2026-12-31', 200, 89, 'GamingOnly', 1, GETDATE()),
+    (N'APPLE', N'Trợ giá mua sắm Apple MacBook', N'Giảm ngay 2.000.000đ khi mua Apple MacBook M2/M3 chính hãng từ 25 triệu.', 'FixedAmount', 2000000, 2000000, 25000000, '2026-10-01', '2026-12-31', 100, 30, 'AppleOnly', 1, GETDATE()),
+    (N'WELCOME', N'Chào mừng thành viên mới', N'Giảm 3% (tối đa 200.000đ) cho đơn hàng đầu tiên của khách hàng mới từ 5 triệu.', 'Percentage', 3, 200000, 5000000, '2026-01-01', '2026-12-31', NULL, 120, 'FirstOrderOnly', 1, GETDATE()),
+    (N'TRIAN99', N'Tri ân khách hàng thân thiết', N'Giảm 200.000đ cho đơn hàng từ 10.000.000đ.', 'FixedAmount', 200000, 200000, 10000000, '2026-10-01', '2026-10-31', 200, 89, 'All', 1, GETDATE()),
+    (N'GAMINGX', N'Flash Sale Laptop Gaming Giới Hạn', N'Giảm ngay 1.000.000đ cho khách hàng mua Laptop Gaming (giới hạn 10 suất).', 'FixedAmount', 1000000, 1000000, 18000000, '2026-10-10', '2026-10-15', 10, 10, 'GamingOnly', 1, GETDATE());
 END
 GO

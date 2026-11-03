@@ -1,0 +1,103 @@
+@model IEnumerable<LaptopStore.ViewModels.CustomerPromotionDto>
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Trung tâm Khuyến mãi & Mã giảm giá";
+}
+
+<div class="container py-4">
+    <!-- TOP PROMOTION BANNER -->
+    <div class="rounded-4 p-4 text-center text-white mb-4 shadow-sm position-relative overflow-hidden"
+         style="background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #0f172a 100%);">
+        <span class="badge bg-danger rounded-pill px-3 py-1 mb-2 fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">
+            ★ TRUNG TÂM MÃ GIẢM GIÁ LAPTOP WORLD
+        </span>
+        <h1 class="fw-black mb-2 text-warning fs-3">
+            KHUYẾN MÃI ĐANG CÓ &amp; ƯU ĐÃI ĐỘC QUYỀN
+        </h1>
+        <p class="text-light opacity-90 small mb-0">
+            Lưu ngay các mã voucher dưới đây để được tự động trừ tiền khi mua sắm tại cửa hàng hoặc thanh toán giỏ hàng!
+        </p>
+    </div>
+
+    <!-- PROMOTION CARDS -->
+    <div class="row g-3 mb-4">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var promo in Model)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card h-100 border-danger border-opacity-25 shadow-sm rounded-3">
+                        <div class="card-body d-flex flex-column justify-content-between p-3">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge @(promo.IsHot ? "bg-danger" : "bg-primary")">
+                                        @promo.ScopeBadge
+                                    </span>
+                                    <span class="text-muted small" style="font-size: 11px;">
+                                        HSD: @promo.EndDateFormatted
+                                    </span>
+                                </div>
+                                <h5 class="fw-bold text-danger mb-1">@promo.ValueBadge</h5>
+                                <div class="fw-semibold text-dark small mb-1">@promo.Title</div>
+                                @if (!string.IsNullOrEmpty(promo.Description))
+                                {
+                                    <div class="text-muted small mb-2" style="font-size: 0.85rem;">@promo.Description</div>
+                                }
+                                <div class="text-muted small" style="font-size: 11px;">
+                                    ⓘ Đơn tối thiểu: <strong>@(promo.MinOrderAmount > 0 ? promo.MinOrderAmount.ToString("#,##0") + "đ" : "Không giới hạn")</strong>
+                                    @if (promo.MaxDiscountAmount.HasValue)
+                                    {
+                                        <span> • Tối đa: <strong>@promo.MaxDiscountAmount.Value.ToString("#,##0")đ</strong></span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-3">
+                                <span class="badge bg-light text-dark border font-monospace px-2 py-1 fs-6">
+                                    @promo.Code
+                                </span>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger px-3 fw-semibold"
+                                        onclick="copyPromoCode('@promo.Code')">
+                                    <i class="bi bi-clipboard me-1"></i> Sao chép mã
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-gift fs-1 text-muted d-block mb-3"></i>
+                <h5 class="text-dark">Hiện chưa có mã giảm giá mới</h5>
+                <p class="text-muted small">Quý khách vui lòng quay lại sau để cập nhật các chương trình ưu đãi hấp dẫn!</p>
+                <a href="/Catalog" class="btn btn-primary px-4">Khám phá sản phẩm</a>
+            </div>
+        }
+    </div>
+
+    <!-- CTA BANNER -->
+    <div class="card bg-light border-0 rounded-4 p-4 text-center">
+        <h5 class="fw-bold text-dark mb-2">Bạn đã chọn được laptop ưng ý?</h5>
+        <p class="text-muted small mb-3">Sử dụng ngay mã giảm giá bạn vừa sao chép tại bước thanh toán để nhận giá tốt nhất.</p>
+        <div>
+            <a href="/Catalog" class="btn btn-danger px-4 py-2 fw-semibold">
+                <i class="bi bi-cart3 me-1"></i> Mua sắm ngay
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyPromoCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                alert(`✓ Đã sao chép mã "${code}" vào bộ nhớ tạm! Bạn có thể dán mã này vào ô Voucher tại bước thanh toán.`);
+            }).catch(() => {
+                prompt('Mã voucher của bạn là:', code);
+            });
+        }
+    </script>
+}

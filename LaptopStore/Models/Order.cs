@@ -68,6 +68,10 @@ public class Order
     [Display(Name = "Giảm giá")]
     public decimal DiscountAmount { get; set; } = 0;
 
+    [StringLength(50)]
+    [Display(Name = "Mã giảm giá áp dụng")]
+    public string? DiscountCode { get; set; }
+
     [Column(TypeName = "decimal(18,2)")]
     [Range(0, 10000000000)]
     [Display(Name = "Tổng thanh toán")]

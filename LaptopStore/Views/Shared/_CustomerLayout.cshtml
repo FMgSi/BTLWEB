@@ -36,8 +36,6 @@
                 <span class="d-none d-md-inline"><i class="bi bi-telephone-fill text-success me-1"></i> Hotline: <strong>1900 8888</strong> (8h - 22h)</span>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <a href="/Catalog/Lookup" class="topbar-link"><i class="bi bi-truck me-1"></i> Tra cứu đơn hàng</a>
-                <span class="text-muted">|</span>
                 @if (isAuth || !string.IsNullOrEmpty(Context.Session.GetString("UserId")))
                 {
                     <div class="dropdown">
@@ -56,7 +54,6 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                             }
-                            <li><a class="dropdown-item" href="/Catalog/Lookup"><i class="bi bi-receipt me-2"></i> Đơn hàng của tôi</a></li>
                             <li>
                                 <form asp-controller="Admin" asp-action="Logout" method="post" class="m-0">
                                     @Html.AntiForgeryToken()
@@ -117,9 +114,9 @@
                             <strong class="text-dark">1900 8888</strong>
                         </div>
                     </div>
-                    <a href="/Catalog/Lookup" class="btn btn-outline-primary d-flex align-items-center gap-2 rounded-pill px-3 py-2 fw-semibold">
-                        <i class="bi bi-box-seam fs-5"></i>
-                        <span class="d-none d-sm-inline">Tra cứu đơn</span>
+                    <a href="/Promotions" class="btn btn-outline-danger d-flex align-items-center gap-2 rounded-pill px-3 py-2 fw-semibold">
+                        <i class="bi bi-gift-fill fs-5 text-danger"></i>
+                        <span class="d-none d-sm-inline">Khuyến mãi</span>
                     </a>
                 </div>
             </div>
@@ -236,7 +233,7 @@
                         <li class="mb-2"><a href="/Catalog" class="footer-link">Chính sách bảo hành</a></li>
                         <li class="mb-2"><a href="/Catalog" class="footer-link">Chính sách đổi trả 1 - 1</a></li>
                         <li class="mb-2"><a href="/Catalog" class="footer-link">Chính sách giao hàng toàn quốc</a></li>
-                        <li class="mb-2"><a href="/Catalog/Lookup" class="footer-link">Hướng dẫn tra cứu đơn hàng</a></li>
+                        <li class="mb-2"><a href="/Promotions" class="footer-link">Chương trình khuyến mãi</a></li>
                     </ul>
                 </div>
                 <div class="col-12 col-md-3">

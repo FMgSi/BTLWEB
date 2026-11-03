@@ -781,10 +781,14 @@
                         ? `Đơn hàng trả góp <strong>${term} tháng</strong> đã được chuyển tới bộ phận kế toán. Vui lòng hoàn tất khoản trả trước <strong>${formatVND(prepayAmount)} (30%)</strong> để nhân viên kích hoạt hợp đồng và giao máy.`
                         : 'Đơn hàng của bạn đã được ghi nhận vào hệ thống và đang được xử lý đóng gói.'}
                 </p>
+                <div class="alert alert-light border my-3 py-2 text-dark">
+                    <div>Số tiền cần thanh toán: <strong class="text-danger fs-5">${formatVND(mode === 'Installment' ? prepayAmount : totalAmount)}</strong> ${mode === 'Installment' ? '(Khoản trả trước 30%)' : ''}</div>
+                    <div class="small text-muted mt-1">Cửa hàng sẽ liên hệ qua số điện thoại <strong>${phone}</strong> để xác nhận đơn và giao máy tận nơi.</div>
+                </div>
                 ${qrSection}
                 <div class="d-flex justify-content-center gap-2 mt-4">
-                    <a href="/Catalog/Lookup?orderCode=${orderCode}&phone=${encodeURIComponent(phone)}" class="btn btn-primary px-4 fw-semibold">
-                        <i class="bi bi-truck me-1"></i> Tra cứu tiến độ đơn hàng
+                    <a href="/Catalog" class="btn btn-danger px-4 py-2 fw-semibold">
+                        <i class="bi bi-cart3 me-1"></i> Tiếp tục mua sắm
                     </a>
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Đóng</button>
                 </div>

@@ -35,6 +35,20 @@ export default function CartPage({
   const [termMonths, setTermMonths] = useState(6);
   const [serverInstallmentPlan, setServerInstallmentPlan] = useState(null);
 
+  // Trạng thái Voucher / Mã giảm giá
+  const [voucherInput, setVoucherInput] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [voucherError, setVoucherError] = useState('');
+  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
+  const [claimedVouchers, setClaimedVouchers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('laptopworld_claimed_vouchers');
+      return saved ? JSON.parse(saved) : ['LAPTOP2026', 'GAMING500K'];
+    } catch {
+      return ['LAPTOP2026'];
+    }
+  });
+
   const handleOpenCheckoutModal = () => {
     setIdempotencyKey(`IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
     setPhoneError('');
@@ -62,9 +76,77 @@ export default function CartPage({
   }, 0);
   const totalDiscount = Math.max(0, totalOriginal - totalPayable);
 
-  // Đồng bộ phương án trả góp từ Backend API (Single Source of Truth)
+  // Tính tổng thanh toán sau khi trừ voucher
+  const voucherDiscount = appliedVoucher ? appliedVoucher.discountAmount : 0;
+  const finalPayable = Math.max(0, totalPayable - voucherDiscount);
+
+  // Xử lý áp dụng voucher
+  const handleApplyVoucher = async (codeToApply) => {
+    const code = (codeToApply || voucherInput).trim().toUpperCase();
+    if (!code) {
+      setVoucherError('Vui lòng nhập mã voucher!');
+      return;
+    }
+
+    if (checkedItems.length === 0) {
+      setVoucherError('Vui lòng chọn ít nhất 1 sản phẩm để áp dụng voucher!');
+      return;
+    }
+
+    setVoucherError('');
+    setIsValidatingVoucher(true);
+
+    try {
+      const payload = {
+        code: code,
+        subTotal: totalPayable,
+        phoneNumber: customerPhone || null,
+        items: checkedItems.map((item) => ({
+          productId: item.productId || item.id,
+          variantId: item.variantId || null,
+          quantity: item.quantity || 1,
+        })),
+      };
+
+      const res = await fetch('/api/promotions/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAppliedVoucher({
+          code: data.code,
+          discountAmount: data.discountAmount,
+          title: data.title,
+          message: data.message,
+        });
+        setVoucherError('');
+        if (showToast) {
+          showToast(`✓ ${data.message}`, 4000);
+        }
+      } else {
+        setAppliedVoucher(null);
+        setVoucherError(data.message || 'Mã giảm giá không hợp lệ hoặc chưa đủ điều kiện.');
+      }
+    } catch (err) {
+      console.warn('Lỗi kiểm tra voucher:', err);
+      setVoucherError('Không thể kết nối máy chủ để kiểm tra voucher.');
+    } finally {
+      setIsValidatingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput('');
+    setVoucherError('');
+  };
+
+  // Đồng bộ phương án trả góp từ Backend API dựa trên finalPayable (Single Source of Truth)
   useEffect(() => {
-    if (purchaseMode !== 'Installment' || totalPayable < 1000000) {
+    if (purchaseMode !== 'Installment' || finalPayable < 1000000) {
       setServerInstallmentPlan(null);
       return;
     }
@@ -72,7 +154,7 @@ export default function CartPage({
     let isMounted = true;
     const fetchInstallmentPlan = async () => {
       try {
-        const res = await fetch(`/api/orders/installment-preview?amount=${totalPayable}&termMonths=${termMonths}`);
+        const res = await fetch(`/api/orders/installment-preview?amount=${finalPayable}&termMonths=${termMonths}`);
         if (res.ok) {
           const data = await res.json();
           if (isMounted && data.success && data.plan) {
@@ -88,15 +170,15 @@ export default function CartPage({
     return () => {
       isMounted = false;
     };
-  }, [purchaseMode, totalPayable, termMonths]);
+  }, [purchaseMode, finalPayable, termMonths]);
 
   // Tính toán kế hoạch trả góp: ưu tiên kết quả từ backend API, fallback sang tính toán cục bộ
   const prepayAmount = serverInstallmentPlan
     ? serverInstallmentPlan.prepayAmount
-    : Math.round(totalPayable * 0.30);
+    : Math.round(finalPayable * 0.30);
   const financedAmount = serverInstallmentPlan
     ? serverInstallmentPlan.financedAmount
-    : totalPayable - prepayAmount;
+    : finalPayable - prepayAmount;
   const basePeriodAmount = serverInstallmentPlan
     ? serverInstallmentPlan.monthlyInstallmentAmount
     : Math.floor(financedAmount / termMonths);
@@ -148,6 +230,7 @@ export default function CartPage({
         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'VietQR',
         purchaseMode: purchaseMode,
         termMonths: purchaseMode === 'Installment' ? termMonths : null,
+        discountCode: appliedVoucher?.code || null,
         idempotencyKey: idempotencyKey || `IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         items: checkedItems.map((item) => ({
           productId: item.productId || item.id,
@@ -260,32 +343,37 @@ export default function CartPage({
         setPendingOrder(orderData);
         setShowQrModal(true);
       } else {
-        // COD: Thoát checkout ngay lập tức, chuyển về trang chủ và hiển thị toast thông báo
+        // COD: Hiển thị ngay màn hình xác nhận đơn hàng thành công kèm mã đơn & tổng tiền
+        setOrderSuccess(orderData);
+        setAppliedVoucher(null);
         if (showToast) {
           showToast(`🎉 Đặt hàng thành công! Mã đơn: #${realOrderCode}`, 5000);
         }
-        onGoHome();
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Đóng hoặc xác nhận từ màn hình VietQR -> điều hướng về trang chủ
+  // Đóng hoặc xác nhận từ màn hình VietQR -> chuyển tiếp sang màn hình xác nhận đặt hàng thành công
   const handleCloseQrModal = () => {
     const code = pendingOrder?.orderId || '';
+    const completed = pendingOrder;
     setShowQrModal(false);
     setPendingOrder(null);
+    setAppliedVoucher(null);
+    if (completed) {
+      setOrderSuccess(completed);
+    }
     if (showToast && code) {
       showToast(`🎉 Đã tiếp nhận đơn hàng #${code}. Cửa hàng sẽ liên hệ xác nhận sớm nhất!`, 5000);
     }
-    onGoHome();
   };
 
   // Đường link tạo mã QR VietQR tự động theo số tiền đã chốt từ máy chủ và mã đơn hàng
   const amountToPayNow = pendingOrder?.purchaseMode === 'Installment'
     ? pendingOrder.prepayAmount
-    : (pendingOrder?.total || totalPayable);
+    : (pendingOrder?.total || finalPayable);
 
   const qrImageUrl = pendingOrder
     ? `https://img.vietqr.io/image/${STORE_BANK_ACCOUNT.bankId}-${STORE_BANK_ACCOUNT.accountNo}-compact2.png?amount=${amountToPayNow}&addInfo=${encodeURIComponent((pendingOrder.purchaseMode === 'Installment' ? 'TT TRAGOP ' : '') + pendingOrder.orderId)}&accountName=${encodeURIComponent(STORE_BANK_ACCOUNT.accountName)}`
@@ -506,22 +594,113 @@ export default function CartPage({
 
             {/* Cột thông tin đơn hàng bên phải */}
             <div className="col-12 col-lg-4">
+              {/* KHUNG MÃ GIẢM GIÁ / VOUCHER */}
+              <div className="bg-white rounded-3 p-3 border shadow-sm mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="small fw-bold text-dark">
+                    <i className="bi bi-tag-fill text-danger me-1"></i> Mã giảm giá (Voucher)
+                  </span>
+                  {appliedVoucher && (
+                    <button
+                      type="button"
+                      className="btn btn-link p-0 text-danger small text-decoration-none"
+                      onClick={handleRemoveVoucher}
+                    >
+                      Gỡ mã
+                    </button>
+                  )}
+                </div>
+
+                {!appliedVoucher ? (
+                  <>
+                    <div className="input-group input-group-sm mb-2">
+                      <input
+                        type="text"
+                        className="form-control text-uppercase"
+                        placeholder="Nhập mã voucher (VD: LAPTOP2026)"
+                        value={voucherInput}
+                        onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyVoucher(voucherInput);
+                          }
+                        }}
+                      />
+                      <button
+                        className="btn btn-danger px-3 fw-semibold"
+                        type="button"
+                        disabled={isValidatingVoucher || !voucherInput.trim()}
+                        onClick={() => handleApplyVoucher(voucherInput)}
+                      >
+                        {isValidatingVoucher ? 'Kiểm tra...' : 'Áp dụng'}
+                      </button>
+                    </div>
+
+                    {/* Danh sách mã trong ví khách hàng */}
+                    {claimedVouchers.length > 0 && (
+                      <div className="d-flex flex-wrap gap-1 align-items-center mt-1">
+                        <span className="text-muted" style={{ fontSize: '11px' }}>Ví của bạn:</span>
+                        {claimedVouchers.slice(0, 4).map((code) => (
+                          <button
+                            key={code}
+                            type="button"
+                            className="badge bg-light text-danger border border-danger-subtle px-2 py-1 btn btn-sm"
+                            style={{ fontSize: '11px', cursor: 'pointer' }}
+                            onClick={() => {
+                              setVoucherInput(code);
+                              handleApplyVoucher(code);
+                            }}
+                          >
+                            + {code}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="d-flex justify-content-between align-items-center bg-light p-2 rounded border border-success">
+                    <div>
+                      <span className="badge bg-success font-monospace me-1">{appliedVoucher.code}</span>
+                      <span className="small text-success fw-semibold">{appliedVoucher.title || 'Đã áp dụng'}</span>
+                    </div>
+                    <strong className="text-danger small">-{formatVND(appliedVoucher.discountAmount)}</strong>
+                  </div>
+                )}
+
+                {voucherError && (
+                  <div className="alert alert-danger p-2 mt-2 mb-0 small" style={{ fontSize: '12px' }}>
+                    <i className="bi bi-exclamation-triangle-fill me-1"></i> {voucherError}
+                  </div>
+                )}
+              </div>
+
+              {/* TỔNG KẾT ĐƠN HÀNG */}
               <div className="cart-summary-card">
                 <h6 className="cart-summary-title">Thông tin đơn hàng</h6>
 
                 <div className="cart-summary-line">
-                  <span>Tổng tiền hàng</span>
-                  <span className="fw-semibold text-dark">{formatVND(totalOriginal)}</span>
+                  <span>Tạm tính (tiền hàng)</span>
+                  <span className="fw-semibold text-dark">{formatVND(totalPayable)}</span>
                 </div>
 
-                <div className="cart-summary-line">
-                  <span>Tổng khuyến mãi</span>
-                  <span className="text-danger fw-semibold">-{formatVND(totalDiscount)}</span>
-                </div>
+                {totalDiscount > 0 && (
+                  <div className="cart-summary-line text-muted">
+                    <span>Giảm giá sản phẩm</span>
+                    <span>-{formatVND(totalDiscount)}</span>
+                  </div>
+                )}
+
+                {appliedVoucher && (
+                  <div className="cart-summary-line text-success fw-semibold">
+                    <span>Voucher ({appliedVoucher.code})</span>
+                    <span className="text-danger fw-bold">-{formatVND(appliedVoucher.discountAmount)}</span>
+                  </div>
+                )}
 
                 <div className="cart-summary-total">
                   <span className="cart-summary-total-label">Cần thanh toán</span>
-                  <span className="cart-summary-total-price">{formatVND(totalPayable)}</span>
+                  <span className="cart-summary-total-price">{formatVND(finalPayable)}</span>
                 </div>
 
                 <button
@@ -732,12 +911,19 @@ export default function CartPage({
                     </div>
                   </div>
 
+                  {appliedVoucher && (
+                    <div className="d-flex justify-content-between text-success small mb-2 px-1">
+                      <span>Mã giảm giá ({appliedVoucher.code}):</span>
+                      <strong>-{formatVND(appliedVoucher.discountAmount)}</strong>
+                    </div>
+                  )}
+
                   <div className="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
                     <span className="small fw-semibold text-secondary">
                       {purchaseMode === 'Installment' ? 'Cần trả ngay hôm nay (30%):' : 'Tổng thanh toán:'}
                     </span>
                     <span className="fs-5 fw-bold text-danger">
-                      {formatVND(purchaseMode === 'Installment' ? prepayAmount : totalPayable)}
+                      {formatVND(purchaseMode === 'Installment' ? prepayAmount : finalPayable)}
                     </span>
                   </div>
                 </div>

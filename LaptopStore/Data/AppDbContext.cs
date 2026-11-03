@@ -107,6 +107,11 @@ public class AppDbContext : DbContext
     public DbSet<ServiceTicketHistory> ServiceTicketHistories => Set<ServiceTicketHistory>();
 
     /// <summary>
+    /// Bảng Discounts (Mã giảm giá & chương trình khuyến mãi)
+    /// </summary>
+    public DbSet<Discount> Discounts => Set<Discount>();
+
+    /// <summary>
     /// Cấu hình nâng cao cho các bảng và mối quan hệ (Fluent API)
     /// </summary>
     protected override void OnModelCreating(ModelBuilder mb)
@@ -330,6 +335,15 @@ public class AppDbContext : DbContext
                 .WithMany(t => t.Histories)
                 .HasForeignKey(h => h.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Cấu hình bảng Discounts (Mã giảm giá)
+        mb.Entity<Discount>(entity =>
+        {
+            entity.HasIndex(d => d.Code).IsUnique();
+            entity.Property(d => d.DiscountValue).HasPrecision(18, 2);
+            entity.Property(d => d.MaxDiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.MinOrderAmount).HasPrecision(18, 2);
         });
     }
 }

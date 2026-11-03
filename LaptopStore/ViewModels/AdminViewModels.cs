@@ -71,15 +71,30 @@ public class CustomerDto
 
 public class DiscountDto
 {
+    public int DiscountId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
-    public string DiscountType { get; set; } = string.Empty; // "Giảm theo %", "Giảm số tiền"
+    public string? Description { get; set; }
+    public string DiscountType { get; set; } = string.Empty; // "Percentage" | "FixedAmount"
+    public string DiscountTypeDisplay => DiscountType == "Percentage" || DiscountType == "Giảm theo %" ? "Giảm theo %" : "Giảm số tiền";
+    public decimal DiscountValue { get; set; }
+    public decimal? MaxDiscountAmount { get; set; }
+    public decimal MinOrderAmount { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public int? UsageLimit { get; set; }
+    public int UsedCount { get; set; }
+    public string ApplicableScope { get; set; } = "All";
+    public bool IsActive { get; set; } = true;
+
+    // Display helpers for MVC Views
     public string DiscountValueText { get; set; } = string.Empty;
     public string ConditionText { get; set; } = string.Empty;
     public string UsageText { get; set; } = string.Empty;
     public string ExpiryText { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty; // "Đang hoạt động", "Hết hạn", "Chưa bắt đầu"
+    public string Status { get; set; } = string.Empty; // "Đang hoạt động", "Hết hạn", "Hết lượt dùng", "Đã ngừng", "Chưa bắt đầu"
     public string StatusBadgeClass { get; set; } = string.Empty;
+    public bool CanDelete => UsedCount == 0;
 }
 
 public class SystemSettingsViewModel

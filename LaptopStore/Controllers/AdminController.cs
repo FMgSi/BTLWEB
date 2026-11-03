@@ -15,9 +15,9 @@ namespace LaptopStore.Controllers;
 
 /// <summary>
 /// Controller Quản trị Trung tâm (Admin Portal)
-/// Được bảo vệ chặt chẽ bởi cơ chế Xác thực & Phân quyền Cookie Authentication [Authorize(Roles = "Admin")]
+/// Được bảo vệ chặt chẽ bởi cơ chế Xác thực & Phân quyền Cookie Authentication [Authorize(Roles = "Admin,Staff")]
 /// </summary>
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class AdminController : Controller
 {
     private readonly AppDbContext _db;
@@ -25,10 +25,10 @@ public class AdminController : Controller
     private readonly IProductService _productService;
     private readonly IInstallmentService _installmentService;
     private readonly IWarrantyService _warrantyService;
+    private readonly IDiscountService _discountService;
     private readonly IWebHostEnvironment _env;
 
     private string SettingsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "systemsettings.json");
-    private string DiscountsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "discounts.json");
 
     private SystemSettingsViewModel LoadSettings()
     {
@@ -61,59 +61,13 @@ public class AdminController : Controller
         }
     }
 
-    private List<DiscountDto> LoadDiscounts()
-    {
-        try
-        {
-            if (System.IO.File.Exists(DiscountsFilePath))
-            {
-                var json = System.IO.File.ReadAllText(DiscountsFilePath);
-                var list = System.Text.Json.JsonSerializer.Deserialize<List<DiscountDto>>(json);
-                // Giữ nguyên danh sách đã lưu (kể cả rỗng khi người dùng đã xóa hết, không tự nạp đè)
-                if (list != null) return list;
-            }
-            else
-            {
-                // Chỉ nạp mẫu lần đầu tiên khi chưa có file cấu hình
-                var defaults = GetDefaultDiscounts();
-                SaveDiscountsToFile(defaults);
-                return defaults;
-            }
-        }
-        catch { }
-        return new List<DiscountDto>();
-    }
-
-    private bool SaveDiscountsToFile(List<DiscountDto> list)
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(DiscountsFilePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            var json = System.Text.Json.JsonSerializer.Serialize(list, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            System.IO.File.WriteAllText(DiscountsFilePath, json);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static List<DiscountDto> GetDefaultDiscounts() => new()
-    {
-        new DiscountDto { Code = "LAPTOPMOI", Title = "Giảm giá laptop mới", DiscountType = "Giảm theo %", DiscountValueText = "5% (Tối đa 500k)", ConditionText = "Đơn từ 15tr", UsageText = "45 / 100", ExpiryText = "15/10/2026 - 30/11/2026", Status = "Đang hoạt động", StatusBadgeClass = "badge-in-stock" },
-        new DiscountDto { Code = "TRIAN99", Title = "Tri ân khách hàng", DiscountType = "Giảm số tiền", DiscountValueText = "200.000đ", ConditionText = "Đơn từ 10tr", UsageText = "89 / 200", ExpiryText = "01/10/2026 - 31/10/2026", Status = "Đang hoạt động", StatusBadgeClass = "badge-in-stock" },
-        new DiscountDto { Code = "GAMINGX", Title = "Đại tiệc Laptop Gaming", DiscountType = "Giảm số tiền", DiscountValueText = "1.000.000đ", ConditionText = "Mua dòng Gaming", UsageText = "10 / 10", ExpiryText = "10/10/2026 - 15/10/2026", Status = "Hết hạn", StatusBadgeClass = "badge-out-of-stock" },
-        new DiscountDto { Code = "WELCOME", Title = "Chào mừng thành viên mới", DiscountType = "Giảm theo %", DiscountValueText = "3% (Tối đa 200k)", ConditionText = "Đơn hàng đầu tiên", UsageText = "120 / Không giới hạn", ExpiryText = "Không giới hạn", Status = "Đang hoạt động", StatusBadgeClass = "badge-in-stock" }
-    };
-
     public AdminController(
         AppDbContext db,
         IOrderService orderService,
         IProductService productService,
         IInstallmentService installmentService,
         IWarrantyService warrantyService,
+        IDiscountService discountService,
         IWebHostEnvironment env)
     {
         _db = db;
@@ -121,6 +75,7 @@ public class AdminController : Controller
         _productService = productService;
         _installmentService = installmentService;
         _warrantyService = warrantyService;
+        _discountService = discountService;
         _env = env;
     }
 
@@ -511,21 +466,13 @@ public class AdminController : Controller
     }
 
     /// <summary>
-    /// Quản lý Mã giảm giá
+    /// Quản lý Mã giảm giá (SQL Server Single Source of Truth)
     /// GET: /Admin/Discounts
     /// </summary>
-    public IActionResult Discounts(string? search, string? status, string? discountType, int page = 1)
+    public async Task<IActionResult> Discounts(string? search, string? status, string? discountType, int page = 1)
     {
-        var discounts = LoadDiscounts();
-        var query = discounts.AsQueryable();
+        var list = await _discountService.GetAllDiscountsAsync(search, status, discountType);
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.ToLower().Trim();
-            query = query.Where(d => d.Code.ToLower().Contains(s) || d.Title.ToLower().Contains(s));
-        }
-
-        var list = query.ToList();
         ViewBag.Search = search;
         ViewBag.Status = status ?? "all";
         ViewBag.DiscountType = discountType ?? "all";
@@ -541,36 +488,37 @@ public class AdminController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult CreateDiscount(string code, string title, string discountType, string value, string condition, int quantity)
+    public async Task<IActionResult> CreateDiscount(CreateDiscountInput input)
     {
-        if (string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(input.Code))
         {
             TempData["Error"] = "Mã voucher không được để trống";
             return RedirectToAction(nameof(Discounts));
         }
 
-        var discounts = LoadDiscounts();
-        discounts.Insert(0, new DiscountDto
+        var (success, message, created) = await _discountService.CreateDiscountAsync(input, User.Identity?.Name ?? "Admin");
+        if (success)
         {
-            Code = code.ToUpper().Trim(),
-            Title = title,
-            DiscountType = discountType == "percent" ? "Giảm theo %" : "Giảm số tiền",
-            DiscountValueText = discountType == "percent" ? $"{value}%" : $"{value}đ",
-            ConditionText = condition,
-            UsageText = $"0 / {quantity}",
-            ExpiryText = DateTime.Now.ToString("dd/MM/yyyy") + " - " + DateTime.Now.AddDays(30).ToString("dd/MM/yyyy"),
-            Status = "Đang hoạt động",
-            StatusBadgeClass = "badge-in-stock"
-        });
-        if (SaveDiscountsToFile(discounts))
-        {
-            TempData["Success"] = $"Đã tạo mã giảm giá {code.ToUpper()} thành công!";
+            TempData["Success"] = message;
         }
         else
         {
-            TempData["Error"] = "Không thể ghi tệp mã giảm giá. Vui lòng kiểm tra quyền thư mục App_Data!";
+            TempData["Error"] = message;
         }
+
         return RedirectToAction(nameof(Discounts));
+    }
+
+    /// <summary>
+    /// Bật / Tắt (Ngừng áp dụng) mã giảm giá
+    /// POST: /Admin/ToggleDiscountStatus
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleDiscountStatus(int id)
+    {
+        var (success, message) = await _discountService.ToggleDiscountStatusAsync(id, User.Identity?.Name ?? "Admin");
+        return Json(new { success, message });
     }
 
     /// <summary>
@@ -578,26 +526,17 @@ public class AdminController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult DeleteDiscount(string code)
+    public async Task<IActionResult> DeleteDiscount(int id)
     {
-        var discounts = LoadDiscounts();
-        var item = discounts.FirstOrDefault(d => d.Code == code);
-        if (item != null)
-        {
-            discounts.Remove(item);
-            if (SaveDiscountsToFile(discounts))
-            {
-                return Json(new { success = true, message = "Đã xóa mã giảm giá thành công" });
-            }
-            return Json(new { success = false, message = "Lỗi khi ghi tệp lưu trữ mã giảm giá" });
-        }
-        return Json(new { success = false, message = "Không tìm thấy mã giảm giá" });
+        var (success, message) = await _discountService.DeleteDiscountAsync(id, User.Identity?.Name ?? "Admin");
+        return Json(new { success, message });
     }
 
     /// <summary>
-    /// Cấu hình Hệ thống
+    /// Cấu hình Hệ thống (Chỉ dành riêng cho Admin)
     /// GET: /Admin/Settings
     /// </summary>
+    [Authorize(Roles = "Admin")]
     public IActionResult Settings(string activeTab = "payments")
     {
         ViewBag.ActiveTab = activeTab;

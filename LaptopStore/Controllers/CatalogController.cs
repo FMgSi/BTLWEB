@@ -15,12 +15,14 @@ public class CatalogController : Controller
 {
     private readonly IProductService _productService;
     private readonly IOrderService _orderService;
+    private readonly IDiscountService _discountService;
     private readonly AppDbContext _db;
 
-    public CatalogController(IProductService productService, IOrderService orderService, AppDbContext db)
+    public CatalogController(IProductService productService, IOrderService orderService, IDiscountService discountService, AppDbContext db)
     {
         _productService = productService;
         _orderService = orderService;
+        _discountService = discountService;
         _db = db;
     }
 
@@ -147,37 +149,25 @@ public class CatalogController : Controller
 
     /// <summary>
     /// GET: /Catalog/Lookup
-    /// Tra cứu tiến độ và trạng thái đơn hàng của khách hàng bằng Razor Views
+    /// Gỡ bỏ trang tra cứu cũ, chuyển hướng an toàn về trang danh mục và loại bỏ tham số nhạy cảm (orderCode, phone)
     /// </summary>
     [HttpGet]
     [Route("Catalog/Lookup")]
-    public async Task<IActionResult> Lookup(string? orderCode, string? phone)
+    public IActionResult Lookup()
     {
-        ViewBag.OrderCode = orderCode;
-        ViewBag.Phone = phone;
+        return RedirectToAction(nameof(Index));
+    }
 
-        if (string.IsNullOrWhiteSpace(orderCode))
-        {
-            return View();
-        }
-
-        var order = await _orderService.GetOrderByCodeAsync(orderCode.Trim());
-        if (order == null)
-        {
-            ViewBag.ErrorMessage = $"Không tìm thấy đơn hàng với mã: {orderCode}";
-            return View();
-        }
-
-        // Kiểm tra số điện thoại để mở khóa thông tin đầy đủ
-        bool isVerified = false;
-        if (!string.IsNullOrWhiteSpace(phone))
-        {
-            var rawOrderPhone = new string((order.PhoneNumber ?? "").Where(char.IsDigit).ToArray());
-            var rawInputPhone = new string(phone.Where(char.IsDigit).ToArray());
-            isVerified = rawOrderPhone == rawInputPhone && rawOrderPhone.Length >= 9;
-        }
-
-        ViewBag.IsVerified = isVerified;
-        return View(order);
+    /// <summary>
+    /// GET: /Promotions hoặc /Catalog/Promotions
+    /// Trung tâm Mã giảm giá & Khuyến mãi dành cho khách hàng
+    /// </summary>
+    [HttpGet]
+    [Route("Promotions")]
+    [Route("Catalog/Promotions")]
+    public async Task<IActionResult> Promotions()
+    {
+        var promotions = await _discountService.GetActivePromotionsForStorefrontAsync();
+        return View(promotions);
     }
 }

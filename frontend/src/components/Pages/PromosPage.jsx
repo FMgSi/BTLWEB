@@ -1,16 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductCard from '../Product/ProductCard';
+import { formatVND } from '../../utils/formatters';
 import './Pages.css';
 
 export default function PromosPage({ products = [], onSelectProduct, onAddToCart, onNavigateToProducts }) {
-  const [activeTab, setActiveTab] = useState('available');
-  const [claimedCodes, setClaimedCodes] = useState(['LAPTOP2026']);
+  const [activeTab, setActiveTab] = useState('available'); // 'available' | 'claimed' | 'all'
+  const [promotions, setPromotions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [copiedCode, setCopiedCode] = useState('');
 
-  const handleClaim = (code) => {
-    if (!claimedCodes.includes(code)) {
-      setClaimedCodes([...claimedCodes, code]);
+  // Tải danh sách mã đã lưu từ localStorage để không bị mất khi tải lại trang
+  const [claimedCodes, setClaimedCodes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('laptopworld_claimed_vouchers');
+      return saved ? JSON.parse(saved) : ['LAPTOP2026'];
+    } catch {
+      return ['LAPTOP2026'];
     }
+  });
+
+  // Tải danh sách voucher thật từ SQL Server qua API /api/promotions
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPromos = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/promotions');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.success && Array.isArray(data.promotions)) {
+            setPromotions(data.promotions);
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi khi tải khuyến mãi từ API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchPromos();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Lưu voucher vào ví
+  const handleClaim = (code) => {
+    const nextClaimed = claimedCodes.includes(code) ? claimedCodes : [...claimedCodes, code];
+    setClaimedCodes(nextClaimed);
+    try {
+      localStorage.setItem('laptopworld_claimed_vouchers', JSON.stringify(nextClaimed));
+    } catch { }
   };
+
+  // Sao chép mã
+  const handleCopy = (code) => {
+    handleClaim(code);
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(''), 2500);
+    }).catch(() => {
+      prompt('Mã voucher của bạn là:', code);
+    });
+  };
+
+  // Lọc theo tab
+  const availablePromos = promotions.filter((p) => !claimedCodes.includes(p.code));
+  const claimedPromos = promotions.filter((p) => claimedCodes.includes(p.code));
+  const displayPromos = activeTab === 'available'
+    ? availablePromos
+    : (activeTab === 'claimed' ? claimedPromos : promotions);
 
   // Lấy các sản phẩm có giảm giá
   const promoProducts = products.filter((p) => p.discountPrice || p.originalPrice).slice(0, 5);
@@ -29,15 +89,15 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
           className="badge bg-danger rounded-pill px-3 py-1 mb-2 fw-semibold"
           style={{ fontSize: '11px', letterSpacing: '0.5px' }}
         >
-          ★ TRUNG TÂM MÃ GIẢM GIÁ PCSTORE
+          ★ TRUNG TÂM MÃ GIẢM GIÁ LAPTOP WORLD
         </span>
 
         <h1 className="fw-black mb-2" style={{ color: '#fbbf24', fontSize: '26px', letterSpacing: '-0.3px' }}>
-          KHUYẾN MÃI ĐANG CÓ &amp; SẮP DIỄN RA
+          KHUYẾN MÃI ĐANG CÓ &amp; ƯU ĐÃI ĐỘC QUYỀN
         </h1>
 
         <p className="text-light opacity-90 small mb-0">
-          Lưu ngay các mã ưu đãi vào Ví Voucher của bạn để tự động trừ tiền khi thanh toán!
+          Lưu ngay các mã ưu đãi vào Ví Voucher của bạn để tự động trừ tiền khi thanh toán đơn hàng!
         </p>
       </div>
 
@@ -50,7 +110,7 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
             onClick={() => setActiveTab('available')}
             style={activeTab === 'available' ? { backgroundColor: '#e11b1e' } : {}}
           >
-            <i className="bi bi-gift-fill me-1"></i> Mã Có Thể Nhận (3)
+            <i className="bi bi-gift-fill me-1"></i> Mã Có Thể Nhận ({availablePromos.length})
           </button>
 
           <button
@@ -59,116 +119,105 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
             onClick={() => setActiveTab('claimed')}
             style={activeTab === 'claimed' ? { backgroundColor: '#e11b1e' } : {}}
           >
-            <i className="bi bi-check-circle-fill me-1"></i> Mã Đã Nhận ({claimedCodes.length})
+            <i className="bi bi-check-circle-fill me-1"></i> Mã Trong Ví ({claimedPromos.length})
           </button>
 
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'upcoming' ? 'btn-danger' : 'btn-light border'} fw-semibold px-3`}
-            onClick={() => setActiveTab('upcoming')}
-            style={activeTab === 'upcoming' ? { backgroundColor: '#e11b1e' } : {}}
+            className={`btn btn-sm ${activeTab === 'all' ? 'btn-danger' : 'btn-light border'} fw-semibold px-3`}
+            onClick={() => setActiveTab('all')}
+            style={activeTab === 'all' ? { backgroundColor: '#e11b1e' } : {}}
           >
-            <i className="bi bi-clock-history me-1"></i> Sắp Mở Săn Mã (2)
+            <i className="bi bi-collection-fill me-1"></i> Tất Cả Ưu Đãi ({promotions.length})
           </button>
         </div>
 
         <div className="text-secondary small fw-semibold d-none d-md-block">
-          <i className="bi bi-lightning-charge-fill text-warning"></i> Bấm Lấy Mã để sử dụng ngay
+          <i className="bi bi-lightning-charge-fill text-warning"></i> Bấm "Lấy Mã" để lưu voucher vào ví
         </div>
       </div>
 
-      {/* 3. LƯỚI 3 THẺ VOUCHER CHUẨN ẢNH 2 */}
-      <div className="row g-3 mb-4">
-        {/* Voucher 1: Sinh viên & Văn phòng */}
-        <div className="col-12 col-md-4">
-          <div className="bg-white rounded-3 border border-danger p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
-            <div>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="badge bg-danger">HOT</span>
-                <span className="text-muted" style={{ fontSize: '11px' }}>HSD: 31/12/2026</span>
-              </div>
-              <h5 className="fw-bold text-danger mb-1">Giảm 10%</h5>
-              <div className="small text-dark fw-semibold mb-1">Áp dụng cho tất cả dòng Laptop Sinh Viên &amp; Văn Phòng</div>
-              <div className="text-muted" style={{ fontSize: '11px' }}>ⓘ Đơn từ 10.000.000đ</div>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
-              <span className="badge bg-light text-dark border font-monospace px-2 py-1">LAPTOP2026</span>
-              <button
-                type="button"
-                className="btn btn-sm btn-success px-3 fw-semibold"
-                disabled
-              >
-                ✓ Đã Trong Ví
-              </button>
-            </div>
+      {/* 3. LƯỚI THẺ VOUCHER ĐỌC TRỰC TIẾP TỪ SQL SERVER */}
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-danger" role="status">
+            <span className="visually-hidden">Đang tải...</span>
           </div>
+          <div className="text-muted small mt-2">Đang tải danh sách voucher từ hệ thống...</div>
         </div>
+      ) : displayPromos.length > 0 ? (
+        <div className="row g-3 mb-4">
+          {displayPromos.map((p) => {
+            const isClaimed = claimedCodes.includes(p.code);
+            return (
+              <div className="col-12 col-md-4" key={p.code}>
+                <div className="bg-white rounded-3 border border-danger border-opacity-50 p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
+                  <div>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="badge bg-danger">{p.scopeBadge}</span>
+                      <span className="text-muted" style={{ fontSize: '11px' }}>HSD: {p.endDateFormatted}</span>
+                    </div>
+                    <h5 className="fw-bold text-danger mb-1">{p.valueBadge}</h5>
+                    <div className="small text-dark fw-semibold mb-1">{p.title}</div>
+                    {p.description && (
+                      <div className="text-muted small mb-2" style={{ fontSize: '11px' }}>{p.description}</div>
+                    )}
+                    <div className="text-muted" style={{ fontSize: '11px' }}>
+                      ⓘ Đơn từ: <strong>{p.minOrderAmount > 0 ? formatVND(p.minOrderAmount) : 'Mọi đơn hàng'}</strong>
+                      {p.maxDiscountAmount && (
+                        <span> • Tối đa: <strong>{formatVND(p.maxDiscountAmount)}</strong></span>
+                      )}
+                    </div>
+                  </div>
 
-        {/* Voucher 2: Gaming */}
-        <div className="col-12 col-md-4">
-          <div className="bg-white rounded-3 border border-danger p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
-            <div>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="badge bg-danger">GAMING</span>
-                <span className="text-muted" style={{ fontSize: '11px' }}>HSD: 15/11/2026</span>
+                  <div className="d-flex justify-content-between align-items-center pt-3 border-top mt-3">
+                    <span className="badge bg-light text-dark border font-monospace px-2 py-1 fs-6">
+                      {p.code}
+                    </span>
+                    <div className="d-flex gap-1">
+                      {isClaimed ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-success px-3 fw-semibold"
+                          onClick={() => handleCopy(p.code)}
+                          title="Bấm để sao chép mã"
+                        >
+                          {copiedCode === p.code ? '✓ Đã Chép' : '✓ Trong Ví'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger px-3 fw-semibold"
+                          onClick={() => handleCopy(p.code)}
+                        >
+                          {copiedCode === p.code ? '✓ Đã Chép' : 'Lấy Mã'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger px-2 fw-semibold"
+                        onClick={() => onNavigateToProducts && onNavigateToProducts()}
+                        title="Dùng mã để mua hàng ngay"
+                      >
+                        Mua ngay
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h5 className="fw-bold text-danger mb-1">Giảm 500.000đ</h5>
-              <div className="small text-dark fw-semibold mb-1">Áp dụng khi mua Laptop Gaming ASUS, Acer, MSI</div>
-              <div className="text-muted" style={{ fontSize: '11px' }}>ⓘ Đơn từ 18.000.000đ</div>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
-              <span className="badge bg-light text-dark border font-monospace px-2 py-1">GAMING500K</span>
-              {claimedCodes.includes('GAMING500K') ? (
-                <button type="button" className="btn btn-sm btn-success px-3 fw-semibold" disabled>
-                  ✓ Đã Trong Ví
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-danger px-3 fw-semibold"
-                  onClick={() => handleClaim('GAMING500K')}
-                >
-                  Lấy Mã
-                </button>
-              )}
-            </div>
-          </div>
+            );
+          })}
         </div>
-
-        {/* Voucher 3: Apple */}
-        <div className="col-12 col-md-4">
-          <div className="bg-white rounded-3 border border-danger p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
-            <div>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="badge bg-danger">APPLE</span>
-                <span className="text-muted" style={{ fontSize: '11px' }}>HSD: 30/11/2026</span>
-              </div>
-              <h5 className="fw-bold text-danger mb-1">Giảm 2.000.000đ</h5>
-              <div className="small text-dark fw-semibold mb-1">Trợ giá thu cũ đổi mới hoặc mua thẳng Apple MacBook M2/M3</div>
-              <div className="text-muted" style={{ fontSize: '11px' }}>ⓘ Đơn từ 25.000.000đ</div>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
-              <span className="badge bg-light text-dark border font-monospace px-2 py-1">MACBOOK2M</span>
-              {claimedCodes.includes('MACBOOK2M') ? (
-                <button type="button" className="btn btn-sm btn-success px-3 fw-semibold" disabled>
-                  ✓ Đã Trong Ví
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-danger px-3 fw-semibold"
-                  onClick={() => handleClaim('MACBOOK2M')}
-                >
-                  Lấy Mã
-                </button>
-              )}
-            </div>
-          </div>
+      ) : (
+        <div className="bg-light rounded-3 p-5 text-center my-3 border">
+          <i className="bi bi-ticket-perforated fs-1 text-muted d-block mb-2"></i>
+          <h6 className="text-dark fw-bold">Chưa có voucher trong danh mục này</h6>
+          <p className="text-muted small mb-3">Vui lòng kiểm tra các tab ưu đãi khác để nhận mã giảm giá!</p>
+          <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setActiveTab('all')}>
+            Xem tất cả voucher
+          </button>
         </div>
-      </div>
+      )}
 
       {/* 4. TẤT CẢ LAPTOP ĐANG GIẢM GIÁ */}
       <div className="mb-4">

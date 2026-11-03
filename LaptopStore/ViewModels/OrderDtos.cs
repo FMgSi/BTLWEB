@@ -40,6 +40,11 @@ public class CreateOrderRequest
     /// </summary>
     public string? IdempotencyKey { get; set; }
 
+    /// <summary>
+    /// Mã giảm giá / Voucher khách hàng chọn áp dụng (nếu có)
+    /// </summary>
+    public string? DiscountCode { get; set; }
+
     [Required]
     [MinLength(1, ErrorMessage = "Giỏ hàng phải có ít nhất 1 sản phẩm để đặt hàng")]
     public List<CreateOrderItemRequest> Items { get; set; } = new();
@@ -73,6 +78,9 @@ public class OrderResponseDto
     public string CustomerName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string ShippingAddress { get; set; } = string.Empty;
+    public decimal SubTotal { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public string? DiscountCode { get; set; }
     public decimal TotalAmount { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;

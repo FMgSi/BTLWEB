@@ -1,6 +1,6 @@
 @model IEnumerable<LaptopStore.ViewModels.DiscountDto>
 @{
-    ViewData["Title"] = "Quản lý mã giảm giá";
+    ViewData["Title"] = "Quản lý mã giảm giá & Khuyến mãi";
     string currentStatus = ViewBag.Status ?? "all";
     string currentType = ViewBag.DiscountType ?? "all";
     string currentSearch = ViewBag.Search ?? "";
@@ -8,8 +8,8 @@
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">Quản lý mã giảm giá</h2>
-        <p class="text-muted small mb-0">Thiết lập các chương trình khuyến mãi, voucher giảm giá cho các đơn hàng</p>
+        <h2 class="page-title">Quản lý mã giảm giá &amp; Khuyến mãi</h2>
+        <p class="text-muted small mb-0">Hệ thống khuyến mãi hợp nhất trên SQL Server cho Website khách hàng, nhân viên và giỏ hàng</p>
     </div>
     <div class="page-actions">
         <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createDiscountModal">
@@ -28,6 +28,13 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
     </div>
 }
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 <!-- FILTER CARD -->
 <div class="admin-card mb-3">
@@ -38,7 +45,7 @@
                 <div class="position-relative">
                     <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
                     <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" 
-                           placeholder="Tìm kiếm mã giảm giá..." onchange="this.form.submit()" />
+                           placeholder="Tìm theo mã hoặc tên voucher..." onchange="this.form.submit()" />
                 </div>
             </div>
 
@@ -49,9 +56,9 @@
                     <input type="hidden" name="status" id="discountStatusInput" value="@currentStatus" />
                     <div class="filter-btn-group">
                         <button type="button" class="filter-btn-item @(currentStatus == "all" ? "active" : "")" onclick="setDiscountStatus('all')">Tất cả</button>
-                        <button type="button" class="filter-btn-item @(currentStatus == "active" ? "active" : "")" onclick="setDiscountStatus('active')">Đang hoạt động</button>
-                        <button type="button" class="filter-btn-item @(currentStatus == "upcoming" ? "active" : "")" onclick="setDiscountStatus('upcoming')">Chưa bắt đầu</button>
-                        <button type="button" class="filter-btn-item @(currentStatus == "expired" ? "active" : "")" onclick="setDiscountStatus('expired')">Hết hạn</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "active" ? "active" : "")" onclick="setDiscountStatus('active')">Đang chạy</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "upcoming" ? "active" : "")" onclick="setDiscountStatus('upcoming')">Sắp tới</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "expired" ? "active" : "")" onclick="setDiscountStatus('expired')">Hết hạn/Ngừng</button>
                     </div>
                 </div>
             </div>
@@ -63,8 +70,8 @@
                     <input type="hidden" name="discountType" id="discountTypeInput" value="@currentType" />
                     <div class="filter-btn-group">
                         <button type="button" class="filter-btn-item @(currentType == "all" ? "active" : "")" onclick="setDiscountType('all')">Tất cả</button>
-                        <button type="button" class="filter-btn-item @(currentType == "percent" ? "active" : "")" onclick="setDiscountType('percent')">Giảm theo %</button>
-                        <button type="button" class="filter-btn-item @(currentType == "fixed" ? "active" : "")" onclick="setDiscountType('fixed')">Giảm số tiền thẳng</button>
+                        <button type="button" class="filter-btn-item @(currentType == "percent" ? "active" : "")" onclick="setDiscountType('percent')">Giảm %</button>
+                        <button type="button" class="filter-btn-item @(currentType == "fixed" ? "active" : "")" onclick="setDiscountType('fixed')">Số tiền</button>
                     </div>
                 </div>
             </div>
@@ -74,25 +81,23 @@
 
 <!-- DISCOUNT TABLE CARD -->
 <div class="admin-card">
-    <div class="admin-card-header">
-        <h5 class="card-title-text">
-            <i class="bi bi-tag-fill text-primary"></i> Bảng dữ liệu mã giảm giá
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title-text mb-0">
+            <i class="bi bi-tag-fill text-primary me-2"></i>Danh sách mã giảm giá trong CSDL
         </h5>
-        <span class="text-muted small">Quản lý hiệu lực voucher</span>
+        <span class="text-muted small">Tổng số: <strong>@Model.Count()</strong> mã</span>
     </div>
 
     <div class="admin-table-container">
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th style="width: 40px;"><input type="checkbox" class="custom-checkbox" /></th>
-                    <th>Mã giảm giá</th>
+                    <th>Mã Voucher</th>
                     <th>Tên chương trình</th>
-                    <th>Loại giảm giá</th>
-                    <th>Giá trị giảm</th>
+                    <th>Loại &amp; Mức giảm</th>
                     <th>Điều kiện áp dụng</th>
-                    <th>Đã dùng / Tổng số</th>
-                    <th>Thời gian hạn</th>
+                    <th>Lượt dùng / Hạn mức</th>
+                    <th>Thời gian hiệu lực</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Hành động</th>
                 </tr>
@@ -100,30 +105,51 @@
             <tbody>
                 @foreach (var d in Model)
                 {
-                    <tr id="row-discount-@d.Code">
-                        <td><input type="checkbox" class="custom-checkbox" /></td>
+                    <tr id="row-discount-@d.DiscountId">
                         <td>
                             <span class="fw-bold px-2 py-1 rounded" style="background-color: #eff6ff; color: #1d4ed8; border: 1px dashed #bfdbfe; font-family: monospace; font-size: 0.95rem;">
                                 @d.Code
                             </span>
                         </td>
-                        <td class="fw-semibold text-dark">@d.Title</td>
-                        <td class="text-secondary">@d.DiscountType</td>
-                        <td class="fw-bold text-dark">@d.DiscountValueText</td>
-                        <td class="text-muted small">@d.ConditionText</td>
-                        <td class="text-dark">@d.UsageText</td>
-                        <td class="text-muted small">@d.ExpiryText</td>
+                        <td>
+                            <div class="fw-semibold text-dark">@d.Title</div>
+                            @if (!string.IsNullOrEmpty(d.Description))
+                            {
+                                <div class="text-muted small" style="font-size: 0.8rem; max-width: 260px;">@d.Description</div>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-bold text-danger">@d.DiscountValueText</div>
+                            <span class="badge bg-light text-secondary border" style="font-size: 11px;">@d.DiscountTypeDisplay</span>
+                        </td>
+                        <td class="small">
+                            <div>@d.ConditionText</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">@d.UsageText</div>
+                        </td>
+                        <td class="text-muted small">
+                            <div>@d.ExpiryText</div>
+                        </td>
                         <td>
                             <span class="badge-status @d.StatusBadgeClass">
                                 @d.Status
                             </span>
                         </td>
-                        <td class="text-end">
-                            <button type="button" class="btn-action-edit me-1" onclick="alert('Chỉnh sửa mã @d.Code')">
-                                <i class="bi bi-pencil-square"></i> Sửa
+                        <td class="text-end text-nowrap">
+                            <button type="button" 
+                                    class="btn btn-sm @(d.IsActive ? "btn-outline-warning" : "btn-outline-success") me-1" 
+                                    onclick="toggleDiscount(@d.DiscountId, '@d.Code', @d.IsActive.ToString().ToLower())"
+                                    title="@(d.IsActive ? "Ngừng áp dụng voucher này" : "Kích hoạt lại voucher này")">
+                                <i class="bi @(d.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i> 
+                                @(d.IsActive ? "Ngừng" : "Bật")
                             </button>
-                            <button type="button" class="btn-action-delete" onclick="deleteDiscount('@d.Code')">
-                                <i class="bi bi-trash"></i> Xóa
+
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteDiscount(@d.DiscountId, '@d.Code', @d.UsedCount)"
+                                    title="Xóa voucher khỏi hệ thống">
+                                <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>
@@ -131,70 +157,98 @@
             </tbody>
         </table>
     </div>
-
-    <!-- PAGINATION -->
-    <div class="admin-pagination-wrap">
-        <div class="pagination-info">
-            Hiển thị 1-5 trong tổng số @ViewBag.TotalCount mã giảm giá
-        </div>
-        <ul class="admin-pagination">
-            <li class="admin-page-item disabled"><a href="javascript:void(0)"><i class="bi bi-chevron-left"></i> Trước</a></li>
-            <li class="admin-page-item active"><a href="javascript:void(0)">1</a></li>
-            <li class="admin-page-item"><a href="javascript:void(0)">2</a></li>
-            <li class="admin-page-item"><a href="javascript:void(0)">3</a></li>
-            <li class="admin-page-item"><a href="javascript:void(0)">Sau <i class="bi bi-chevron-right"></i></a></li>
-        </ul>
-    </div>
 </div>
 
 <!-- MODAL TẠO MÃ GIẢM GIÁ MỚI -->
 <div class="modal fade" id="createDiscountModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title"><i class="bi bi-tag-fill text-primary me-2"></i>Tạo mã giảm giá mới</h5>
+                <h5 class="modal-title"><i class="bi bi-tag-fill text-primary me-2"></i>Tạo mã giảm giá mới vào CSDL</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="post" action="/Admin/CreateDiscount">
+                @Html.AntiForgeryToken()
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label-dark">Mã giảm giá (Code) *</label>
-                        <input type="text" name="code" class="form-control-dark" placeholder="VD: SUMMER2026" required style="text-transform: uppercase;" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Mã voucher (Code) *</label>
+                            <input type="text" name="Code" class="form-control-dark" placeholder="VD: TET2026, GAMING1TR" required style="text-transform: uppercase;" />
+                            <small class="text-muted">Viết hoa, viết liền, không dấu</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Tên chương trình khuyến mãi *</label>
+                            <input type="text" name="Title" class="form-control-dark" placeholder="Khuyến mãi Lễ Hội Công Nghệ" required />
+                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label-dark">Tên chương trình *</label>
-                        <input type="text" name="title" class="form-control-dark" placeholder="Khuyến mãi hè sôi động" required />
+                        <label class="form-label-dark">Mô tả thể lệ &amp; quà tặng kèm</label>
+                        <textarea name="Description" class="form-control-dark" rows="2" placeholder="Chi tiết ưu đãi hiển thị cho khách hàng xem trên website"></textarea>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label-dark">Loại giảm giá</label>
-                            <select name="discountType" class="form-select-dark">
-                                <option value="percent">Giảm theo %</option>
-                                <option value="fixed">Giảm số tiền thẳng (VNĐ)</option>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label-dark">Loại giảm giá *</label>
+                            <select name="DiscountType" id="discountTypeSelect" class="form-select-dark" onchange="handleDiscountTypeChange()">
+                                <option value="Percentage">Giảm theo %</option>
+                                <option value="FixedAmount">Giảm số tiền cố định (VNĐ)</option>
                             </select>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4">
                             <label class="form-label-dark">Giá trị giảm *</label>
-                            <input type="text" name="value" class="form-control-dark" placeholder="VD: 10 hoặc 500000" required />
+                            <input type="number" step="0.01" name="DiscountValue" class="form-control-dark" placeholder="VD: 10 (%) hoặc 500000 (đ)" required />
+                        </div>
+                        <div class="col-md-4" id="maxDiscountAmountWrap">
+                            <label class="form-label-dark">Trần giảm tối đa (VNĐ)</label>
+                            <input type="number" step="1000" name="MaxDiscountAmount" class="form-control-dark" placeholder="VD: 1000000 (để trống nếu không trần)" />
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label-dark">Điều kiện áp dụng</label>
-                        <input type="text" name="condition" class="form-control-dark" placeholder="Đơn hàng từ 10.000.000đ" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Đơn hàng tối thiểu (VNĐ)</label>
+                            <input type="number" step="1000" name="MinOrderAmount" class="form-control-dark" value="0" placeholder="VD: 10000000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Phạm vi áp dụng</label>
+                            <select name="ApplicableScope" class="form-select-dark">
+                                <option value="All">Toàn bộ sản phẩm</option>
+                                <option value="GamingOnly">Chỉ áp dụng Laptop Gaming</option>
+                                <option value="OfficeOnly">Chỉ áp dụng Laptop Văn phòng &amp; Học tập</option>
+                                <option value="AppleOnly">Chỉ áp dụng Apple MacBook</option>
+                                <option value="FirstOrderOnly">Chỉ áp dụng cho Khách mua đơn đầu tiên</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label-dark">Số lượng phát hành</label>
-                        <input type="number" name="quantity" class="form-control-dark" value="100" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label-dark">Số lượng lượt dùng tối đa</label>
+                            <input type="number" name="UsageLimit" class="form-control-dark" placeholder="Để trống nếu không giới hạn" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-dark">Ngày bắt đầu</label>
+                            <input type="datetime-local" name="StartDate" class="form-control-dark" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-dark">Ngày kết thúc (Hạn dùng)</label>
+                            <input type="datetime-local" name="EndDate" class="form-control-dark" />
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn-primary-custom">Tạo voucher</button>
+                    <button type="submit" class="btn-primary-custom">Lưu voucher vào CSDL</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<form id="antiForgeryForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
 
 @section Scripts {
     <script>
@@ -208,22 +262,73 @@
             document.getElementById('discountFilterForm').submit();
         }
 
-        function deleteDiscount(code) {
-            if (!confirm(`Bạn có chắc chắn muốn xóa mã giảm giá "${code}"?`)) return;
+        function handleDiscountTypeChange() {
+            const type = document.getElementById('discountTypeSelect').value;
+            const wrap = document.getElementById('maxDiscountAmountWrap');
+            if (wrap) {
+                wrap.style.display = type === 'Percentage' ? 'block' : 'none';
+            }
+        }
 
-            fetch('/Admin/DeleteDiscount', {
+        function getAntiForgeryToken() {
+            const input = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]');
+            return input ? input.value : '';
+        }
+
+        function toggleDiscount(id, code, currentIsActive) {
+            const actionText = currentIsActive ? 'ngừng áp dụng' : 'kích hoạt lại';
+            if (!confirm(`Bạn có chắc chắn muốn ${actionText} mã giảm giá "${code}"?`)) return;
+
+            const token = getAntiForgeryToken();
+            fetch('/Admin/ToggleDiscountStatus', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `code=${encodeURIComponent(code)}`
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `id=${id}`
             })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    const row = document.getElementById(`row-discount-${code}`);
-                    if (row) row.remove();
+                    location.reload();
                 } else {
                     alert('Lỗi: ' + data.message);
                 }
+            })
+            .catch(err => {
+                alert('Không thể kết nối đến máy chủ: ' + err);
+            });
+        }
+
+        function deleteDiscount(id, code, usedCount) {
+            let msg = `Bạn có chắc chắn muốn xóa mã giảm giá "${code}"?`;
+            if (usedCount > 0) {
+                msg = `Mã "${code}" đã có ${usedCount} lượt sử dụng. Để bảo vệ dữ liệu lịch sử hóa đơn, hệ thống sẽ tự động chuyển sang trạng thái "Ngừng áp dụng" thay vì xóa vĩnh viễn. Bạn có đồng ý tiếp tục?`;
+            }
+
+            if (!confirm(msg)) return;
+
+            const token = getAntiForgeryToken();
+            fetch('/Admin/DeleteDiscount', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `id=${id}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('Không thể kết nối đến máy chủ: ' + err);
             });
         }
     </script>

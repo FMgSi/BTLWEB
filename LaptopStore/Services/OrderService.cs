@@ -9,11 +9,13 @@ public class OrderService : IOrderService
 {
     private readonly AppDbContext _db;
     private readonly IInstallmentService _installmentService;
+    private readonly IDiscountService? _discountService;
 
-    public OrderService(AppDbContext db, IInstallmentService installmentService)
+    public OrderService(AppDbContext db, IInstallmentService installmentService, IDiscountService? discountService = null)
     {
         _db = db;
         _installmentService = installmentService;
+        _discountService = discountService;
     }
 
     public async Task<(bool Success, string Message, OrderResponseDto? Order)> CreateOrderAsync(CreateOrderRequest req, int? userId = null)
@@ -291,6 +293,31 @@ public class OrderService : IOrderService
                     attempts++;
                 } while (await _db.Orders.AnyAsync(o => o.OrderCode == orderCode) && attempts < 10);
 
+                // 4. Kiểm tra và áp dụng mã giảm giá / Voucher (nếu có)
+                decimal discountAmount = 0;
+                string? appliedDiscountCode = null;
+
+                if (!string.IsNullOrWhiteSpace(req.DiscountCode))
+                {
+                    var discountSvc = _discountService ?? new DiscountService(_db);
+                    var (valSuccess, valMsg, discountEntity, calcDiscount) = await discountSvc.ValidateAndCalculateDiscountAsync(
+                        req.DiscountCode, subTotal, req.Items, req.PhoneNumber, userId);
+
+                    if (!valSuccess || discountEntity == null)
+                    {
+                        await RollbackAsync();
+                        return (false, valMsg, null);
+                    }
+
+                    discountAmount = calcDiscount;
+                    appliedDiscountCode = discountEntity.Code;
+
+                    // Tăng số lượt đã sử dụng của voucher trong CSDL
+                    discountEntity.UsedCount += 1;
+                }
+
+                decimal finalTotal = Math.Max(0, subTotal - discountAmount);
+
                 bool isInstallment = req.PurchaseMode?.Equals("Installment", StringComparison.OrdinalIgnoreCase) == true;
                 int termMonths = (req.TermMonths == 3 || req.TermMonths == 6 || req.TermMonths == 9 || req.TermMonths == 12)
                     ? req.TermMonths.Value
@@ -299,7 +326,8 @@ public class OrderService : IOrderService
                 InstallmentPlanDto? plan = null;
                 if (isInstallment)
                 {
-                    plan = _installmentService.CalculatePlan(subTotal, termMonths);
+                    // Phương án trả góp và hạn mức trả trước 30% được tính chính xác trên tổng tiền cuối cùng (sau khi trừ voucher)
+                    plan = _installmentService.CalculatePlan(finalTotal, termMonths);
                 }
 
                 string initialPaymentStatus = isInstallment
@@ -322,8 +350,9 @@ public class OrderService : IOrderService
                     ShippingAddress = req.ShippingAddress.Trim(),
                     Notes = req.Notes?.Trim(),
                     SubTotal = subTotal,
-                    DiscountAmount = 0,
-                    TotalAmount = subTotal,
+                    DiscountAmount = discountAmount,
+                    DiscountCode = appliedDiscountCode,
+                    TotalAmount = finalTotal,
                     PurchaseMode = isInstallment ? "Installment" : "Full",
                     PaymentMethod = req.PaymentMethod,
                     PaymentStatus = initialPaymentStatus,
@@ -923,6 +952,9 @@ public class OrderService : IOrderService
             CustomerName = o.CustomerName,
             PhoneNumber = o.PhoneNumber,
             ShippingAddress = o.ShippingAddress,
+            SubTotal = o.SubTotal,
+            DiscountAmount = o.DiscountAmount,
+            DiscountCode = o.DiscountCode,
             TotalAmount = o.TotalAmount,
             PaymentMethod = o.PaymentMethod,
             PaymentStatus = o.PaymentStatus,
