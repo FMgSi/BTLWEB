@@ -1,15 +1,13 @@
 using LaptopStore.Data;
 using LaptopStore.Services;
-using LaptopStore.ViewModels;
-using LaptopStore.ViewModels.Storefront;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace LaptopStore.Controllers;
 
 /// <summary>
-/// Controller phục vụ khách hàng duyệt xem, tìm kiếm, lọc và xem chi tiết sản phẩm bằng Razor Views + Bootstrap
-/// Route mặc định: /Catalog và /Store
+/// Controller xử lý chuyển tiếp an toàn các liên kết Catalog MVC cũ sang React Frontend
+/// Tuyến đường: /Catalog, /Store, /Catalog/Details/{id}, /Catalog/Lookup, /Promotions
 /// </summary>
 public class CatalogController : Controller
 {
@@ -17,23 +15,32 @@ public class CatalogController : Controller
     private readonly IOrderService _orderService;
     private readonly IDiscountService _discountService;
     private readonly AppDbContext _db;
+    private readonly IConfiguration? _configuration;
 
-    public CatalogController(IProductService productService, IOrderService orderService, IDiscountService discountService, AppDbContext db)
+    private string FrontendBaseUrl => _configuration?["FrontendUrl"] ?? "http://localhost:3000";
+
+    public CatalogController(
+        IProductService? productService = null,
+        IOrderService? orderService = null,
+        IDiscountService? discountService = null,
+        AppDbContext? db = null,
+        IConfiguration? configuration = null)
     {
-        _productService = productService;
-        _orderService = orderService;
-        _discountService = discountService;
-        _db = db;
+        _productService = productService!;
+        _orderService = orderService!;
+        _discountService = discountService!;
+        _db = db!;
+        _configuration = configuration;
     }
 
     /// <summary>
     /// GET: /Catalog hoặc /Store
-    /// Trang danh mục sản phẩm dành cho khách hàng với đầy đủ bộ lọc, tìm kiếm và phân trang
+    /// Chuyển tiếp người dùng sang trang danh mục sản phẩm React kèm đầy đủ tham số bộ lọc nếu có
     /// </summary>
     [HttpGet]
     [Route("Catalog")]
     [Route("Store")]
-    public async Task<IActionResult> Index(
+    public IActionResult Index(
         string? q = null,
         string? brand = null,
         string? category = null,
@@ -43,124 +50,35 @@ public class CatalogController : Controller
         string? sort = "newest",
         int page = 1)
     {
-        if (page < 1) page = 1;
-        const int pageSize = 12;
-
-        // Xử lý khoảng giá định sẵn nếu có
-        if (!string.IsNullOrWhiteSpace(priceRange))
-        {
-            switch (priceRange)
-            {
-                case "under15":
-                    maxPrice = 15000000m;
-                    break;
-                case "15to20":
-                    minPrice = 15000000m;
-                    maxPrice = 20000000m;
-                    break;
-                case "20to30":
-                    minPrice = 20000000m;
-                    maxPrice = 30000000m;
-                    break;
-                case "over30":
-                    minPrice = 30000000m;
-                    break;
-            }
-        }
-
-        var pagedResult = await _productService.GetProductsApiAsync(
-            q: q,
-            tag: category,
-            brands: brand,
-            priceRange: priceRange,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
-            sortBy: sort ?? "newest",
-            page: page,
-            pageSize: pageSize);
-
-        var availableBrands = await _db.Brands
-            .AsNoTracking()
-            .OrderBy(b => b.BrandName)
-            .Select(b => b.BrandName)
-            .ToListAsync();
-
-        var availableCategories = await _db.Categories
-            .AsNoTracking()
-            .OrderBy(c => c.CategoryName)
-            .Select(c => c.CategoryName)
-            .ToListAsync();
-
-        var viewModel = new CatalogViewModel
-        {
-            Products = pagedResult,
-            Search = q,
-            Brand = brand,
-            Category = category,
-            PriceRange = priceRange,
-            MinPrice = minPrice,
-            MaxPrice = maxPrice,
-            SortBy = sort ?? "newest",
-            AvailableBrands = availableBrands,
-            AvailableCategories = availableCategories
-        };
-
-        return View(viewModel);
+        string queryParams = Request?.QueryString.HasValue == true ? Request.QueryString.Value! : "";
+        return Redirect($"{FrontendBaseUrl}/products{queryParams}");
     }
 
     /// <summary>
     /// GET: /Catalog/Details/{id}
-    /// Trang chi tiết sản phẩm dành cho khách hàng
+    /// Chuyển tiếp người dùng sang trang chi tiết sản phẩm trên React Frontend
     /// </summary>
     [HttpGet]
     [Route("Catalog/Details/{id:int}")]
-    public async Task<IActionResult> Details(int id)
+    public IActionResult Details(int id)
     {
-        var product = await _productService.GetProductDetailApiAsync(id);
-        if (product == null)
-        {
-            return NotFound("Không tìm thấy sản phẩm yêu cầu.");
-        }
-
-        // Lấy danh sách sản phẩm liên quan cùng danh mục hoặc cùng thương hiệu
-        var relatedProducts = await _db.Products
-            .AsNoTracking()
-            .Include(p => p.Brand)
-            .Include(p => p.Category)
-            .Where(p => p.IsActive && p.ProductId != id && ((p.Brand != null && p.Brand.BrandName == product.Brand) || (p.Category != null && p.Category.CategoryName == product.Category)))
-            .Take(4)
-            .Select(p => new ProductApiDto
-            {
-                Id = p.ProductId,
-                Name = p.ProductName,
-                Brand = p.Brand != null ? p.Brand.BrandName : "",
-                Category = p.Category != null ? p.Category.CategoryName : "",
-                Price = p.DiscountPrice ?? p.Price,
-                OriginalPrice = p.DiscountPrice.HasValue ? p.Price : null,
-                Image = p.ThumbnailUrl ?? "/images/products/placeholder.png",
-                Badge = p.StockQuantity > 0 ? null : "Hết hàng",
-                BadgeColor = "bg-secondary"
-            })
-            .ToListAsync();
-
-        ViewBag.RelatedProducts = relatedProducts;
-        return View(product);
+        return Redirect($"{FrontendBaseUrl}/product/{id}");
     }
 
     /// <summary>
     /// GET: /Catalog/Lookup
-    /// Gỡ bỏ trang tra cứu cũ, chuyển hướng an toàn về trang danh mục và loại bỏ tham số nhạy cảm (orderCode, phone)
+    /// Gỡ bỏ trang tra cứu cũ, chuyển hướng an toàn về trang Tài khoản cá nhân trên React Frontend
     /// </summary>
     [HttpGet]
     [Route("Catalog/Lookup")]
     public IActionResult Lookup()
     {
-        return RedirectToAction(nameof(Index));
+        return Redirect($"{FrontendBaseUrl}/account");
     }
 
     /// <summary>
     /// GET: /Promotions hoặc /Catalog/Promotions hoặc /khuyen-mai
-    /// Gỡ bỏ chuyên mục khuyến mãi, chuyển hướng an toàn về danh sách sản phẩm mặc định
+    /// Gỡ bỏ chuyên mục khuyến mãi, chuyển hướng an toàn về danh mục sản phẩm mặc định
     /// </summary>
     [HttpGet]
     [Route("Promotions")]

@@ -81,12 +81,16 @@ IF OBJECT_ID('dbo.ProductImages', 'U') IS NULL
 CREATE TABLE ProductImages (
     ImageId INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     ProductId INT NOT NULL,
+    ColorId INT NULL,
     ImageUrl NVARCHAR(MAX) NOT NULL,
     DisplayOrder INT NOT NULL DEFAULT 1,
-    CONSTRAINT FK_ProductImages_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE
+    CONSTRAINT FK_ProductImages_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (ProductId) ON DELETE CASCADE,
+    CONSTRAINT FK_ProductImages_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId) ON DELETE SET NULL
 );
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ProductImages_ProductId' AND object_id = OBJECT_ID('ProductImages'))
     CREATE NONCLUSTERED INDEX IX_ProductImages_ProductId ON ProductImages (ProductId);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ProductImages_Product_Color_Slot' AND object_id = OBJECT_ID('ProductImages'))
+    CREATE UNIQUE NONCLUSTERED INDEX IX_ProductImages_Product_Color_Slot ON ProductImages (ProductId, ColorId, DisplayOrder) WHERE ColorId IS NOT NULL;
 GO
 
 -- 6. Bảng Tài khoản người dùng (Users)

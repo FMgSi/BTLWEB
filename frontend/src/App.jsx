@@ -149,6 +149,32 @@ export default function App() {
         setIsCartView(false);
         setAuthView(null);
         setSelectedProductId(null);
+      } else if (path.includes('/catalog/details/') || path.includes('/catalog/detail/')) {
+        const match = path.match(/\/catalog\/details?\/(\d+)/i);
+        if (match) {
+          setSelectedProductId(parseInt(match[1], 10));
+          setIsCartView(false);
+          setAuthView(null);
+        } else {
+          handleResetFilters();
+          setActiveNav('products');
+          setIsCartView(false);
+          setAuthView(null);
+          setSelectedProductId(null);
+        }
+      } else if (path.includes('/catalog/lookup')) {
+        setActiveNav('account');
+        setIsCartView(false);
+        setAuthView(null);
+        setSelectedProductId(null);
+        window.history.replaceState({}, '', '/account');
+      } else if (path.includes('/catalog') || path.includes('/store')) {
+        handleResetFilters();
+        setActiveNav('products');
+        setIsCartView(false);
+        setAuthView(null);
+        setSelectedProductId(null);
+        window.history.replaceState({}, '', '/products');
       } else if (path.includes('/promotions') || path.includes('/khuyen-mai')) {
         // Chuyển hướng các đường dẫn khuyến mãi cũ về danh sách sản phẩm mặc định
         handleResetFilters();

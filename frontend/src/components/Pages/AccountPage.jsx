@@ -730,3 +730,4 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     </div>
   );
 }
+

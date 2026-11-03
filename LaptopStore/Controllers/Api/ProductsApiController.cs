@@ -70,4 +70,15 @@ public class ProductsApiController : ControllerBase
 
         return Ok(detail);
     }
+
+    /// <summary>
+    /// Gợi ý tìm kiếm nhanh model máy phục vụ đăng ký tiếp nhận sửa chữa
+    /// GET: /api/products/suggest-models?q=dell
+    /// </summary>
+    [HttpGet("suggest-models")]
+    public async Task<IActionResult> SuggestModels([FromQuery] string? q = null)
+    {
+        var suggestions = await _productService.SuggestModelsAsync(q);
+        return Ok(suggestions);
+    }
 }

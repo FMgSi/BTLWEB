@@ -161,6 +161,9 @@ public class ProductController : Controller
             OS = p.Specification?.OS
         };
 
+        vm.ColorImagesList = await _productService.GetProductColorImagesAsync(id);
+        vm.SelectedColorId = vm.ColorImagesList.FirstOrDefault()?.ColorId;
+
         ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", p.BrandId);
         ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", p.CategoryId);
         return View(vm);
@@ -176,6 +179,7 @@ public class ProductController : Controller
     {
         if (!ModelState.IsValid)
         {
+            vm.ColorImagesList = await _productService.GetProductColorImagesAsync(vm.ProductId);
             ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", vm.BrandId);
             ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", vm.CategoryId);
             return View(vm);
@@ -185,6 +189,7 @@ public class ProductController : Controller
         if (!success)
         {
             ModelState.AddModelError("", "Đã xảy ra lỗi khi cập nhật sản phẩm. Vui lòng thử lại.");
+            vm.ColorImagesList = await _productService.GetProductColorImagesAsync(vm.ProductId);
             ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", vm.BrandId);
             ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", vm.CategoryId);
             return View(vm);

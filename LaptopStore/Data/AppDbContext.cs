@@ -147,6 +147,24 @@ public class AppDbContext : DbContext
             .HasForeignKey<ProductSpecification>(s => s.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Cấu hình bảng ProductImages: Mỗi sản phẩm + màu sắc + vị trí ô (1-4) chỉ có tối đa 1 ảnh
+        mb.Entity<ProductImage>(entity =>
+        {
+            entity.HasOne(i => i.Product)
+                .WithMany(p => p.Images)
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(i => i.Color)
+                .WithMany()
+                .HasForeignKey(i => i.ColorId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(i => new { i.ProductId, i.ColorId, i.DisplayOrder })
+                .IsUnique()
+                .HasFilter("[ColorId] IS NOT NULL");
+        });
+
         // Cấu hình bảng Orders
         mb.Entity<Order>(entity =>
         {

@@ -85,6 +85,51 @@ public class ProductEditViewModel : IValidatableObject
     [Display(Name = "Hệ điều hành")]
     public string? OS { get; set; }
 
+    /// <summary>
+    /// ID màu đang được chọn để quản lý ảnh trong giao diện Chỉnh sửa
+    /// </summary>
+    public int? SelectedColorId { get; set; }
+
+    /// <summary>
+    /// File ảnh tải lên cho Ô 1 (Ảnh đại diện của màu - Bắt buộc / Ưu tiên)
+    /// </summary>
+    public IFormFile? Slot1Image { get; set; }
+
+    /// <summary>
+    /// File ảnh tải lên cho Ô 2 (Ảnh phụ 1 của màu)
+    /// </summary>
+    public IFormFile? Slot2Image { get; set; }
+
+    /// <summary>
+    /// File ảnh tải lên cho Ô 3 (Ảnh phụ 2 của màu)
+    /// </summary>
+    public IFormFile? Slot3Image { get; set; }
+
+    /// <summary>
+    /// File ảnh tải lên cho Ô 4 (Ảnh phụ 3 của màu)
+    /// </summary>
+    public IFormFile? Slot4Image { get; set; }
+
+    /// <summary>
+    /// Cờ xóa ảnh ở Ô 2
+    /// </summary>
+    public bool DeleteSlot2 { get; set; }
+
+    /// <summary>
+    /// Cờ xóa ảnh ở Ô 3
+    /// </summary>
+    public bool DeleteSlot3 { get; set; }
+
+    /// <summary>
+    /// Cờ xóa ảnh ở Ô 4
+    /// </summary>
+    public bool DeleteSlot4 { get; set; }
+
+    /// <summary>
+    /// Danh sách màu và 4 slot ảnh của từng màu để hiển thị trong View
+    /// </summary>
+    public List<ProductColorImagesViewModel> ColorImagesList { get; set; } = new();
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (DiscountPrice.HasValue)
@@ -105,25 +150,52 @@ public class ProductEditViewModel : IValidatableObject
             }
         }
 
-        if (UploadedImage != null && UploadedImage.Length > 0)
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+        void ValidateImageFile(IFormFile? file, string memberName, string label, List<ValidationResult> errors)
         {
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-            var ext = System.IO.Path.GetExtension(UploadedImage.FileName).ToLowerInvariant();
+            if (file == null || file.Length == 0) return;
+            var ext = System.IO.Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(ext))
             {
-                yield return new ValidationResult(
-                    "Chỉ chấp nhận các định dạng ảnh: .jpg, .jpeg, .png, .webp",
-                    new[] { nameof(UploadedImage) }
-                );
+                errors.Add(new ValidationResult(
+                    $"{label}: Chỉ chấp nhận các định dạng ảnh: .jpg, .jpeg, .png, .webp",
+                    new[] { memberName }
+                ));
             }
-
-            if (UploadedImage.Length > 5 * 1024 * 1024)
+            if (file.Length > 5 * 1024 * 1024)
             {
-                yield return new ValidationResult(
-                    "Dung lượng ảnh không được vượt quá 5MB",
-                    new[] { nameof(UploadedImage) }
-                );
+                errors.Add(new ValidationResult(
+                    $"{label}: Dung lượng ảnh không được vượt quá 5MB",
+                    new[] { memberName }
+                ));
             }
         }
+
+        var fileErrors = new List<ValidationResult>();
+        ValidateImageFile(UploadedImage, nameof(UploadedImage), "Ảnh chung", fileErrors);
+        ValidateImageFile(Slot1Image, nameof(Slot1Image), "Ô 1 (Ảnh đại diện)", fileErrors);
+        ValidateImageFile(Slot2Image, nameof(Slot2Image), "Ô 2 (Ảnh phụ 1)", fileErrors);
+        ValidateImageFile(Slot3Image, nameof(Slot3Image), "Ô 3 (Ảnh phụ 2)", fileErrors);
+        ValidateImageFile(Slot4Image, nameof(Slot4Image), "Ô 4 (Ảnh phụ 3)", fileErrors);
+
+        foreach (var err in fileErrors)
+        {
+            yield return err;
+        }
     }
+}
+
+/// <summary>
+/// ViewModel chứa 4 ô ảnh cho một màu sắc của sản phẩm
+/// </summary>
+public class ProductColorImagesViewModel
+{
+    public int ColorId { get; set; }
+    public string ColorName { get; set; } = string.Empty;
+    public string HexCode { get; set; } = "#CBD5E1";
+    public string? Slot1Url { get; set; }
+    public string? Slot2Url { get; set; }
+    public string? Slot3Url { get; set; }
+    public string? Slot4Url { get; set; }
 }

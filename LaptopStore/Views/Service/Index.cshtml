@@ -205,9 +205,20 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="DeviceSource" value="External" />
                                 <div class="row g-2 mb-3">
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-6 position-relative">
                                         <label class="form-label small fw-bold">Dòng máy / Model laptop <span class="text-danger">*</span></label>
-                                        <input type="text" name="ExternalDeviceModel" class="form-control form-control-sm" required placeholder="Ví dụ: Dell XPS 9510, Lenovo Legion 5..." />
+                                        <input type="text" name="ExternalDeviceModel" id="externalDeviceModelMvc" list="laptopModelSuggestions" class="form-control form-control-sm" required placeholder="Gõ để tìm (VD: Dell XPS 13, ASUS ROG...)" autocomplete="off" />
+                                        <datalist id="laptopModelSuggestions">
+                                            <option value="Dell XPS 13 9310">Dell XPS 13 - Mỏng nhẹ cao cấp</option>
+                                            <option value="Dell Inspiron 15 3520">Dell Inspiron - Văn phòng học tập</option>
+                                            <option value="ASUS ROG Strix G15">ASUS ROG Strix - Gaming hiệu năng cao</option>
+                                            <option value="ASUS Zenbook 14 OLED">ASUS Zenbook - Màn hình OLED chuẩn đồ họa</option>
+                                            <option value="MacBook Pro 14 M2">Apple MacBook Pro 14 - Apple Silicon</option>
+                                            <option value="MacBook Air M2 13.6">Apple MacBook Air M2 - Siêu mỏng nhẹ</option>
+                                            <option value="Lenovo Legion 5 15IAH7">Lenovo Legion 5 - Gaming tản nhiệt tốt</option>
+                                            <option value="Lenovo ThinkPad X1 Carbon">Lenovo ThinkPad X1 Carbon - Doanh nhân</option>
+                                            <option value="HP Envy 13 ba1030TU">HP Envy 13 - Kim loại nguyên khối</option>
+                                        </datalist>
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label small">Số Serial / Service Tag (nếu có)</label>

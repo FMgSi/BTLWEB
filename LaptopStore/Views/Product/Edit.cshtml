@@ -171,36 +171,115 @@
                         </div>
                     </div>
 
-                    <!-- 2. Hình ảnh sản phẩm -->
-                    <h6 class="text-dark fw-bold mb-2" style="font-size: 0.9rem;">
-                        <i class="bi bi-image text-warning me-1"></i> Hình ảnh sản phẩm
-                    </h6>
+                    <!-- 2. Quản lý hình ảnh theo màu sắc (4 ô ảnh) -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-dark fw-bold mb-0" style="font-size: 0.9rem;">
+                            <i class="bi bi-images text-danger me-1"></i> Bộ ảnh theo màu sắc (4 ô ảnh cố định)
+                        </h6>
+                        <span class="badge bg-light text-muted border" style="font-size: 11px;">Mỗi màu 4 ô ảnh</span>
+                    </div>
 
-                    @if (!string.IsNullOrEmpty(Model.ExistingThumbnail))
-                    {
-                        <div class="p-2 mb-3 rounded d-flex align-items-center gap-3 border" style="background: #f8fafc;">
-                            <img src="@Model.ExistingThumbnail" onerror="this.src='/images/default.png'" 
-                                 style="width: 50px; height: 50px; object-fit: contain; background: #ffffff; border-radius: 6px;" class="border" />
-                            <div>
-                                <span class="text-secondary small d-block">Ảnh đại diện hiện tại</span>
-                                <span class="text-dark small fw-semibold">Đang sử dụng</span>
+                    <!-- Bộ chọn màu sắc -->
+                    <div class="mb-3 p-2 rounded border bg-light">
+                        <label class="form-label-dark small fw-bold mb-1">
+                            <i class="bi bi-palette text-primary me-1"></i> Chọn màu sắc của laptop để quản lý ảnh:
+                        </label>
+                        @if (Model.ColorImagesList != null && Model.ColorImagesList.Any())
+                        {
+                            <select id="colorSelect" class="form-select-dark">
+                                @foreach (var c in Model.ColorImagesList)
+                                {
+                                    <option value="@c.ColorId" selected="@(c.ColorId == Model.SelectedColorId ? "selected" : null)">
+                                        @Model.ProductName · @c.ColorName (@c.HexCode)
+                                    </option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <div class="text-muted small">Chưa có màu sắc nào cho sản phẩm này. Vui lòng thêm phiên bản màu trước.</div>
+                        }
+                        <input type="hidden" asp-for="SelectedColorId" id="selectedColorIdInput" />
+                        <input type="hidden" asp-for="DeleteSlot2" id="deleteSlot2Input" value="false" />
+                        <input type="hidden" asp-for="DeleteSlot3" id="deleteSlot3Input" value="false" />
+                        <input type="hidden" asp-for="DeleteSlot4" id="deleteSlot4Input" value="false" />
+                    </div>
+
+                    <!-- 4 Ô ảnh theo thứ tự 1-4 -->
+                    <div class="row g-2 mb-3">
+                        <!-- Ô 1: Ảnh đại diện -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
+                                <span class="badge bg-dark mb-2 small text-truncate" title="Ô 1 · Ảnh đại diện">Ô 1 · Đại diện</span>
+                                <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
+                                    <img id="slot1Preview" src="/images/placeholder.png" alt="Ô 1" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                </div>
+                                <input asp-for="Slot1Image" id="slot1FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(1, this)" />
+                                <button type="button" class="btn btn-sm btn-outline-dark w-100 mt-auto" onclick="document.getElementById('slot1FileInput').click()">
+                                    <i class="bi bi-camera"></i> Thay ảnh
+                                </button>
+                                <div id="slot1FileName" class="text-primary small text-truncate mt-1" style="font-size: 10px;"></div>
                             </div>
                         </div>
-                    }
 
-                    <div class="admin-dropzone" onclick="document.getElementById('imageFileInputEdit').click()">
-                        <input asp-for="UploadedImage" id="imageFileInputEdit" type="file" class="d-none" accept="image/*" onchange="previewImageEdit(this)" />
-                        <div id="dropzoneContentEdit">
-                            <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
-                            <div class="dropzone-title">Kéo thả ảnh mới vào đây hoặc nhấp để thay ảnh</div>
-                            <div class="dropzone-sub">Hỗ trợ định dạng JPG, PNG, WEBP, tối đa 5MB</div>
+                        <!-- Ô 2: Ảnh phụ 1 -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
+                                <span class="badge bg-secondary mb-2 small text-truncate" title="Ô 2 · Ảnh phụ">Ô 2 · Ảnh phụ</span>
+                                <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
+                                    <img id="slot2Preview" src="/images/placeholder.png" alt="Ô 2" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                </div>
+                                <input asp-for="Slot2Image" id="slot2FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(2, this)" />
+                                <div class="btn-group w-100 btn-group-sm mt-auto">
+                                    <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('slot2FileInput').click()" title="Thay hoặc thêm ảnh">
+                                        <i class="bi bi-upload"></i> Thay
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="slot2DeleteBtn" onclick="deleteSlotImage(2)" title="Xóa ảnh ô này">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </div>
+                                <div id="slot2FileName" class="text-primary small text-truncate mt-1" style="font-size: 10px;"></div>
+                            </div>
                         </div>
-                        <div id="previewContainerEdit" class="d-none text-center">
-                            <img id="imagePreviewEdit" src="#" alt="Preview" style="max-height: 120px; max-width: 100%; object-fit: contain; border-radius: 8px;" class="mb-2" />
-                            <div class="text-primary small fw-semibold" id="fileNameDisplayEdit"></div>
-                            <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none mt-1 p-0" onclick="removeImageEdit(event)">
-                                <i class="bi bi-x-circle"></i> Đổi ảnh khác
-                            </button>
+
+                        <!-- Ô 3: Ảnh phụ 2 -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
+                                <span class="badge bg-secondary mb-2 small text-truncate" title="Ô 3 · Ảnh phụ">Ô 3 · Ảnh phụ</span>
+                                <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
+                                    <img id="slot3Preview" src="/images/placeholder.png" alt="Ô 3" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                </div>
+                                <input asp-for="Slot3Image" id="slot3FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(3, this)" />
+                                <div class="btn-group w-100 btn-group-sm mt-auto">
+                                    <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('slot3FileInput').click()" title="Thay hoặc thêm ảnh">
+                                        <i class="bi bi-upload"></i> Thay
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="slot3DeleteBtn" onclick="deleteSlotImage(3)" title="Xóa ảnh ô này">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </div>
+                                <div id="slot3FileName" class="text-primary small text-truncate mt-1" style="font-size: 10px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Ô 4: Ảnh phụ 3 -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
+                                <span class="badge bg-secondary mb-2 small text-truncate" title="Ô 4 · Ảnh phụ">Ô 4 · Ảnh phụ</span>
+                                <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
+                                    <img id="slot4Preview" src="/images/placeholder.png" alt="Ô 4" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                </div>
+                                <input asp-for="Slot4Image" id="slot4FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(4, this)" />
+                                <div class="btn-group w-100 btn-group-sm mt-auto">
+                                    <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('slot4FileInput').click()" title="Thay hoặc thêm ảnh">
+                                        <i class="bi bi-upload"></i> Thay
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="slot4DeleteBtn" onclick="deleteSlotImage(4)" title="Xóa ảnh ô này">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </div>
+                                <div id="slot4FileName" class="text-primary small text-truncate mt-1" style="font-size: 10px;"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -219,24 +298,113 @@
 
 @section Scripts {
     <script>
-        function previewImageEdit(input) {
+        const colorImagesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ColorImagesList));
+        let currentColorId = @(Model.SelectedColorId ?? (Model.ColorImagesList.FirstOrDefault()?.ColorId ?? 0));
+        let hasUnsavedChanges = false;
+
+        function getPlaceholder(slot) {
+            return '/images/placeholder.png';
+        }
+
+        function renderSlotsForColor(colorId) {
+            const colorItem = colorImagesData.find(c => c.ColorId === colorId);
+            
+            // Cập nhật ô 1
+            const img1 = (colorItem && colorItem.Slot1Url) ? colorItem.Slot1Url : getPlaceholder(1);
+            document.getElementById('slot1Preview').src = img1;
+            document.getElementById('slot1FileName').innerText = '';
+            document.getElementById('slot1FileInput').value = '';
+
+            // Cập nhật ô 2
+            const img2 = (colorItem && colorItem.Slot2Url) ? colorItem.Slot2Url : getPlaceholder(2);
+            document.getElementById('slot2Preview').src = img2;
+            document.getElementById('slot2FileName').innerText = '';
+            document.getElementById('slot2FileInput').value = '';
+            document.getElementById('deleteSlot2Input').value = 'false';
+            document.getElementById('slot2DeleteBtn').disabled = !(colorItem && colorItem.Slot2Url);
+
+            // Cập nhật ô 3
+            const img3 = (colorItem && colorItem.Slot3Url) ? colorItem.Slot3Url : getPlaceholder(3);
+            document.getElementById('slot3Preview').src = img3;
+            document.getElementById('slot3FileName').innerText = '';
+            document.getElementById('slot3FileInput').value = '';
+            document.getElementById('deleteSlot3Input').value = 'false';
+            document.getElementById('slot3DeleteBtn').disabled = !(colorItem && colorItem.Slot3Url);
+
+            // Cập nhật ô 4
+            const img4 = (colorItem && colorItem.Slot4Url) ? colorItem.Slot4Url : getPlaceholder(4);
+            document.getElementById('slot4Preview').src = img4;
+            document.getElementById('slot4FileName').innerText = '';
+            document.getElementById('slot4FileInput').value = '';
+            document.getElementById('deleteSlot4Input').value = 'false';
+            document.getElementById('slot4DeleteBtn').disabled = !(colorItem && colorItem.Slot4Url);
+
+            hasUnsavedChanges = false;
+        }
+
+        function handleSlotFileChange(slot, input) {
             if (input.files && input.files[0]) {
+                const file = input.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('imagePreviewEdit').src = e.target.result;
-                    document.getElementById('fileNameDisplayEdit').innerText = input.files[0].name;
-                    document.getElementById('dropzoneContentEdit').classList.add('d-none');
-                    document.getElementById('previewContainerEdit').classList.remove('d-none');
-                }
-                reader.readAsDataURL(input.files[0]);
+                    document.getElementById('slot' + slot + 'Preview').src = e.target.result;
+                    document.getElementById('slot' + slot + 'FileName').innerText = file.name;
+                    if (slot > 1) {
+                        const delInput = document.getElementById('deleteSlot' + slot + 'Input');
+                        if (delInput) delInput.value = 'false';
+                        const delBtn = document.getElementById('slot' + slot + 'DeleteBtn');
+                        if (delBtn) delBtn.disabled = false;
+                    }
+                    hasUnsavedChanges = true;
+                };
+                reader.readAsDataURL(file);
             }
         }
 
-        function removeImageEdit(e) {
-            e.stopPropagation();
-            document.getElementById('imageFileInputEdit').value = '';
-            document.getElementById('previewContainerEdit').classList.add('d-none');
-            document.getElementById('dropzoneContentEdit').classList.remove('d-none');
+        function deleteSlotImage(slot) {
+            if (slot <= 1) return;
+            document.getElementById('slot' + slot + 'Preview').src = getPlaceholder(slot);
+            document.getElementById('slot' + slot + 'FileName').innerText = '(Đã đánh dấu xóa)';
+            document.getElementById('slot' + slot + 'FileInput').value = '';
+            const delInput = document.getElementById('deleteSlot' + slot + 'Input');
+            if (delInput) delInput.value = 'true';
+            hasUnsavedChanges = true;
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const colorSelect = document.getElementById('colorSelect');
+            if (colorSelect) {
+                // Khởi tạo màu ban đầu
+                if (currentColorId > 0) {
+                    colorSelect.value = currentColorId;
+                } else if (colorSelect.options.length > 0) {
+                    currentColorId = Number(colorSelect.value);
+                }
+                document.getElementById('selectedColorIdInput').value = currentColorId;
+                renderSlotsForColor(currentColorId);
+
+                colorSelect.addEventListener('change', function(e) {
+                    const newColorId = Number(this.value);
+                    if (hasUnsavedChanges) {
+                        const ok = confirm('Bạn có thay đổi ảnh chưa lưu cho màu hiện tại. Tiếp tục đổi màu sẽ hủy các ảnh vừa chọn?\n\n- Bấm OK để tiếp tục đổi màu.\n- Bấm Cancel để ở lại lưu cập nhật.');
+                        if (!ok) {
+                            this.value = currentColorId;
+                            return;
+                        }
+                    }
+                    currentColorId = newColorId;
+                    document.getElementById('selectedColorIdInput').value = currentColorId;
+                    renderSlotsForColor(currentColorId);
+                });
+            }
+
+            // Cho phép submit form mà không bị chặn
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    hasUnsavedChanges = false;
+                });
+            }
+        });
     </script>
 }

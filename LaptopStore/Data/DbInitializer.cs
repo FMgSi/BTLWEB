@@ -61,6 +61,20 @@ public static class DbInitializer
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('OrderItems') AND name = 'ColorName')
                         ALTER TABLE OrderItems ADD ColorName NVARCHAR(100) NULL;
 
+                    -- Nâng cấp an toàn cho bảng ProductImages hỗ trợ 4 ô ảnh theo từng màu sắc
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductImages') AND name = 'ColorId')
+                    BEGIN
+                        ALTER TABLE ProductImages ADD ColorId INT NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_ProductImages_Colors_ColorId')
+                    BEGIN
+                        ALTER TABLE ProductImages ADD CONSTRAINT FK_ProductImages_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId) ON DELETE SET NULL;
+                    END
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ProductImages_Product_Color_Slot' AND object_id = OBJECT_ID('ProductImages'))
+                    BEGIN
+                        CREATE UNIQUE NONCLUSTERED INDEX IX_ProductImages_Product_Color_Slot ON ProductImages (ProductId, ColorId, DisplayOrder) WHERE ColorId IS NOT NULL;
+                    END
+
                     IF OBJECT_ID('dbo.Colors', 'U') IS NULL
                     BEGIN
                         CREATE TABLE Colors (
@@ -539,6 +553,34 @@ public static class DbInitializer
                     context.ProductImages.AddRange(imgs);
                     context.SaveChanges();
                 }
+            }
+
+            // Đồng bộ an toàn ảnh biến thể vào bảng ProductImages (Ô 1 - Ảnh đại diện của từng màu)
+            var variantsWithImage = context.ProductVariants
+                .AsNoTracking()
+                .Where(v => !string.IsNullOrEmpty(v.ImageUrl) && v.ColorId > 0)
+                .ToList();
+
+            bool changed = false;
+            foreach (var v in variantsWithImage)
+            {
+                bool exists = context.ProductImages.Any(pi => pi.ProductId == v.ProductId && pi.ColorId == v.ColorId && pi.DisplayOrder == 1);
+                if (!exists)
+                {
+                    context.ProductImages.Add(new ProductImage
+                    {
+                        ProductId = v.ProductId,
+                        ColorId = v.ColorId,
+                        DisplayOrder = 1,
+                        ImageUrl = v.ImageUrl!
+                    });
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                context.SaveChanges();
             }
         }
         catch (Exception ex)

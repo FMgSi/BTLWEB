@@ -27,6 +27,7 @@ public class ProductVariantDto
     public decimal? DiscountPrice { get; set; }
     public decimal EffectivePrice { get; set; }
     public string? ImageUrl { get; set; }
+    public List<string> Images { get; set; } = new();
     public bool IsActive { get; set; }
     public bool IsAvailable => IsActive && StockQuantity > 0;
 }

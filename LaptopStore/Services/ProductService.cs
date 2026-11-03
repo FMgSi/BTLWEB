@@ -276,28 +276,57 @@ public class ProductService : IProductService
             imageList.Insert(0, p.ThumbnailUrl);
         }
 
+        // Gom nhóm ảnh theo từng màu sắc (DisplayOrder từ 1 đến 4)
+        var colorImagesMap = new Dictionary<int, List<string>>();
+        foreach (var grp in p.Images.Where(img => img.ColorId.HasValue).GroupBy(img => img.ColorId!.Value))
+        {
+            var imgs = grp.OrderBy(img => img.DisplayOrder).Select(img => img.ImageUrl).ToList();
+            if (imgs.Any())
+            {
+                colorImagesMap[grp.Key] = imgs;
+            }
+        }
+
         var variantsDto = p.Variants
             .Where(v => v.IsActive)
             .OrderBy(v => v.Color?.Name)
             .ThenBy(v => v.RamGB)
             .ThenBy(v => v.StorageGB)
-            .Select(v => new ProductVariantDto
+            .Select(v =>
             {
-                VariantId = v.VariantId,
-                ProductId = v.ProductId,
-                ProductName = p.ProductName,
-                ColorId = v.ColorId,
-                ColorName = v.Color?.Name ?? "Mặc định",
-                HexCode = v.Color?.HexCode ?? "#CBD5E1",
-                RamGB = v.RamGB,
-                StorageGB = v.StorageGB,
-                SKU = v.SKU,
-                StockQuantity = v.StockQuantity,
-                Price = v.Price,
-                DiscountPrice = v.DiscountPrice,
-                EffectivePrice = v.EffectivePrice,
-                ImageUrl = v.ImageUrl,
-                IsActive = v.IsActive
+                List<string> varImgs;
+                if (colorImagesMap.TryGetValue(v.ColorId, out var mapped) && mapped.Any())
+                {
+                    varImgs = mapped;
+                }
+                else if (!string.IsNullOrEmpty(v.ImageUrl))
+                {
+                    varImgs = new List<string> { v.ImageUrl };
+                }
+                else
+                {
+                    varImgs = imageList;
+                }
+
+                return new ProductVariantDto
+                {
+                    VariantId = v.VariantId,
+                    ProductId = v.ProductId,
+                    ProductName = p.ProductName,
+                    ColorId = v.ColorId,
+                    ColorName = v.Color?.Name ?? "Mặc định",
+                    HexCode = v.Color?.HexCode ?? "#CBD5E1",
+                    RamGB = v.RamGB,
+                    StorageGB = v.StorageGB,
+                    SKU = v.SKU,
+                    StockQuantity = v.StockQuantity,
+                    Price = v.Price,
+                    DiscountPrice = v.DiscountPrice,
+                    EffectivePrice = v.EffectivePrice,
+                    ImageUrl = varImgs.FirstOrDefault() ?? v.ImageUrl ?? p.ThumbnailUrl,
+                    Images = varImgs,
+                    IsActive = v.IsActive
+                };
             }).ToList();
 
         int totalStock = variantsDto.Any() ? variantsDto.Sum(v => v.StockQuantity) : p.StockQuantity;
@@ -314,6 +343,7 @@ public class ProductService : IProductService
             StockQuantity = totalStock,
             Image = p.ThumbnailUrl ?? "/images/default.png",
             Images = imageList,
+            ColorImages = colorImagesMap,
             Description = p.Description ?? "Sản phẩm chính hãng với bảo hành 12-24 tháng.",
             Specification = p.Specification == null ? null : new ProductSpecDto
             {
@@ -503,6 +533,8 @@ public class ProductService : IProductService
             {
                 var p = await _db.Products
                     .Include(p => p.Specification)
+                    .Include(p => p.Images)
+                    .Include(p => p.Variants)
                     .FirstOrDefaultAsync(p => p.ProductId == vm.ProductId);
 
                 if (p == null) return false;
@@ -511,6 +543,73 @@ public class ProductService : IProductService
                 {
                     var newImg = await SaveImageFileAsync(vm.UploadedImage);
                     p.ThumbnailUrl = newImg;
+                }
+
+                // Xử lý 4 ô ảnh độc lập cho màu sắc đang chọn (vm.SelectedColorId)
+                if (vm.SelectedColorId.HasValue && vm.SelectedColorId.Value > 0)
+                {
+                    int colorId = vm.SelectedColorId.Value;
+                    bool colorExists = await _db.Colors.AnyAsync(c => c.ColorId == colorId);
+                    if (colorExists)
+                    {
+                        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+                        async Task HandleColorSlotAsync(int slot, IFormFile? file, bool delete)
+                        {
+                            if (slot < 1 || slot > 4) return;
+
+                            var existing = p.Images.FirstOrDefault(img => img.ColorId == colorId && img.DisplayOrder == slot);
+
+                            if (file != null && file.Length > 0)
+                            {
+                                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                                if (allowedExtensions.Contains(ext) && file.Length <= 5 * 1024 * 1024)
+                                {
+                                    string newUrl = await SaveImageFileAsync(file);
+                                    if (existing != null)
+                                    {
+                                        existing.ImageUrl = newUrl;
+                                    }
+                                    else
+                                    {
+                                        var newImg = new ProductImage
+                                        {
+                                            ProductId = p.ProductId,
+                                            ColorId = colorId,
+                                            DisplayOrder = slot,
+                                            ImageUrl = newUrl
+                                        };
+                                        _db.ProductImages.Add(newImg);
+                                        p.Images.Add(newImg);
+                                    }
+
+                                    // Nếu là ô 1 (Ảnh đại diện), đồng bộ với các variant cùng màu
+                                    if (slot == 1)
+                                    {
+                                        foreach (var v in p.Variants.Where(v => v.ColorId == colorId))
+                                        {
+                                            v.ImageUrl = newUrl;
+                                        }
+
+                                        if (string.IsNullOrEmpty(p.ThumbnailUrl))
+                                        {
+                                            p.ThumbnailUrl = newUrl;
+                                        }
+                                    }
+                                }
+                            }
+                            else if (delete && slot > 1 && existing != null)
+                            {
+                                _db.ProductImages.Remove(existing);
+                                p.Images.Remove(existing);
+                            }
+                        }
+
+                        await HandleColorSlotAsync(1, vm.Slot1Image, false);
+                        await HandleColorSlotAsync(2, vm.Slot2Image, vm.DeleteSlot2);
+                        await HandleColorSlotAsync(3, vm.Slot3Image, vm.DeleteSlot3);
+                        await HandleColorSlotAsync(4, vm.Slot4Image, vm.DeleteSlot4);
+                    }
                 }
 
                 p.ProductName = vm.ProductName.Trim();
@@ -601,6 +700,117 @@ public class ProductService : IProductService
         {
             return false;
         }
+    }
+
+    public async Task<List<ProductColorImagesViewModel>> GetProductColorImagesAsync(int productId)
+    {
+        var product = await _db.Products
+            .AsNoTracking()
+            .Include(p => p.Variants)
+                .ThenInclude(v => v.Color)
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.ProductId == productId);
+
+        if (product == null) return new List<ProductColorImagesViewModel>();
+
+        // Lấy danh sách màu sắc thuộc sản phẩm (từ variants và images)
+        var colorMap = new Dictionary<int, Color>();
+        foreach (var v in product.Variants)
+        {
+            if (v.Color != null && !colorMap.ContainsKey(v.ColorId))
+            {
+                colorMap[v.ColorId] = v.Color;
+            }
+        }
+
+        var imageColorIds = product.Images.Where(i => i.ColorId.HasValue).Select(i => i.ColorId!.Value).Distinct();
+        foreach (var cid in imageColorIds)
+        {
+            if (!colorMap.ContainsKey(cid))
+            {
+                var c = await _db.Colors.FindAsync(cid);
+                if (c != null) colorMap[cid] = c;
+            }
+        }
+
+        // Nếu sản phẩm chưa có biến thể nào thì lấy toàn bộ màu active để nhân viên có thể tải trước ảnh
+        if (!colorMap.Any())
+        {
+            var activeColors = await _db.Colors.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+            foreach (var c in activeColors)
+            {
+                colorMap[c.ColorId] = c;
+            }
+        }
+
+        var result = new List<ProductColorImagesViewModel>();
+        foreach (var kvp in colorMap.OrderBy(x => x.Value.Name))
+        {
+            var color = kvp.Value;
+            var imgs = product.Images.Where(i => i.ColorId == color.ColorId).ToList();
+
+            var slot1 = imgs.FirstOrDefault(i => i.DisplayOrder == 1)?.ImageUrl;
+            if (string.IsNullOrEmpty(slot1))
+            {
+                slot1 = product.Variants.FirstOrDefault(v => v.ColorId == color.ColorId && !string.IsNullOrEmpty(v.ImageUrl))?.ImageUrl;
+            }
+            if (string.IsNullOrEmpty(slot1) && colorMap.Any() && colorMap.First().Key == color.ColorId)
+            {
+                slot1 = product.ThumbnailUrl;
+            }
+
+            var slot2 = imgs.FirstOrDefault(i => i.DisplayOrder == 2)?.ImageUrl;
+            var slot3 = imgs.FirstOrDefault(i => i.DisplayOrder == 3)?.ImageUrl;
+            var slot4 = imgs.FirstOrDefault(i => i.DisplayOrder == 4)?.ImageUrl;
+
+            result.Add(new ProductColorImagesViewModel
+            {
+                ColorId = color.ColorId,
+                ColorName = color.Name,
+                HexCode = color.HexCode ?? "#CBD5E1",
+                Slot1Url = slot1,
+                Slot2Url = slot2,
+                Slot3Url = slot3,
+                Slot4Url = slot4
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<List<ModelSuggestionDto>> SuggestModelsAsync(string? query)
+    {
+        var q = _db.Products
+            .AsNoTracking()
+            .Include(p => p.Brand)
+            .Where(p => p.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var term = query.Trim().ToLower();
+            q = q.Where(p => p.ProductName.ToLower().Contains(term) ||
+                             (p.Brand != null && p.Brand.BrandName.ToLower().Contains(term)) ||
+                             (p.Brand != null && (p.Brand.BrandName + " " + p.ProductName).ToLower().Contains(term)));
+        }
+
+        var rawList = await q
+            .OrderBy(p => p.ProductName)
+            .Take(15)
+            .Select(p => new ModelSuggestionDto
+            {
+                ProductId = p.ProductId,
+                Brand = p.Brand != null ? p.Brand.BrandName : "",
+                ModelName = p.ProductName,
+                FullName = p.Brand != null ? $"{p.Brand.BrandName} {p.ProductName}" : p.ProductName,
+                ThumbnailUrl = p.ThumbnailUrl
+            })
+            .ToListAsync();
+
+        return rawList
+            .GroupBy(x => x.FullName)
+            .Select(g => g.First())
+            .Take(8)
+            .ToList();
     }
 
     private async Task<string> SaveImageFileAsync(IFormFile file)

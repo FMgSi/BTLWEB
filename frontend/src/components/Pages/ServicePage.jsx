@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { formatVND } from '../../utils/formatters';
 
 export default function ServicePage({ currentUser, initialTab = 'request', onGoHome, showToast, preSelectedDeviceId }) {
@@ -17,6 +17,16 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   const [selectedDeviceId, setSelectedDeviceId] = useState(preSelectedDeviceId ? preSelectedDeviceId.toString() : '');
   const [externalModel, setExternalModel] = useState('');
   const [externalSerial, setExternalSerial] = useState('');
+
+  // Autocomplete Model máy trong phiếu đăng ký
+  const [modelSuggestions, setModelSuggestions] = useState([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [highlightedModelIndex, setHighlightedModelIndex] = useState(-1);
+  const [selectedMatchedProductId, setSelectedMatchedProductId] = useState(null);
+  const modelSearchDebounceRef = useRef(null);
+  const modelLatestRequestIdRef = useRef(0);
+  const modelDropdownWrapperRef = useRef(null);
   const [customerName, setCustomerName] = useState(currentUser?.fullName || currentUser?.username || '');
   const [customerPhone, setCustomerPhone] = useState(currentUser?.phoneNumber || '');
   const [customerEmail, setCustomerEmail] = useState(currentUser?.email || '');
@@ -45,6 +55,102 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   const [myTickets, setMyTickets] = useState([]);
   const [isLoadingMyTickets, setIsLoadingMyTickets] = useState(false);
   const [myTicketsError, setMyTicketsError] = useState('');
+
+  // Hàm tải danh sách gợi ý Model máy qua API Backend với debounce 250ms
+  const fetchModelSuggestions = (query) => {
+    const reqId = ++modelLatestRequestIdRef.current;
+    setIsLoadingSuggestions(true);
+    const qParam = query && query.trim() ? `?q=${encodeURIComponent(query.trim())}` : '';
+    fetch(`/api/products/suggest-models${qParam}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (reqId === modelLatestRequestIdRef.current) {
+          setModelSuggestions(Array.isArray(data) ? data : []);
+          setIsLoadingSuggestions(false);
+        }
+      })
+      .catch(() => {
+        if (reqId === modelLatestRequestIdRef.current) {
+          setModelSuggestions([]);
+          setIsLoadingSuggestions(false);
+        }
+      });
+  };
+
+  const handleModelInputChange = (e) => {
+    const val = e.target.value;
+    setExternalModel(val);
+    setSelectedMatchedProductId(null);
+    setShowModelDropdown(true);
+    setHighlightedModelIndex(-1);
+
+    if (modelSearchDebounceRef.current) {
+      clearTimeout(modelSearchDebounceRef.current);
+    }
+
+    modelSearchDebounceRef.current = setTimeout(() => {
+      fetchModelSuggestions(val);
+    }, 250);
+  };
+
+  const handleModelFocus = () => {
+    setShowModelDropdown(true);
+    if (modelSuggestions.length === 0) {
+      fetchModelSuggestions(externalModel);
+    }
+  };
+
+  const handleSelectModel = (item) => {
+    setExternalModel(item.fullName || item.modelName);
+    setSelectedMatchedProductId(item.productId);
+    setShowModelDropdown(false);
+    setHighlightedModelIndex(-1);
+  };
+
+  const handleUseCustomModel = () => {
+    setShowModelDropdown(false);
+    setHighlightedModelIndex(-1);
+  };
+
+  const handleModelKeyDown = (e) => {
+    if (!showModelDropdown) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        setShowModelDropdown(true);
+      }
+      return;
+    }
+
+    const totalItems = modelSuggestions.length + (externalModel.trim() ? 1 : 0);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedModelIndex((prev) => (prev + 1) % totalItems);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedModelIndex((prev) => (prev <= 0 ? totalItems - 1 : prev - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedModelIndex >= 0 && highlightedModelIndex < modelSuggestions.length) {
+        handleSelectModel(modelSuggestions[highlightedModelIndex]);
+      } else {
+        handleUseCustomModel();
+      }
+    } else if (e.key === 'Escape') {
+      setShowModelDropdown(false);
+      setHighlightedModelIndex(-1);
+    }
+  };
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modelDropdownWrapperRef.current && !modelDropdownWrapperRef.current.contains(e.target)) {
+        setShowModelDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // 1. Đọc tham số URL khi mount trang hoặc khi chuyển hướng từ nơi khác
   useEffect(() => {
@@ -734,18 +840,110 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                     ) : (
                       /* NHẬP THÔNG TIN MÁY NGOÀI */
                       <div className="row g-2 mb-3">
-                        <div className="col-sm-7">
-                          <label className="form-label small fw-bold text-dark">
-                            Hãng và Model máy <span className="text-danger">*</span>
+                        <div className="col-sm-7 position-relative" ref={modelDropdownWrapperRef}>
+                          <label className="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-1">
+                            <span>Hãng và Model máy <span className="text-danger">*</span></span>
+                            {selectedMatchedProductId && (
+                              <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: '10px' }}>
+                                <i className="bi bi-check2-circle me-1"></i>Đã khớp danh mục
+                              </span>
+                            )}
                           </label>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="VD: Dell XPS 13 9310, Asus ROG Strix G15..."
-                            required
-                            value={externalModel}
-                            onChange={(e) => setExternalModel(e.target.value)}
-                          />
+                          <div className="input-group input-group-sm">
+                            <span className="input-group-text bg-light text-muted">
+                              <i className="bi bi-search"></i>
+                            </span>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="Gõ để tìm hoặc chọn (VD: Dell XPS 13, ASUS ROG...)"
+                              required
+                              value={externalModel}
+                              onChange={handleModelInputChange}
+                              onFocus={handleModelFocus}
+                              onKeyDown={handleModelKeyDown}
+                              autoComplete="off"
+                            />
+                            {externalModel && (
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={() => {
+                                  setExternalModel('');
+                                  setSelectedMatchedProductId(null);
+                                  fetchModelSuggestions('');
+                                }}
+                                title="Xóa nội dung"
+                              >
+                                <i className="bi bi-x"></i>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Dropdown gợi ý Model máy */}
+                          {showModelDropdown && (
+                            <div 
+                              className="position-absolute start-0 end-0 mt-1 bg-white border rounded shadow-lg overflow-hidden"
+                              style={{ zIndex: 1050, maxHeight: '280px', overflowY: 'auto' }}
+                            >
+                              <div className="p-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+                                <span className="small text-muted fw-bold" style={{ fontSize: '11px' }}>
+                                  <i className="bi bi-laptop me-1 text-primary"></i>Gợi ý laptop chính hãng
+                                </span>
+                                {isLoadingSuggestions && (
+                                  <span className="spinner-border spinner-border-sm text-secondary" style={{ width: '12px', height: '12px' }}></span>
+                                )}
+                              </div>
+
+                              {modelSuggestions.length > 0 ? (
+                                modelSuggestions.map((item, idx) => (
+                                  <div
+                                    key={item.productId || idx}
+                                    className={`p-2 d-flex align-items-center justify-content-between border-bottom ${
+                                      idx === highlightedModelIndex ? 'bg-primary text-white fw-semibold' : 'bg-white text-dark'
+                                    }`}
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleSelectModel(item)}
+                                    onMouseEnter={() => setHighlightedModelIndex(idx)}
+                                  >
+                                    <div className="d-flex align-items-center gap-2 text-truncate">
+                                      {item.brand && (
+                                        <span className={`badge border small ${idx === highlightedModelIndex ? 'bg-white text-primary' : 'bg-light text-dark'}`} style={{ fontSize: '10px' }}>
+                                          {item.brand}
+                                        </span>
+                                      )}
+                                      <span className="small text-truncate">{item.fullName || item.modelName}</span>
+                                    </div>
+                                    <span className={`badge border small ${idx === highlightedModelIndex ? 'bg-white text-primary' : 'bg-light text-secondary'}`} style={{ fontSize: '10px' }}>
+                                      Chọn
+                                    </span>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="p-3 text-center text-muted small">
+                                  {isLoadingSuggestions ? 'Đang tìm kiếm...' : 'Không có model trùng khớp trong danh mục.'}
+                                </div>
+                              )}
+
+                              {/* Lựa chọn Dùng tên máy vừa nhập */}
+                              {externalModel && externalModel.trim().length > 0 && (
+                                <div
+                                  className={`p-2 border-top d-flex align-items-center justify-content-between ${
+                                    highlightedModelIndex === modelSuggestions.length ? 'bg-warning-subtle text-dark fw-bold' : 'bg-light text-dark'
+                                  }`}
+                                  style={{ cursor: 'pointer' }}
+                                  onClick={handleUseCustomModel}
+                                  onMouseEnter={() => setHighlightedModelIndex(modelSuggestions.length)}
+                                >
+                                  <div className="small text-truncate">
+                                    <i className="bi bi-pencil-square text-secondary me-2"></i>
+                                    Dùng tên máy vừa nhập: <strong className="text-danger">"{externalModel}"</strong>
+                                  </div>
+                                  <span className="badge bg-secondary small" style={{ fontSize: '10px' }}>Xác nhận</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="col-sm-5">
                           <label className="form-label small fw-bold text-dark">Số Serial máy (nếu biết)</label>

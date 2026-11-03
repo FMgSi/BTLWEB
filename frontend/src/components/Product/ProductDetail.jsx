@@ -85,6 +85,7 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               batteryWh: 54,
               os: 'Windows 11 Home Bản quyền'
             },
+            colorImages: data.colorImages || {},
             variants: data.variants || []
           };
 
@@ -146,28 +147,64 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     };
   }, [productId]);
 
+  // Quản lý biến thể màu sắc và cấu hình
+  const hasVariants = Boolean(product?.variants && product.variants.length > 0);
+  const variants = product?.variants ?? [];
+  const colorsById = new Map();
+  for (const variant of variants) {
+    if (!colorsById.has(variant.colorId)) {
+      colorsById.set(variant.colorId, {
+        colorId: variant.colorId,
+        colorName: variant.colorName,
+        hexCode: variant.hexCode || '#94a3b8'
+      });
+    }
+  }
+  const availableColors = Array.from(colorsById.values());
+  const activeColorId = selectedColorId ?? availableColors[0]?.colorId;
+  const variantsForCurrentColor = variants.filter((v) => v.colorId === activeColorId);
+  const activeVariant = variantsForCurrentColor.find((v) => v.variantId === selectedVariantId)
+    ?? variantsForCurrentColor[0] ?? null;
+
+  // Lấy bộ 4 ô ảnh thực tế của màu đang chọn
+  // Khi khách chọn màu, thư viện chỉ hiện những ảnh thực sự có của màu đó
+  const rawColorImages = (activeVariant?.images && activeVariant.images.length > 0)
+    ? activeVariant.images
+    : (product?.colorImages && activeColorId && product.colorImages[activeColorId]?.length > 0)
+      ? product.colorImages[activeColorId]
+      : (activeVariant?.imageUrl ? [activeVariant.imageUrl] : null);
+
+  const isColorSpecific = Boolean(rawColorImages && rawColorImages.length > 0);
+  const genericImg = product?.image || product?.images?.[0] || '/images/default.png';
+  const activeGallery = isColorSpecific
+    ? rawColorImages
+    : (product?.images && product.images.length > 0 ? product.images : [genericImg]);
+
+  const safeImageIndex = selectedImageIndex < activeGallery.length ? selectedImageIndex : 0;
+  const currentImg = activeGallery[safeImageIndex] || activeGallery[0] || genericImg;
+
   // Hàm bấm nút mũi tên lùi ảnh trước
   const handlePrevImage = () => {
-    if (!product?.images || product.images.length <= 1) return;
-    setSelectedImageIndex((prev) => (prev === 0 ? product.images.length - 1 : prev - 1));
+    if (!activeGallery || activeGallery.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev === 0 ? activeGallery.length - 1 : prev - 1));
   };
 
   // Hàm bấm nút mũi tên tiến ảnh kế
   const handleNextImage = () => {
-    if (!product?.images || product.images.length <= 1) return;
-    setSelectedImageIndex((prev) => (prev + 1) % product.images.length);
+    if (!activeGallery || activeGallery.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev + 1) % activeGallery.length);
   };
 
   // 2. Tự động chuyển ảnh mỗi 10 giây (10s auto-slide)
   useEffect(() => {
-    if (!product?.images || product.images.length <= 1 || isPaused) return;
+    if (!activeGallery || activeGallery.length <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
-      setSelectedImageIndex((prev) => (prev + 1) % product.images.length);
+      setSelectedImageIndex((prev) => (prev + 1) % activeGallery.length);
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [product?.images, isPaused]);
+  }, [activeGallery, isPaused]);
 
   if (isLoading) {
     return (
@@ -218,30 +255,10 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     }
   ];
 
-  // Quản lý biến thể màu sắc và cấu hình
-  const hasVariants = Boolean(product?.variants && product.variants.length > 0);
-
-  // Danh sách Màu sắc duy nhất của máy
-  const variants = product.variants ?? [];
-  const colorsById = new Map();
-  for (const variant of variants) {
-    if (!colorsById.has(variant.colorId)) {
-      colorsById.set(variant.colorId, {
-        colorId: variant.colorId,
-        colorName: variant.colorName,
-        hexCode: variant.hexCode || '#94a3b8'
-      });
-    }
-  }
-  const availableColors = Array.from(colorsById.values());
-  const activeColorId = selectedColorId ?? availableColors[0]?.colorId;
-  const variantsForCurrentColor = variants.filter((v) => v.colorId === activeColorId);
-  const activeVariant = variantsForCurrentColor.find((v) => v.variantId === selectedVariantId)
-    ?? variantsForCurrentColor[0] ?? null;
-
-  // Xử lý đổi màu: ưu tiên giữ RAM/SSD nếu màu mới có cấu hình tương đương
+  // Xử lý đổi màu: ưu tiên giữ RAM/SSD nếu màu mới có cấu hình tương đương và reset về ảnh số 1 của màu đó
   const handleSelectColor = (newColorId) => {
     setSelectedColorId(newColorId);
+    setSelectedImageIndex(0);
     if (!product?.variants) return;
     const sameConfig = product.variants.find(
       (v) => v.colorId === newColorId && v.ramGB === activeVariant?.ramGB && v.storageGB === activeVariant?.storageGB
@@ -255,43 +272,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
       }
     }
   };
-
-  // 1. Thống nhất quy tắc chọn ảnh cho phiên bản / màu sắc:
-  // - Ưu tiên 1: Ảnh riêng của SKU đang chọn (activeVariant.imageUrl).
-  // - Ưu tiên 2: Ảnh của SKU khác cùng mẫu máy, cùng màu sắc.
-  // - Ưu tiên 3: Ảnh chung của mẫu máy (có chú thích 'Ảnh minh họa của mẫu máy').
-  const genericImg = product.image || product.images?.[0] || '/images/default.png';
-
-  let colorImageInfo = {
-    url: product.images?.[selectedImageIndex] || genericImg,
-    isColorSpecific: false,
-    colorName: activeVariant?.colorName || null
-  };
-
-  if (hasVariants && activeVariant) {
-    // Ưu tiên 1: SKU hiện tại có ảnh riêng (và khác ảnh đại diện chung)
-    if (activeVariant.imageUrl && activeVariant.imageUrl !== genericImg) {
-      colorImageInfo = {
-        url: activeVariant.imageUrl,
-        isColorSpecific: true,
-        colorName: activeVariant.colorName
-      };
-    } else if (activeVariant.colorId && product.variants) {
-      // Ưu tiên 2: Tìm SKU cùng mẫu máy và CÙNG MÀU SẮC có ảnh riêng
-      const sibling = product.variants.find(
-        (v) => v.colorId === activeVariant.colorId && v.imageUrl && v.imageUrl !== genericImg
-      );
-      if (sibling && sibling.imageUrl) {
-        colorImageInfo = {
-          url: sibling.imageUrl,
-          isColorSpecific: true,
-          colorName: activeVariant.colorName
-        };
-      }
-    }
-  }
-
-  const currentImg = colorImageInfo.url;
 
   // Tồn kho và giá động theo biến thể
   const currentStock = hasVariants
@@ -422,8 +402,8 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               <i className="bi bi-shield-check me-1 text-warning"></i>Chính hãng 100%
             </span>
 
-            {/* Nút mũi tên lùi ảnh (Prev) - Chỉ hiển thị khi dùng album ảnh chung */}
-            {!colorImageInfo.isColorSpecific && product.images && product.images.length > 1 && (
+            {/* Nút mũi tên lùi ảnh (Prev) - Hiển thị khi thư viện của màu có nhiều hơn 1 ảnh */}
+            {activeGallery && activeGallery.length > 1 && (
               <button 
                 type="button" 
                 className="detail-nav-btn prev-btn"
@@ -446,8 +426,8 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               }}
             />
 
-            {/* Nút mũi tên tiến ảnh (Next) - Chỉ hiển thị khi dùng album ảnh chung */}
-            {!colorImageInfo.isColorSpecific && product.images && product.images.length > 1 && (
+            {/* Nút mũi tên tiến ảnh (Next) - Hiển thị khi thư viện của màu có nhiều hơn 1 ảnh */}
+            {activeGallery && activeGallery.length > 1 && (
               <button 
                 type="button" 
                 className="detail-nav-btn next-btn"
@@ -459,14 +439,14 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
             )}
 
             {/* Badge chỉ số thứ tự ảnh */}
-            {!colorImageInfo.isColorSpecific && product.images && product.images.length > 1 && (
-              <span className="detail-image-counter">{selectedImageIndex + 1} / {product.images.length}</span>
+            {activeGallery && activeGallery.length > 1 && (
+              <span className="detail-image-counter">{safeImageIndex + 1} / {activeGallery.length}</span>
             )}
 
-            {/* Chú thích ảnh phiên bản thật vs ảnh minh họa của mẫu máy */}
-            {colorImageInfo.isColorSpecific ? (
+            {/* Chú thích ảnh phiên bản thật theo màu vs ảnh minh họa chung */}
+            {isColorSpecific ? (
               <span className="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-3 px-2 py-1 z-3" style={{ fontSize: '11px' }}>
-                <i className="bi bi-camera-fill me-1 text-primary"></i>Ảnh phiên bản: <strong>{colorImageInfo.colorName}</strong>
+                <i className="bi bi-camera-fill me-1 text-primary"></i>Ảnh màu: <strong>{activeVariant?.colorName}</strong> ({activeGallery.length} góc chụp)
               </span>
             ) : hasVariants ? (
               <span className="badge bg-light text-secondary border position-absolute bottom-0 start-0 m-3 px-2 py-1 z-3 shadow-sm" style={{ fontSize: '11px' }}>
@@ -474,6 +454,24 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </span>
             ) : null}
           </div>
+
+          {/* Dải ảnh thu nhỏ của màu đang chọn (1 - 4 ảnh) */}
+          {activeGallery && activeGallery.length > 1 && (
+            <div className="d-flex gap-2 overflow-auto pb-2 mb-3">
+              {activeGallery.map((imgUrl, idx) => (
+                <button
+                  key={imgUrl + idx}
+                  type="button"
+                  className={`btn p-1 border rounded ${idx === safeImageIndex ? 'border-danger border-2 shadow-sm' : 'border-light-subtle bg-white'}`}
+                  style={{ width: '68px', height: '68px', flexShrink: 0, padding: '2px' }}
+                  onClick={() => setSelectedImageIndex(idx)}
+                  title={`Xem ảnh ${idx + 1}`}
+                >
+                  <img src={imgUrl} alt={`Ảnh ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Cam kết vàng */}
           <div className="card border-0 shadow-sm p-3 mb-4 rounded-3 bg-white">
@@ -939,7 +937,7 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                     colorHex: activeVariant?.hexCode || null,
                     sku: activeVariant?.sku || null,
                     name: product.name,
-                    image: colorImageInfo.url,
+                    image: currentImg || activeGallery[0] || genericImg,
                     price: displayPrice,
                     originalPrice: displayOriginalPrice,
                     selectedRam: activeVariant ? `${activeVariant.ramGB} GB` : activeRamOpt.label,
@@ -975,7 +973,7 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                     colorHex: activeVariant?.hexCode || null,
                     sku: activeVariant?.sku || null,
                     name: product.name,
-                    image: colorImageInfo.url,
+                    image: currentImg || activeGallery[0] || genericImg,
                     price: displayPrice,
                     originalPrice: displayOriginalPrice,
                     selectedRam: activeVariant ? `${activeVariant.ramGB} GB` : activeRamOpt.label,

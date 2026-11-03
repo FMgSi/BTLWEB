@@ -41,9 +41,22 @@ public class ProductDetailDto
     public int StockQuantity { get; set; }
     public string Image { get; set; } = string.Empty;
     public List<string> Images { get; set; } = new();
+    public Dictionary<int, List<string>> ColorImages { get; set; } = new();
     public string Description { get; set; } = string.Empty;
     public ProductSpecDto? Specification { get; set; }
     public List<ProductVariantDto> Variants { get; set; } = new();
+}
+
+/// <summary>
+/// DTO gợi ý Model máy tính phục vụ đăng ký tiếp nhận sửa chữa
+/// </summary>
+public class ModelSuggestionDto
+{
+    public int ProductId { get; set; }
+    public string Brand { get; set; } = string.Empty;
+    public string ModelName { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? ThumbnailUrl { get; set; }
 }
 
 public class PagedResult<T>

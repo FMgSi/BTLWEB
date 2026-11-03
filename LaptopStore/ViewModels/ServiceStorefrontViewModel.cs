@@ -15,3 +15,4 @@ public class ServiceStorefrontViewModel
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 }
+
