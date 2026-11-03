@@ -1,78 +1,298 @@
+@model LaptopStore.ViewModels.AdminReportsViewModel
+@using System.Globalization
 @{
-    ViewData["Title"] = "Báo cáo & Thống kê";
+    Layout = "_Layout";
+    ViewData["Title"] = "Báo cáo & Thống kê Quản trị";
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    string FormatVND(decimal amount) => amount.ToString("#,##0", viCulture) + " ₫";
 }
 
-<div class="page-header">
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-        <h2 class="page-title">Báo cáo & Thống kê</h2>
-        <p class="text-muted small mb-0">Biểu đồ phân tích hiệu suất bán hàng, lưu lượng truy cập và chỉ số tài chính</p>
+        <h2 class="page-title text-dark fw-bold mb-1">
+            <i class="bi bi-graph-up-arrow me-2"></i>Báo cáo & Thống kê Đa chiều
+        </h2>
+        <p class="text-muted small mb-0">
+            Theo dõi hiệu suất bán hàng, dòng tiền thực thu trả góp, biến thể laptop và quy trình dịch vụ bảo hành
+        </p>
     </div>
-    <div class="page-actions">
+    <div class="page-actions d-flex gap-2">
         <a href="/Admin/ExportProducts" class="btn-primary-custom">
-            <i class="bi bi-download"></i> Tải báo cáo PDF / Excel
+            <i class="bi bi-download"></i> Xuất dữ liệu sản phẩm (CSV)
         </a>
     </div>
 </div>
 
+<!-- 1. BỘ LỌC THỜI GIAN: HÔM NAY · 7 NGÀY · THÁNG NÀY · TÙY CHỌN -->
+<div class="card p-3 shadow-sm border rounded-3 mb-4 bg-white">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="small fw-bold text-dark me-2">
+                <i class="bi bi-calendar-event me-1"></i>Khoảng thời gian:
+            </span>
+            <a href="/Admin/Reports?period=today" class="btn btn-sm @(Model.Period == "today" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+                Hôm nay
+            </a>
+            <a href="/Admin/Reports?period=7days" class="btn btn-sm @(Model.Period == "7days" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+                7 ngày qua
+            </a>
+            <a href="/Admin/Reports?period=month" class="btn btn-sm @(Model.Period == "month" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+                Tháng này
+            </a>
+        </div>
+
+        <form method="get" action="/Admin/Reports" class="d-flex flex-wrap gap-2 align-items-center m-0">
+            <input type="hidden" name="period" value="custom" />
+            <span class="small text-muted">Từ ngày:</span>
+            <input type="date" name="fromDate" class="form-control form-control-sm" style="width: 140px;" value="@Model.FromDate.ToString("yyyy-MM-dd")" />
+            <span class="small text-muted">Đến ngày:</span>
+            <input type="date" name="toDate" class="form-control form-control-sm" style="width: 140px;" value="@Model.ToDate.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn btn-sm btn-dark fw-semibold">
+                <i class="bi bi-funnel"></i> Lọc tùy chọn
+            </button>
+        </form>
+    </div>
+    <div class="small text-muted mt-2 border-top pt-2">
+        Đang hiển thị số liệu từ: <strong>@Model.FromDate.ToString("dd/MM/yyyy HH:mm")</strong> đến <strong>@Model.ToDate.ToString("dd/MM/yyyy HH:mm")</strong>
+    </div>
+</div>
+
+<!-- 2. BÁO CÁO BÁN HÀNG & DÒNG TIỀN THỰC THU -->
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Tổng sản phẩm kinh doanh</span>
-                <span class="metric-badge metric-badge-success">+100%</span>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-semibold">Đơn hàng mới tiếp nhận</span>
+                <span class="badge bg-primary">Mới</span>
             </div>
-            <div class="metric-value text-dark">@ViewBag.ProductCount sản phẩm</div>
+            <div class="fs-3 fw-bold text-dark mb-1">@Model.NewOrders <span class="fs-6 fw-normal text-muted">/ @Model.TotalOrders tổng</span></div>
+            <div class="small text-muted">Đang xử lý/giao: <strong>@Model.ProcessingOrders</strong> • Đã hủy: <strong>@Model.CancelledOrders</strong></div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Thương hiệu đối tác</span>
-                <span class="metric-badge metric-badge-success">Đã xác minh</span>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-semibold">Đơn hàng hoàn tất</span>
+                <span class="badge bg-success">Thành công</span>
             </div>
-            <div class="metric-value text-dark">@ViewBag.BrandCount hãng</div>
+            <div class="fs-3 fw-bold text-success mb-1">@Model.CompletedOrders đơn</div>
+            <div class="small text-muted">Tổng doanh thu đơn: <strong>@FormatVND(Model.TotalCompletedRevenue)</strong></div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-label">Phân khúc danh mục</span>
-                <span class="metric-badge metric-badge-success">Hoạt động</span>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-3 shadow-sm border rounded-3 bg-white h-100 border-start border-4 border-dark">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-dark small fw-bold">Dòng tiền thực thu</span>
+                <span class="badge bg-dark text-white">Tiền mặt + Chuyển khoản</span>
             </div>
-            <div class="metric-value text-dark">@ViewBag.CategoryCount nhóm</div>
+            <div class="fs-3 fw-bold text-danger mb-1">@FormatVND(Model.ActualCashCollected)</div>
+            <div class="small text-muted">Đã thu thực tế từ đơn mua đứt & trả góp</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-semibold">Dòng tiền Trả góp 0%</span>
+                <span class="badge bg-info text-dark">Hợp đồng</span>
+            </div>
+            <div class="fs-3 fw-bold text-primary mb-1">@FormatVND(Model.InstallmentCashCollected)</div>
+            <div class="small text-muted">Gồm trả trước 30% và các kỳ đã thu</div>
         </div>
     </div>
 </div>
 
-<div class="admin-card">
-    <div class="admin-card-header">
-        <h5 class="card-title-text"><i class="bi bi-bar-chart-fill text-primary"></i> Tăng trưởng doanh thu 12 tháng</h5>
+<!-- 3. BIỂU ĐỒ DOANH THU & CHỈ SỐ DỊCH VỤ -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-bar-chart-fill text-dark me-2"></i>Doanh thu bán hàng theo thời gian (Triệu VNĐ)
+                </h6>
+                <span class="badge bg-light text-dark border">Cập nhật thời gian thực</span>
+            </div>
+            <div style="height: 300px;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
     </div>
-    <div style="height: 320px;">
-        <canvas id="annualChart"></canvas>
+
+    <div class="col-lg-4">
+        <!-- BÁO CÁO DỊCH VỤ SỬA CHỮA & BẢO HÀNH -->
+        <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
+            <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                <i class="bi bi-tools text-dark me-2"></i>Hiệu suất Dịch vụ & Bảo hành
+            </h6>
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
+                    <div>
+                        <div class="small text-muted">Phiếu tiếp nhận trong kỳ</div>
+                        <div class="fs-5 fw-bold text-dark">@Model.TotalReceivedTickets</div>
+                    </div>
+                    <span class="badge bg-primary">Tiếp nhận</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
+                    <div>
+                        <div class="small text-muted">Phiếu hoàn tất / Đã bàn giao</div>
+                        <div class="fs-5 fw-bold text-success">@Model.HandedOverTickets</div>
+                    </div>
+                    <span class="badge bg-success">Đã bàn giao</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
+                    <div>
+                        <div class="small text-muted">Phiếu chờ duyệt báo giá</div>
+                        <div class="fs-5 fw-bold text-warning">@Model.AwaitingQuoteTickets</div>
+                    </div>
+                    <span class="badge bg-warning text-dark">Chờ khách duyệt</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
+                    <div>
+                        <div class="small text-muted">Thời gian xử lý trung bình</div>
+                        <div class="fs-5 fw-bold text-dark">@(Model.AverageProcessingHours > 0 ? $"{Model.AverageProcessingHours} giờ" : "---")</div>
+                    </div>
+                    <span class="badge bg-secondary">Chuẩn SLA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. BÁO CÁO SẢN PHẨM: BÁN CHẠY & SẮP HẾT HÀNG THEO CẤU HÌNH -->
+<div class="row g-4">
+    <!-- SẢN PHẨM BÁN CHẠY -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
+            <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                <i class="bi bi-fire text-danger me-2"></i>Sản phẩm bán chạy nhất trong kỳ
+            </h6>
+            @if (Model.TopSellingProducts.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Sản phẩm / Cấu hình</th>
+                                <th class="text-center">Số lượng bán</th>
+                                <th class="text-end">Doanh số</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.TopSellingProducts)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold text-dark small">@p.ProductName</div>
+                                        <div class="text-muted" style="font-size: 11px;">@p.VariantSpecs</div>
+                                    </td>
+                                    <td class="text-center fw-bold fs-6">@p.QuantitySold</td>
+                                    <td class="text-end small fw-bold text-danger">@FormatVND(p.TotalRevenue)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4 text-muted small">
+                    Chưa có đơn hàng phát sinh trong khoảng thời gian này.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- SẢN PHẨM SẮP HẾT HÀNG THEO CẤU HÌNH (STOCK <= 3) -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Cảnh báo tồn kho theo cấu hình (Tồn &le; 3)
+                </h6>
+                <a href="/Product" class="small text-decoration-none fw-semibold">Quản lý kho</a>
+            </div>
+            @if (Model.LowStockProducts.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Cấu hình / Biến thể</th>
+                                <th class="text-center">Tồn kho</th>
+                                <th class="text-end">Tình trạng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.LowStockProducts)
+                            {
+                                <tr>
+                                    <td class="small fw-semibold text-dark">@p.ProductName</td>
+                                    <td class="small text-muted">@p.Configuration</td>
+                                    <td class="text-center">
+                                        <span class="badge @(p.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
+                                            @p.StockQuantity
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="small @(p.StockQuantity == 0 ? "text-danger fw-bold" : "text-warning-emphasis")">
+                                            @(p.StockQuantity == 0 ? "Hết hàng" : "Sắp hết")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4 text-success small">
+                    <i class="bi bi-check-circle me-1"></i> Kho hàng an toàn, không có cấu hình nào dưới ngưỡng tối thiểu.
+                </div>
+            }
+        </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const ctx = document.getElementById('annualChart').getContext('2d');
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartLabels));
+        const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartValues));
+
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
+                labels: labels,
                 datasets: [{
                     label: 'Doanh thu (Triệu VNĐ)',
-                    data: [850, 920, 1100, 1050, 1250, 1400, 1380, 1600, 1550, 1450, 1750, 2100],
-                    backgroundColor: '#3b82f6',
+                    data: values,
+                    backgroundColor: '#18181b',
+                    hoverBackgroundColor: '#27272a',
                     borderRadius: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
                 scales: {
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return value + ' tr'; }
+                        }
+                    }
                 }
             }
         });

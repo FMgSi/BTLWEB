@@ -85,6 +85,7 @@ public class OrderResponseDto
     public string PaymentMethod { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;
     public string OrderStatus { get; set; } = string.Empty;
+    public string Status => OrderStatus;
     public string PurchaseMode { get; set; } = "Full";
     public decimal? PrepayAmount { get; set; }
     public decimal? RemainingDebt { get; set; }

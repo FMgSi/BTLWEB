@@ -761,9 +761,9 @@ a {
    ACTION BUTTONS (Nút bấm sắc nét, hiện đại)
    ========================================================================== */
 .btn-primary-custom {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: #18181b;
     color: #ffffff !important;
-    border: 1px solid #1d4ed8;
+    border: 1px solid #18181b;
     border-radius: 8px;
     padding: 0.5rem 1rem;
     font-size: 0.88rem;
@@ -773,13 +773,14 @@ a {
     gap: 0.4rem;
     transition: all 0.2s ease;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .btn-primary-custom:hover {
-    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    background: #27272a;
+    border-color: #27272a;
     color: #ffffff !important;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
 }
 

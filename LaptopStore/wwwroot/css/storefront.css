@@ -3,14 +3,14 @@
    ========================================================================== */
 
 :root {
-    --store-primary: #0d6efd;
-    --store-primary-hover: #0b5ed7;
-    --store-accent: #dc3545;
-    --store-bg: #f8f9fa;
+    --store-primary: #B91C1C;
+    --store-primary-hover: #991b1b;
+    --store-accent: #B91C1C;
+    --store-bg: #fdfdfd;
     --store-card-bg: #ffffff;
-    --store-text-main: #212529;
-    --store-text-muted: #6c757d;
-    --store-border: #e9ecef;
+    --store-text-main: #171717;
+    --store-text-muted: #52525b;
+    --store-border: #e5e7eb;
 }
 
 body.storefront-body {

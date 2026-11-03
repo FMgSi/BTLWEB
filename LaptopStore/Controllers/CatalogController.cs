@@ -159,15 +159,15 @@ public class CatalogController : Controller
     }
 
     /// <summary>
-    /// GET: /Promotions hoặc /Catalog/Promotions
-    /// Trung tâm Mã giảm giá & Khuyến mãi dành cho khách hàng
+    /// GET: /Promotions hoặc /Catalog/Promotions hoặc /khuyen-mai
+    /// Gỡ bỏ chuyên mục khuyến mãi, chuyển hướng an toàn về danh sách sản phẩm mặc định
     /// </summary>
     [HttpGet]
     [Route("Promotions")]
     [Route("Catalog/Promotions")]
-    public async Task<IActionResult> Promotions()
+    [Route("khuyen-mai")]
+    public IActionResult Promotions()
     {
-        var promotions = await _discountService.GetActivePromotionsForStorefrontAsync();
-        return View(promotions);
+        return RedirectToAction(nameof(Index));
     }
 }

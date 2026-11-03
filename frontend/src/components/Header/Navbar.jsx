@@ -23,7 +23,7 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
             <span>PHÂN LOẠI LAPTOP</span>
           </div>
 
-          {/* Menu ngang đầy đủ theo thiết kế */}
+          {/* Menu ngang tối giản theo chuẩn thiết kế: Sản phẩm · Sửa chữa & bảo hành · Tài khoản · Liên hệ */}
           <ul className="nav ms-2 fw-semibold" style={{ fontSize: '13px' }}>
             <li className="nav-item">
               <a 
@@ -47,31 +47,21 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
 
             <li className="nav-item">
               <a 
-                className={`nav-link px-3 ${activeNav === 'promos' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
-                href="/promotions" 
-                onClick={(e) => handleClick(e, 'promos')}
+                className={`nav-link px-3 ${activeNav === 'service' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
+                href="/service" 
+                onClick={(e) => handleClick(e, 'service')}
               >
-                Khuyến mãi
+                <i className="bi bi-tools me-1 text-danger"></i> Sửa chữa & Bảo hành
               </a>
             </li>
 
             <li className="nav-item">
               <a 
-                className={`nav-link px-3 ${activeNav === 'news' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
-                href="/news" 
-                onClick={(e) => handleClick(e, 'news')}
+                className={`nav-link px-3 ${activeNav === 'account' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
+                href="/account" 
+                onClick={(e) => handleClick(e, 'account')}
               >
-                Tin tức
-              </a>
-            </li>
-
-            <li className="nav-item">
-              <a 
-                className={`nav-link px-3 ${activeNav === 'guides' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
-                href="/guides" 
-                onClick={(e) => handleClick(e, 'guides')}
-              >
-                Hướng dẫn
+                <i className="bi bi-person-circle me-1 text-danger"></i> Tài khoản của tôi
               </a>
             </li>
 
@@ -82,16 +72,6 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
                 onClick={(e) => handleClick(e, 'contact')}
               >
                 Liên hệ
-              </a>
-            </li>
-
-            <li className="nav-item">
-              <a 
-                className={`nav-link px-3 ${activeNav === 'service' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}
-                href="/service" 
-                onClick={(e) => handleClick(e, 'service')}
-              >
-                <i className="bi bi-tools me-1 text-danger"></i> Sửa chữa & Bảo hành
               </a>
             </li>
           </ul>

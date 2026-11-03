@@ -46,3 +46,4 @@ public interface IDiscountService
     /// </summary>
     Task<(bool Success, string Message)> DeleteDiscountAsync(int discountId, string deletedBy);
 }
+

@@ -466,21 +466,12 @@ public class AdminController : Controller
     }
 
     /// <summary>
-    /// Quản lý Mã giảm giá (SQL Server Single Source of Truth)
     /// GET: /Admin/Discounts
+    /// Gỡ bỏ trang quản lý voucher, chuyển hướng an toàn về Báo cáo thống kê
     /// </summary>
-    public async Task<IActionResult> Discounts(string? search, string? status, string? discountType, int page = 1)
+    public IActionResult Discounts()
     {
-        var list = await _discountService.GetAllDiscountsAsync(search, status, discountType);
-
-        ViewBag.Search = search;
-        ViewBag.Status = status ?? "all";
-        ViewBag.DiscountType = discountType ?? "all";
-        ViewBag.TotalCount = list.Count;
-        ViewBag.CurrentPage = page;
-        ViewBag.TotalPages = 1;
-
-        return View(list);
+        return RedirectToAction(nameof(Reports));
     }
 
     /// <summary>
@@ -562,13 +553,205 @@ public class AdminController : Controller
     }
 
     /// <summary>
-    /// Báo cáo thống kê
+    /// Báo cáo thống kê nâng cao đa chiều (Bán hàng, Dòng tiền thực thu trả góp, Sản phẩm biến thể, Dịch vụ bảo hành)
     /// GET: /Admin/Reports
     /// </summary>
-    public async Task<IActionResult> Reports()
+    public async Task<IActionResult> Reports(string period = "month", DateTime? fromDate = null, DateTime? toDate = null)
     {
-        var model = await _orderService.GetDashboardStatsAsync();
-        return View(model);
+        DateTime start;
+        DateTime end;
+
+        switch (period?.ToLower())
+        {
+            case "today":
+                start = DateTime.Today;
+                end = DateTime.Today.AddDays(1).AddTicks(-1);
+                break;
+            case "7days":
+                start = DateTime.Today.AddDays(-6);
+                end = DateTime.Today.AddDays(1).AddTicks(-1);
+                break;
+            case "custom":
+                start = fromDate ?? DateTime.Today.AddDays(-30);
+                end = (toDate ?? DateTime.Today).AddDays(1).AddTicks(-1);
+                break;
+            case "month":
+            default:
+                period = "month";
+                start = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                end = DateTime.Today.AddDays(1).AddTicks(-1);
+                break;
+        }
+
+        var report = new AdminReportsViewModel
+        {
+            Period = period,
+            FromDate = start,
+            ToDate = end
+        };
+
+        // 1. BÁO CÁO BÁN HÀNG TRONG KHOẢNG THỜI GIAN
+        var ordersInRange = await _db.Orders
+            .AsNoTracking()
+            .Include(o => o.OrderItems)
+            .Include(o => o.InstallmentContract)
+            .Where(o => o.CreatedAt >= start && o.CreatedAt <= end)
+            .ToListAsync();
+
+        report.TotalOrders = ordersInRange.Count;
+        report.NewOrders = ordersInRange.Count(o => o.OrderStatus == "Mới" || o.OrderStatus == "Chờ duyệt");
+        report.ProcessingOrders = ordersInRange.Count(o => o.OrderStatus == "Đang xử lý" || o.OrderStatus == "Đang giao" || o.OrderStatus == "Đã xác nhận");
+        report.CompletedOrders = ordersInRange.Count(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao");
+        report.CancelledOrders = ordersInRange.Count(o => o.OrderStatus == "Đã hủy");
+
+        var completedOrders = ordersInRange.Where(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao").ToList();
+        report.TotalCompletedRevenue = completedOrders.Sum(o => o.TotalAmount);
+
+        // Dòng tiền thực thu: Đơn thường hoàn tất + Tiền trả trước đơn trả góp + Các kỳ trả góp đã thu
+        decimal normalCash = completedOrders.Where(o => o.PurchaseMode != "Installment").Sum(o => o.TotalAmount);
+        decimal installmentPrepay = completedOrders.Where(o => o.PurchaseMode == "Installment")
+            .Sum(o => o.InstallmentContract != null ? o.InstallmentContract.PrepayAmount : Math.Round(o.TotalAmount * 0.30m));
+
+        decimal installmentPaidSchedules = 0;
+        try
+        {
+            installmentPaidSchedules = await _db.InstallmentSchedules
+                .AsNoTracking()
+                .Where(s => s.Status == "Đã thanh toán" && s.PaidAt >= start && s.PaidAt <= end)
+                .SumAsync(s => s.PaidAmount > 0 ? s.PaidAmount : s.Amount);
+        }
+        catch { }
+
+        report.InstallmentCashCollected = installmentPrepay + installmentPaidSchedules;
+        report.ActualCashCollected = normalCash + report.InstallmentCashCollected;
+
+        // 2. BÁO CÁO SẢN PHẨM: SẢN PHẨM BÁN CHẠY (TOP SELLING)
+        var completedOrderIds = completedOrders.Select(o => o.OrderId).ToList();
+        var topSellingItems = await _db.OrderItems
+            .AsNoTracking()
+            .Where(i => completedOrderIds.Contains(i.OrderId))
+            .GroupBy(i => new { i.ProductId, i.ProductName, i.SelectedSpecs })
+            .Select(g => new
+            {
+                ProductId = g.Key.ProductId,
+                ProductName = g.Key.ProductName,
+                VariantSpecs = g.Key.SelectedSpecs ?? "",
+                QuantitySold = g.Sum(x => x.Quantity),
+                TotalRevenue = g.Sum(x => x.Quantity * x.UnitPrice)
+            })
+            .OrderByDescending(x => x.QuantitySold)
+            .Take(8)
+            .ToListAsync();
+
+        var topProductIds = topSellingItems.Select(t => t.ProductId).ToList();
+        var productThumbnails = await _db.Products
+            .AsNoTracking()
+            .Where(p => topProductIds.Contains(p.ProductId))
+            .ToDictionaryAsync(p => p.ProductId, p => p.ThumbnailUrl ?? "");
+
+        report.TopSellingProducts = topSellingItems.Select(t => new TopSellingProductDto
+        {
+            ProductId = t.ProductId,
+            ProductName = t.ProductName,
+            VariantSpecs = t.VariantSpecs,
+            ThumbnailUrl = productThumbnails.ContainsKey(t.ProductId) ? productThumbnails[t.ProductId] : "",
+            QuantitySold = t.QuantitySold,
+            TotalRevenue = t.TotalRevenue
+        }).ToList();
+
+        // SẢN PHẨM SẮP HẾT HÀNG THEO CẤU HÌNH (STOCK <= 3)
+        var lowStockBase = await _db.Products
+            .AsNoTracking()
+            .Include(p => p.Specification)
+            .Where(p => p.IsActive && p.StockQuantity <= 3)
+            .OrderBy(p => p.StockQuantity)
+            .Take(6)
+            .Select(p => new LowStockProductDto
+            {
+                ProductId = p.ProductId,
+                ProductName = p.ProductName,
+                Configuration = p.Specification != null ? $"{p.Specification.CPU} • {p.Specification.RamGB}GB • {p.Specification.StorageGB}GB SSD" : "Tiêu chuẩn",
+                StockQuantity = p.StockQuantity,
+                Price = p.DiscountPrice ?? p.Price
+            })
+            .ToListAsync();
+
+        var lowStockVariants = await _db.ProductVariants
+            .AsNoTracking()
+            .Include(v => v.Product)
+            .Include(v => v.Color)
+            .Where(v => v.IsActive && v.StockQuantity <= 3)
+            .OrderBy(v => v.StockQuantity)
+            .Take(6)
+            .Select(v => new LowStockProductDto
+            {
+                ProductId = v.ProductId,
+                ProductName = v.Product != null ? v.Product.ProductName : "Laptop",
+                Configuration = $"[Biến thể {v.SKU}] Màu: {(v.Color != null ? v.Color.Name : "")} • RAM: {v.RamGB}GB • SSD: {v.StorageGB}GB",
+                StockQuantity = v.StockQuantity,
+                Price = v.DiscountPrice ?? v.Price ?? (v.Product != null ? v.Product.Price : 0m)
+            })
+            .ToListAsync();
+
+        report.LowStockProducts = lowStockBase.Concat(lowStockVariants).OrderBy(x => x.StockQuantity).Take(10).ToList();
+
+        // 3. BÁO CÁO DỊCH VỤ SỬA CHỮA & BẢO HÀNH
+        var ticketsInRange = await _db.ServiceTickets
+            .AsNoTracking()
+            .Where(t => t.CreatedAt >= start && t.CreatedAt <= end)
+            .ToListAsync();
+
+        report.TotalReceivedTickets = ticketsInRange.Count;
+        report.HandedOverTickets = ticketsInRange.Count(t => t.Status == "Đã bàn giao" || t.Status == "Đã trả máy" || t.Status == "Chờ trả máy");
+        report.AwaitingQuoteTickets = await _db.ServiceTickets.AsNoTracking().CountAsync(t => t.Status == "Chờ duyệt báo giá");
+        report.ProcessingTickets = await _db.ServiceTickets.AsNoTracking().CountAsync(t => t.Status == "Đã tiếp nhận" || t.Status == "Đang kiểm tra" || t.Status == "Đang xử lý");
+
+        var completedTicketsWithTime = ticketsInRange
+            .Where(t => (t.CompletedAt != null || t.ReturnedAt != null))
+            .ToList();
+
+        if (completedTicketsWithTime.Any())
+        {
+            report.AverageProcessingHours = Math.Round(completedTicketsWithTime
+                .Average(t => ((t.ReturnedAt ?? t.CompletedAt!.Value) - t.CreatedAt).TotalHours), 1);
+        }
+
+        // 4. BIỂU ĐỒ DOANH THU THEO KHOẢNG THỜI GIAN
+        if (period == "today")
+        {
+            for (int h = 8; h <= 20; h += 2)
+            {
+                var hStart = start.Date.AddHours(h);
+                var hEnd = start.Date.AddHours(h + 2);
+                var rev = completedOrders.Where(o => o.CreatedAt >= hStart && o.CreatedAt < hEnd).Sum(o => o.TotalAmount);
+                report.ChartLabels.Add($"{h}h-{h + 2}h");
+                report.ChartValues.Add(rev / 1000000m);
+            }
+        }
+        else if (period == "7days")
+        {
+            for (int i = 6; i >= 0; i--)
+            {
+                var d = DateTime.Today.AddDays(-i);
+                var rev = completedOrders.Where(o => o.CreatedAt.Date == d).Sum(o => o.TotalAmount);
+                report.ChartLabels.Add(d.ToString("dd/MM"));
+                report.ChartValues.Add(rev / 1000000m);
+            }
+        }
+        else
+        {
+            var daysInMonth = DateTime.DaysInMonth(start.Year, start.Month);
+            for (int day = 1; day <= Math.Min(DateTime.Today.Day, daysInMonth); day += 5)
+            {
+                var dStart = new DateTime(start.Year, start.Month, day);
+                var dEnd = dStart.AddDays(5).AddTicks(-1);
+                var rev = completedOrders.Where(o => o.CreatedAt >= dStart && o.CreatedAt <= dEnd).Sum(o => o.TotalAmount);
+                report.ChartLabels.Add($"Ngày {day}-{Math.Min(day + 4, daysInMonth)}");
+                report.ChartValues.Add(rev / 1000000m);
+            }
+        }
+
+        return View(report);
     }
 
     /// <summary>

@@ -92,3 +92,4 @@ public class Discount
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+

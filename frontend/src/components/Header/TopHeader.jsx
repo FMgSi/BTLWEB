@@ -172,15 +172,33 @@ export default function TopHeader({
                     )}
 
                     <a 
-                      className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small mt-1"
-                      href="/service?tab=my-devices"
+                      className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small"
+                      href="/account"
                       onClick={(e) => {
                         e.preventDefault();
                         setShowDropdown(false);
                         if (onNavigate) {
-                          onNavigate('service');
+                          onNavigate('account');
                         } else {
-                          window.history.pushState({}, '', '/service');
+                          window.history.pushState({}, '', '/account');
+                          window.dispatchEvent(new PopStateEvent('popstate'));
+                        }
+                      }}
+                    >
+                      <i className="bi bi-person-badge-fill text-danger"></i>
+                      Tài khoản & Đơn hàng của tôi
+                    </a>
+
+                    <a 
+                      className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small mt-1"
+                      href="/account?tab=devices"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowDropdown(false);
+                        if (onNavigate) {
+                          onNavigate('account');
+                        } else {
+                          window.history.pushState({}, '', '/account?tab=devices');
                           window.dispatchEvent(new PopStateEvent('popstate'));
                         }
                       }}

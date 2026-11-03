@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { formatVND } from '../../utils/formatters';
 
-export default function ServicePage({ currentUser, initialTab = 'catalog', onGoHome, showToast }) {
-  const [activeTab, setActiveTab] = useState(initialTab); // 'catalog' | 'request' | 'lookup' | 'my-devices'
+export default function ServicePage({ currentUser, initialTab = 'request', onGoHome, showToast, preSelectedDeviceId }) {
+  const [activeTab, setActiveTab] = useState(initialTab); // 'request' | 'lookup' | 'catalog' | 'my-devices'
 
   // Catalog state
   const [catalog, setCatalog] = useState([]);
   const [catalogFilter, setCatalogFilter] = useState('all'); // 'all' | 'repair' | 'warranty'
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
 
   // Request form state
   const [requestType, setRequestType] = useState('warranty'); // 'warranty' | 'repair'
   const [deviceSource, setDeviceSource] = useState('Purchased'); // 'Purchased' | 'External'
   const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [selectedDeviceId, setSelectedDeviceId] = useState(preSelectedDeviceId ? preSelectedDeviceId.toString() : '');
   const [externalModel, setExternalModel] = useState('');
   const [externalSerial, setExternalSerial] = useState('');
   const [customerName, setCustomerName] = useState(currentUser?.fullName || currentUser?.username || '');
@@ -30,6 +31,7 @@ export default function ServicePage({ currentUser, initialTab = 'catalog', onGoH
   const [myDevices, setMyDevices] = useState([]);
   const [phoneForDevices, setPhoneForDevices] = useState(currentUser?.phoneNumber || '');
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+  const [devicesError, setDevicesError] = useState('');
 
   // Lookup state
   const [lookupCode, setLookupCode] = useState('');
@@ -39,39 +41,127 @@ export default function ServicePage({ currentUser, initialTab = 'catalog', onGoH
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isDecidingQuote, setIsDecidingQuote] = useState(false);
 
-  // 1. Tải danh mục dịch vụ từ Backend API
+  // My Tickets for logged-in user
+  const [myTickets, setMyTickets] = useState([]);
+  const [isLoadingMyTickets, setIsLoadingMyTickets] = useState(false);
+  const [myTicketsError, setMyTicketsError] = useState('');
+
+  // 1. Đọc tham số URL khi mount trang hoặc khi chuyển hướng từ nơi khác
   useEffect(() => {
-    setIsLoadingCatalog(true);
-    fetch('/api/services/catalog')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setCatalog(data.items || []);
-        }
-      })
-      .catch((err) => console.error('Lỗi tải danh mục dịch vụ:', err))
-      .finally(() => setIsLoadingCatalog(false));
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const devId = params.get('deviceId');
+      const tabParam = params.get('tab');
+      const codeParam = params.get('code');
+      const actionParam = params.get('action');
+
+      if (devId) {
+        setSelectedDeviceId(devId);
+        setRequestType('warranty');
+        setDeviceSource('Purchased');
+        setActiveTab('request');
+      } else if (tabParam) {
+        setActiveTab(tabParam);
+      } else if (actionParam === 'request') {
+        setActiveTab('request');
+      } else if (actionParam === 'lookup') {
+        setActiveTab('lookup');
+      }
+
+      if (codeParam) {
+        setLookupCode(codeParam);
+        const p = params.get('phone') || '';
+        if (p) setLookupPhone(p);
+        setActiveTab('lookup');
+        handleLookupDirect(codeParam, p);
+      }
+    } catch {}
   }, []);
 
-  // 2. Tải danh sách máy đã mua khi đăng nhập hoặc chuyển sang tab my-devices
+  // 2. Tải danh mục dịch vụ từ Backend API
+  const loadCatalog = () => {
+    setIsLoadingCatalog(true);
+    setCatalogError('');
+    fetch('/api/services/catalog')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.success) {
+          setCatalog(data.items || []);
+        } else {
+          setCatalogError('Không thể tải bảng giá dịch vụ từ hệ thống.');
+        }
+      })
+      .catch((err) => {
+        console.error('Lỗi tải danh mục dịch vụ:', err);
+        setCatalogError('Lỗi kết nối máy chủ khi tải danh mục dịch vụ.');
+      })
+      .finally(() => setIsLoadingCatalog(false));
+  };
+
+  useEffect(() => {
+    loadCatalog();
+  }, []);
+
+  // 3. Tải danh sách máy đã mua khi chuyển sang tab my-devices hoặc request
+  const loadMyDevices = (phone) => {
+    setIsLoadingDevices(true);
+    setDevicesError('');
+    const url = phone ? `/api/services/my-devices?phoneNumber=${encodeURIComponent(phone)}` : '/api/services/my-devices';
+    fetch(url, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.success) {
+          setMyDevices(data.devices || []);
+        } else {
+          setDevicesError(data?.message || 'Không thể tải danh sách máy đã mua.');
+        }
+      })
+      .catch((err) => {
+        console.error('Lỗi tải máy đã mua:', err);
+        setDevicesError('Lỗi kết nối máy chủ khi tải máy đã mua.');
+      })
+      .finally(() => setIsLoadingDevices(false));
+  };
+
   useEffect(() => {
     if (activeTab === 'my-devices' || activeTab === 'request') {
       loadMyDevices(phoneForDevices || customerPhone);
     }
+    if (activeTab === 'lookup') {
+      loadMyTickets(currentUser?.phoneNumber || customerPhone);
+    }
   }, [activeTab]);
 
-  const loadMyDevices = (phone) => {
-    setIsLoadingDevices(true);
-    const url = phone ? `/api/services/my-devices?phoneNumber=${encodeURIComponent(phone)}` : '/api/services/my-devices';
-    fetch(url)
-      .then((res) => res.json())
+  // 4. Tải danh sách phiếu của khách hàng
+  const loadMyTickets = (phone) => {
+    setIsLoadingMyTickets(true);
+    setMyTicketsError('');
+    const url = phone ? `/api/services/my-tickets?phoneNumber=${encodeURIComponent(phone)}` : '/api/services/my-tickets';
+    fetch(url, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data.success) {
-          setMyDevices(data.devices || []);
+        if (data && data.success) {
+          setMyTickets(data.tickets || []);
         }
       })
-      .catch((err) => console.error('Lỗi tải máy đã mua:', err))
-      .finally(() => setIsLoadingDevices(false));
+      .catch(() => {})
+      .finally(() => setIsLoadingMyTickets(false));
+  };
+
+  const handleLookupDirect = async (code, phone) => {
+    if (!code) return;
+    setIsLookingUp(true);
+    setLookupError('');
+    try {
+      const url = `/api/services/ticket/${encodeURIComponent(code)}?phone=${encodeURIComponent(phone || '')}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLookupResult(data.ticket);
+      }
+    } catch {} finally {
+      setIsLookingUp(false);
+    }
   };
 
   // Chọn một dịch vụ từ Catalog và chuyển sang Tab Gửi yêu cầu
@@ -271,35 +361,98 @@ export default function ServicePage({ currentUser, initialTab = 'catalog', onGoH
           </div>
         </div>
 
+        {/* 2 THAO TÁC NỔI BẬT ĐẦU TRANG */}
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <div 
+              className={`p-4 rounded-3 border shadow-sm h-100 ${
+                activeTab === 'request' ? 'border-danger bg-white shadow' : 'bg-white'
+              }`}
+              style={{ cursor: 'pointer', borderLeft: activeTab === 'request' ? '5px solid #B91C1C' : undefined }}
+              onClick={() => setActiveTab('request')}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <div className="rounded-3 p-3 bg-danger-subtle text-danger fs-3 flex-shrink-0">
+                  <i className="bi bi-send-plus-fill"></i>
+                </div>
+                <div>
+                  <h5 className="fw-bold text-dark mb-1">Gửi yêu cầu tiếp nhận</h5>
+                  <p className="small text-muted mb-0">
+                    Bảo hành <strong>0 ₫</strong> (máy mua tại cửa hàng) · Sửa chữa linh kiện chuyên sâu cho mọi dòng laptop.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 text-end">
+                <span className={`btn btn-sm fw-bold ${activeTab === 'request' ? 'btn-danger' : 'btn-outline-danger'}`}>
+                  Điền form gửi máy <i className="bi bi-arrow-right ms-1"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div 
+              className={`p-4 rounded-3 border shadow-sm h-100 ${
+                activeTab === 'lookup' ? 'border-danger bg-white shadow' : 'bg-white'
+              }`}
+              style={{ cursor: 'pointer', borderLeft: activeTab === 'lookup' ? '5px solid #B91C1C' : undefined }}
+              onClick={() => {
+                setActiveTab('lookup');
+                loadMyTickets(currentUser?.phoneNumber || customerPhone);
+              }}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <div className="rounded-3 p-3 bg-primary-subtle text-primary fs-3 flex-shrink-0">
+                  <i className="bi bi-search"></i>
+                </div>
+                <div>
+                  <h5 className="fw-bold text-dark mb-1">Theo dõi tiến độ phiếu</h5>
+                  <p className="small text-muted mb-0">
+                    Tra cứu quy trình chuẩn 7 bước, xem biên nhận tiếp nhận máy và duyệt báo giá linh kiện trực tuyến.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 text-end">
+                <span className={`btn btn-sm fw-bold ${activeTab === 'lookup' ? 'btn-danger' : 'btn-outline-danger'}`}>
+                  Xem tiến độ phiếu <i className="bi bi-arrow-right ms-1"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* NAV TABS */}
         <div className="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
-          <button
-            type="button"
-            className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${activeTab === 'catalog' ? 'btn-danger text-white' : 'btn-light text-secondary'}`}
-            onClick={() => setActiveTab('catalog')}
-          >
-            <i className="bi bi-list-task me-1"></i> 1. Dịch vụ & Bảng giá
-          </button>
           <button
             type="button"
             className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${activeTab === 'request' ? 'btn-danger text-white' : 'btn-light text-secondary'}`}
             onClick={() => setActiveTab('request')}
           >
-            <i className="bi bi-send-plus me-1"></i> 2. Gửi yêu cầu tiếp nhận
+            <i className="bi bi-send-plus me-1"></i> 1. Gửi yêu cầu tiếp nhận
           </button>
           <button
             type="button"
             className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${activeTab === 'lookup' ? 'btn-danger text-white' : 'btn-light text-secondary'}`}
-            onClick={() => setActiveTab('lookup')}
+            onClick={() => {
+              setActiveTab('lookup');
+              loadMyTickets(currentUser?.phoneNumber || customerPhone);
+            }}
           >
-            <i className="bi bi-search me-1"></i> 3. Theo dõi tiến độ phiếu
+            <i className="bi bi-search me-1"></i> 2. Theo dõi tiến độ phiếu
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${activeTab === 'catalog' ? 'btn-danger text-white' : 'btn-light text-secondary'}`}
+            onClick={() => setActiveTab('catalog')}
+          >
+            <i className="bi bi-list-task me-1"></i> 3. Bảng giá dịch vụ tham khảo
           </button>
           <button
             type="button"
             className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${activeTab === 'my-devices' ? 'btn-danger text-white' : 'btn-light text-secondary'}`}
             onClick={() => setActiveTab('my-devices')}
           >
-            <i className="bi bi-laptop me-1"></i> 4. Máy đã mua & Hạn BH
+            <i className="bi bi-laptop me-1"></i> 4. Máy đã mua & Hạn BH ({myDevices.length})
           </button>
         </div>
 
@@ -335,10 +488,26 @@ export default function ServicePage({ currentUser, initialTab = 'catalog', onGoH
               </div>
             </div>
 
-            {isLoadingCatalog ? (
+            {catalogError ? (
+              <div className="alert alert-danger py-4 px-4 text-center rounded-3 shadow-sm border">
+                <i className="bi bi-exclamation-triangle-fill fs-3 d-block mb-2"></i>
+                <h6 className="fw-bold">{catalogError}</h6>
+                <button type="button" className="btn btn-danger btn-sm mt-2 px-3 fw-semibold" onClick={loadCatalog}>
+                  <i className="bi bi-arrow-clockwise me-1"></i> Thử lại
+                </button>
+              </div>
+            ) : isLoadingCatalog ? (
               <div className="text-center py-5 bg-white rounded-3 shadow-sm border">
                 <div className="spinner-border text-danger" role="status"></div>
                 <div className="small text-muted mt-2">Đang tải danh mục dịch vụ...</div>
+              </div>
+            ) : filteredCatalog.length === 0 ? (
+              <div className="text-center py-5 bg-white rounded-3 shadow-sm border">
+                <i className="bi bi-wrench text-muted fs-2 d-block mb-2"></i>
+                <h6 className="fw-bold text-dark">Chưa có dịch vụ nào trong mục này</h6>
+                <button type="button" className="btn btn-sm btn-outline-danger mt-2" onClick={loadCatalog}>
+                  <i className="bi bi-arrow-clockwise me-1"></i> Làm mới danh mục
+                </button>
               </div>
             ) : (
               <div className="row g-3">
@@ -766,6 +935,47 @@ export default function ServicePage({ currentUser, initialTab = 'catalog', onGoH
         {activeTab === 'lookup' && (
           <div className="row justify-content-center">
             <div className="col-lg-9">
+              {/* DANH SÁCH PHIẾU CỦA BẠN NẾU CÓ */}
+              {myTickets.length > 0 && (
+                <div className="bg-white rounded-3 p-4 shadow-sm border mb-4">
+                  <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                    <h6 className="fw-bold text-dark mb-0">
+                      <i className="bi bi-person-lines-fill text-danger me-2"></i>Phiếu dịch vụ của bạn ({myTickets.length})
+                    </h6>
+                    <span className="small text-muted">Bấm vào phiếu để xem tiến độ chi tiết</span>
+                  </div>
+                  <div className="d-flex flex-column gap-2">
+                    {myTickets.map((t) => (
+                      <div 
+                        key={t.ticketId} 
+                        className={`p-3 rounded-2 border d-flex flex-wrap justify-content-between align-items-center ${
+                          lookupResult?.ticketId === t.ticketId ? 'border-danger bg-danger-subtle' : 'bg-light hover-bg-white'
+                        }`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          setLookupResult(t);
+                          setLookupCode(t.ticketCode);
+                          setLookupPhone(t.phoneNumber);
+                        }}
+                      >
+                        <div>
+                          <span className="font-monospace fw-bold text-danger me-2">#{t.ticketCode}</span>
+                          <span className="badge bg-secondary me-2">{t.ticketType}</span>
+                          <strong className="text-dark">{t.deviceDisplayName}</strong>
+                          <div className="small text-muted mt-1">Lỗi: {t.faultDescription}</div>
+                        </div>
+                        <div className="text-end mt-2 mt-sm-0">
+                          <span className="badge bg-primary px-2 py-1">{t.status}</span>
+                          <div className="small text-danger fw-semibold mt-1">
+                            Xem chi tiết <i className="bi bi-chevron-right"></i>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* FORM TRA CỨU */}
               <div className="bg-white rounded-3 p-4 shadow-sm border mb-4">
                 <h5 className="fw-bold text-dark border-bottom pb-2 mb-3">

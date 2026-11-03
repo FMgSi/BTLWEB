@@ -82,3 +82,4 @@ public class CustomerPromotionDto
     public string ApplicableScope { get; set; } = "All";
     public bool IsHot { get; set; }
 }
+

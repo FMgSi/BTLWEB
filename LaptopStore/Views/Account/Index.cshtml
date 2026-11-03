@@ -1,0 +1,411 @@
+@model LaptopStore.ViewModels.AccountStorefrontViewModel
+@using System.Globalization
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Tài khoản cá nhân & Đơn hàng của tôi";
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    string FormatVND(decimal amount) => amount.ToString("#,##0", viCulture) + " ₫";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3 small">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Catalog" class="text-decoration-none text-muted">Trang chủ</a></li>
+            <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">Tài khoản cá nhân</li>
+        </ol>
+    </nav>
+
+    <!-- 1. HEADER PROFILE & MEMBERSHIP TIER -->
+    <div class="bg-white rounded-3 shadow-sm p-4 mb-4 border">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-7 d-flex align-items-center gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm flex-shrink-0"
+                     style="width: 64px; height: 64px; font-size: 24px; background-color: @Model.TierColor;">
+                    @(Model.CustomerName.Length > 0 ? Model.CustomerName[0].ToString().ToUpper() : "K")
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h4 class="fw-bold text-dark mb-0">@Model.CustomerName</h4>
+                        <span class="badge text-white px-2 py-1 fw-bold text-uppercase" style="background-color: @Model.TierColor;">
+                            Hạng @Model.MemberTier
+                        </span>
+                    </div>
+                    <div class="text-secondary small mt-1">
+                        @if (Model.IsAuthenticated)
+                        {
+                            <span><i class="bi bi-shield-check text-success me-1"></i>Tài khoản đã xác thực đồng bộ đơn hàng & thiết bị.</span>
+                        }
+                        else
+                        {
+                            <span>Khách hàng vãng lai. Bạn có thể tra cứu đơn hàng hoặc <a href="/Admin/Login" class="text-danger fw-bold">đăng nhập</a> để tích lũy hạng thành viên.</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-muted fw-semibold">Tổng chi tiêu tích lũy:</span>
+                        <strong class="text-danger fs-6">@FormatVND(Model.TotalSpent)</strong>
+                    </div>
+                    @if (Model.NextTier != "Tối Đa")
+                    {
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: @(Model.ProgressPercent)%;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted mt-1" style="font-size: 11px;">
+                            <span>Hạng @Model.MemberTier</span>
+                            <span>Cần thêm <strong>@FormatVND(Model.RemainingToNextTier)</strong> để lên <strong>Hạng @Model.NextTier</strong></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="small text-success fw-semibold mt-1">
+                            <i class="bi bi-gem me-1"></i> Quý khách đang ở Hạng Thành Viên Cao Nhất!
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. NAVIGATION TABS -->
+    <div class="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
+        <a href="/account?tab=orders" class="btn btn-sm px-4 py-2 fw-bold rounded-2 @(Model.ActiveTab == "orders" ? "btn-danger text-white" : "btn-light text-secondary")">
+            <i class="bi bi-bag-check me-1"></i> 1. Đơn hàng của tôi (@Model.Orders.Count)
+        </a>
+        <a href="/account?tab=devices" class="btn btn-sm px-4 py-2 fw-bold rounded-2 @(Model.ActiveTab == "devices" ? "btn-danger text-white" : "btn-light text-secondary")">
+            <i class="bi bi-laptop me-1"></i> 2. Sản phẩm đã mua & Bảo hành (@Model.Devices.Count)
+        </a>
+        <a href="/account?tab=membership" class="btn btn-sm px-4 py-2 fw-bold rounded-2 @(Model.ActiveTab == "membership" ? "btn-danger text-white" : "btn-light text-secondary")">
+            <i class="bi bi-award me-1"></i> 3. Hạng thành viên & Quyền lợi
+        </a>
+    </div>
+
+    <!-- TAB 1: ĐƠN HÀNG CỦA TÔI -->
+    @if (Model.ActiveTab == "orders")
+    {
+        @if (!Model.IsAuthenticated)
+        {
+            <div class="bg-white rounded-3 p-4 mb-4 border shadow-sm">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-1">
+                            <i class="bi bi-search text-danger me-2"></i>Tra cứu tiến độ đơn hàng (Khách vãng lai)
+                        </h5>
+                        <p class="text-muted small mb-0">
+                            Nhập mã đơn hàng và số điện thoại đặt hàng để kiểm tra lộ trình vận chuyển và thông tin hợp đồng.
+                        </p>
+                    </div>
+                    <a href="/Admin/Login" class="btn btn-outline-danger btn-sm fw-semibold">
+                        <i class="bi bi-person-lock me-1"></i> Đăng nhập để tự động lưu
+                    </a>
+                </div>
+
+                <form method="get" action="/account" class="row g-2">
+                    <input type="hidden" name="tab" value="orders" />
+                    <div class="col-md-5">
+                        <input type="text" name="code" class="form-control font-monospace" placeholder="Mã đơn hàng (VD: PC20261103-0001)" value="@Model.GuestOrderCode" required />
+                    </div>
+                    <div class="col-md-5">
+                        <input type="tel" name="phone" class="form-control" placeholder="Số điện thoại đặt hàng" value="@Model.GuestPhone" required />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-danger w-100 fw-semibold">Tra cứu</button>
+                    </div>
+                </form>
+
+                @if (!string.IsNullOrEmpty(Model.GuestLookupError))
+                {
+                    <div class="alert alert-danger py-2 px-3 mt-3 mb-0 small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> @Model.GuestLookupError
+                    </div>
+                }
+
+                @if (Model.GuestOrderResult != null)
+                {
+                    var o = Model.GuestOrderResult;
+                    <div class="card mt-3 border-danger shadow-sm">
+                        <div class="card-header bg-danger-subtle d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">Đơn hàng #@o.OrderCode</span>
+                            <span class="badge bg-primary">@o.Status</span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2 small mb-3">
+                                <div class="col-md-6">
+                                    <div><strong>Người nhận:</strong> @o.CustomerName</div>
+                                    <div><strong>Số điện thoại:</strong> @o.PhoneNumber</div>
+                                    <div><strong>Địa chỉ:</strong> @o.ShippingAddress</div>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <div><strong>Hình thức:</strong> @o.PaymentMethod</div>
+                                    <div class="fs-5 fw-bold text-danger mt-1">Tổng tiền: @FormatVND(o.TotalAmount)</div>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive border rounded">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead class="table-light small">
+                                        <tr>
+                                            <th>Sản phẩm</th>
+                                            <th class="text-center">Cấu hình</th>
+                                            <th class="text-center">Số lượng</th>
+                                            <th class="text-end">Đơn giá</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in o.Items)
+                                        {
+                                            <tr>
+                                                <td class="fw-semibold">@item.ProductName</td>
+                                                <td class="text-center small text-muted">@item.SelectedSpecs</td>
+                                                <td class="text-center small">@item.Quantity</td>
+                                                <td class="text-end small fw-bold text-danger">@FormatVND(item.UnitPrice)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (Model.IsAuthenticated)
+        {
+            @if (Model.Orders.Any())
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var order in Model.Orders)
+                    {
+                        <div class="card shadow-sm border rounded-3 overflow-hidden">
+                            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <span class="fw-bold text-dark me-2">Mã đơn: #@order.OrderCode</span>
+                                    <span class="text-muted small">• Ngày đặt: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge @(order.Status == "Hoàn thành" ? "bg-success" : order.Status == "Đã hủy" ? "bg-danger" : "bg-primary")">
+                                        @order.Status
+                                    </span>
+                                    <span class="badge bg-light text-dark border">@order.PaymentMethod</span>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-3">
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead class="table-light small">
+                                            <tr>
+                                                <th>Sản phẩm</th>
+                                                <th class="text-center">Cấu hình</th>
+                                                <th class="text-center">Số lượng</th>
+                                                <th class="text-end">Đơn giá</th>
+                                                <th class="text-end">Thành tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in order.Items)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-semibold text-dark small">@item.ProductName</div>
+                                                        @if (!string.IsNullOrEmpty(item.ColorName))
+                                                        {
+                                                            <span class="badge bg-light text-muted border" style="font-size: 10px;">@item.ColorName</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center small text-muted">@item.SelectedSpecs</td>
+                                                    <td class="text-center small">@item.Quantity</td>
+                                                    <td class="text-end small">@FormatVND(item.UnitPrice)</td>
+                                                    <td class="text-end small fw-bold text-danger">@FormatVND(item.UnitPrice * item.Quantity)</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top mt-3">
+                                    <div class="small text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i> Giao đến: <strong>@order.ShippingAddress</strong>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="small text-muted me-2">Tổng thanh toán:</span>
+                                        <strong class="fs-5 text-danger">@FormatVND(order.TotalAmount)</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="bg-white rounded-3 p-5 text-center border shadow-sm">
+                    <i class="bi bi-bag-x text-muted fs-1 d-block mb-2"></i>
+                    <h6 class="fw-bold text-dark">Bạn chưa có đơn đặt hàng nào</h6>
+                    <p class="text-muted small mb-3">Khám phá các dòng laptop chính hãng mới nhất tại cửa hàng.</p>
+                    <a href="/Catalog" class="btn btn-danger btn-sm px-4 fw-semibold">Mua sắm ngay</a>
+                </div>
+            }
+        }
+    }
+
+    <!-- TAB 2: THIẾT BỊ ĐÃ MUA & BẢO HÀNH -->
+    @if (Model.ActiveTab == "devices")
+    {
+        @if (Model.Devices.Any())
+        {
+            <div class="row g-3">
+                @foreach (var d in Model.Devices)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm border rounded-3 p-3 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-light text-dark border font-monospace">Đơn: #@d.OrderCode</span>
+                                    @if (d.IsUnderWarranty)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold">
+                                            <i class="bi bi-shield-fill-check me-1"></i> Còn BH (@d.DaysRemaining ngày)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold">
+                                            <i class="bi bi-shield-slash me-1"></i> Hết hạn BH
+                                        </span>
+                                    }
+                                </div>
+
+                                <h6 class="fw-bold text-dark mb-1">@d.ProductName</h6>
+                                <div class="text-muted small mb-2">
+                                    Cấu hình: @d.SelectedSpecs
+                                </div>
+
+                                <div class="bg-light p-2 rounded-2 border mb-3 small">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted">Số Serial:</span>
+                                        <strong class="font-monospace text-primary">@d.SerialNumber</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted">Ngày nhận máy:</span>
+                                        <span>@(d.PurchaseDate?.ToString("dd/MM/yyyy") ?? "---")</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Hạn bảo hành:</span>
+                                        <strong>@d.WarrantyEndDate.ToString("dd/MM/yyyy")</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <a href="/service?tab=request&deviceId=@d.DeviceId" class="btn w-100 btn-sm fw-bold @(d.IsUnderWarranty ? "btn-danger" : "btn-outline-danger")">
+                                    <i class="bi bi-tools me-1"></i>
+                                    @(d.IsUnderWarranty ? "Yêu cầu Bảo hành (0 ₫)" : "Yêu cầu Sửa chữa có phí")
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="bg-white rounded-3 p-5 text-center border shadow-sm">
+                <i class="bi bi-laptop text-muted fs-1 d-block mb-2"></i>
+                <h6 class="fw-bold text-dark">Chưa có thiết bị nào được ghi nhận</h6>
+                <p class="text-muted small mb-0">Khi đơn hàng giao thành công và nhân viên kích hoạt số Serial cho máy, thiết bị sẽ hiển thị tại đây.</p>
+            </div>
+        }
+    }
+
+    <!-- TAB 3: HẠNG THÀNH VIÊN & QUYỀN LỢI -->
+    @if (Model.ActiveTab == "membership")
+    {
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="bg-white rounded-3 shadow-sm p-4 border text-center">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center text-white mb-3 shadow"
+                         style="width: 80px; height: 80px; font-size: 32px; background-color: @Model.TierColor;">
+                        <i class="bi bi-gem"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1">Hạng @Model.MemberTier</h4>
+                    <p class="text-muted small mb-3">Tích lũy từ tổng giá trị các đơn hàng hoàn tất.</p>
+                    <div class="border-top pt-3 text-start small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Tổng chi tiêu:</span>
+                            <strong class="text-danger">@FormatVND(Model.TotalSpent)</strong>
+                        </div>
+                        @if (Model.NextTier != "Tối Đa")
+                        {
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Lên hạng tiếp:</span>
+                                <strong>@FormatVND(Model.RemainingToNextTier)</strong>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="bg-white rounded-3 shadow-sm p-4 border">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-trophy text-warning me-2"></i>Hệ thống Hạng & Quyền lợi Đặc quyền
+                    </h5>
+
+                    <div class="d-flex flex-column gap-3">
+                        <div class="p-3 rounded-3 border @(Model.MemberTier == "Đồng" ? "border-secondary bg-light" : "")">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="fw-bold mb-0" style="color: #a87552;">🥉 Hạng Đồng (Chi tiêu &lt; 20 triệu)</h6>
+                                @if (Model.MemberTier == "Đồng") { <span class="badge bg-secondary">Hạng hiện tại</span> }
+                            </div>
+                            <ul class="small text-muted mb-0 ps-3">
+                                <li>Lưu trữ lịch sử mua hàng và quản lý hạn bảo hành điện tử.</li>
+                                <li>Tư vấn và hỗ trợ phần mềm trọn đời máy.</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-3 rounded-3 border @(Model.MemberTier == "Bạc" ? "border-primary bg-primary-subtle" : "")">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="fw-bold mb-0 text-primary">🥈 Hạng Bạc (Từ 20 triệu - 50 triệu)</h6>
+                                @if (Model.MemberTier == "Bạc") { <span class="badge bg-primary">Hạng hiện tại</span> }
+                            </div>
+                            <ul class="small text-muted mb-0 ps-3">
+                                <li>Miễn phí 01 lần bảo dưỡng, vệ sinh tra keo tản nhiệt mỗi năm.</li>
+                                <li>Giảm 5% khi mua phụ kiện kèm máy.</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-3 rounded-3 border @(Model.MemberTier == "Vàng" ? "border-warning bg-warning-subtle" : "")">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="fw-bold mb-0 text-warning-emphasis">🥇 Hạng Vàng (Từ 50 triệu - 100 triệu)</h6>
+                                @if (Model.MemberTier == "Vàng") { <span class="badge bg-warning text-dark">Hạng hiện tại</span> }
+                            </div>
+                            <ul class="small text-muted mb-0 ps-3">
+                                <li>Miễn phí vệ sinh máy trọn đời tại mọi showroom.</li>
+                                <li>Hỗ trợ mượn máy laptop dự phòng khi gửi bảo hành trên 3 ngày.</li>
+                                <li>Giảm 10% chi phí sửa chữa dịch vụ ngoài bảo hành.</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-3 rounded-3 border @(Model.MemberTier == "Kim Cương" ? "border-info bg-info-subtle" : "")">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="fw-bold mb-0 text-info-emphasis">💎 Hạng Kim Cương (Từ 100 triệu trở lên)</h6>
+                                @if (Model.MemberTier == "Kim Cương") { <span class="badge bg-info text-dark">Hạng hiện tại</span> }
+                            </div>
+                            <ul class="small text-muted mb-0 ps-3">
+                                <li>Đặc quyền VIP cao nhất toàn hệ thống.</li>
+                                <li>Hỗ trợ kỹ thuật viên kiểm tra máy tận nơi (Hà Nội & TP.HCM).</li>
+                                <li>1 Đổi 1 trong 45 ngày đầu nếu phát sinh lỗi phần cứng từ NSX.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

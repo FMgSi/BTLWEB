@@ -14,6 +14,7 @@ export default function CartPage({
   onSelectProduct,
   currentUser,
   showToast,
+  onNavigate,
 }) {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -35,20 +36,6 @@ export default function CartPage({
   const [termMonths, setTermMonths] = useState(6);
   const [serverInstallmentPlan, setServerInstallmentPlan] = useState(null);
 
-  // Trạng thái Voucher / Mã giảm giá
-  const [voucherInput, setVoucherInput] = useState('');
-  const [appliedVoucher, setAppliedVoucher] = useState(null);
-  const [voucherError, setVoucherError] = useState('');
-  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
-  const [claimedVouchers, setClaimedVouchers] = useState(() => {
-    try {
-      const saved = localStorage.getItem('laptopworld_claimed_vouchers');
-      return saved ? JSON.parse(saved) : ['LAPTOP2026', 'GAMING500K'];
-    } catch {
-      return ['LAPTOP2026'];
-    }
-  });
-
   const handleOpenCheckoutModal = () => {
     setIdempotencyKey(`IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
     setPhoneError('');
@@ -68,81 +55,16 @@ export default function CartPage({
   const checkedItems = cartItems.filter((i) => i.checked !== false);
   const isAllChecked = cartItems.length > 0 && checkedItems.length === cartItems.length;
 
-  // Tính tổng tiền giỏ hàng
+  // Tính tổng tiền giỏ hàng (bảo toàn trọn vẹn giá bán theo biến thể và khuyến mãi DiscountPrice của từng máy)
   const totalPayable = checkedItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   const totalOriginal = checkedItems.reduce((sum, item) => {
     const orig = item.originalPrice && item.originalPrice > item.price ? item.originalPrice : item.price;
     return sum + (orig || 0) * (item.quantity || 1);
   }, 0);
   const totalDiscount = Math.max(0, totalOriginal - totalPayable);
+  const finalPayable = totalPayable;
 
-  // Tính tổng thanh toán sau khi trừ voucher
-  const voucherDiscount = appliedVoucher ? appliedVoucher.discountAmount : 0;
-  const finalPayable = Math.max(0, totalPayable - voucherDiscount);
 
-  // Xử lý áp dụng voucher
-  const handleApplyVoucher = async (codeToApply) => {
-    const code = (codeToApply || voucherInput).trim().toUpperCase();
-    if (!code) {
-      setVoucherError('Vui lòng nhập mã voucher!');
-      return;
-    }
-
-    if (checkedItems.length === 0) {
-      setVoucherError('Vui lòng chọn ít nhất 1 sản phẩm để áp dụng voucher!');
-      return;
-    }
-
-    setVoucherError('');
-    setIsValidatingVoucher(true);
-
-    try {
-      const payload = {
-        code: code,
-        subTotal: totalPayable,
-        phoneNumber: customerPhone || null,
-        items: checkedItems.map((item) => ({
-          productId: item.productId || item.id,
-          variantId: item.variantId || null,
-          quantity: item.quantity || 1,
-        })),
-      };
-
-      const res = await fetch('/api/promotions/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setAppliedVoucher({
-          code: data.code,
-          discountAmount: data.discountAmount,
-          title: data.title,
-          message: data.message,
-        });
-        setVoucherError('');
-        if (showToast) {
-          showToast(`✓ ${data.message}`, 4000);
-        }
-      } else {
-        setAppliedVoucher(null);
-        setVoucherError(data.message || 'Mã giảm giá không hợp lệ hoặc chưa đủ điều kiện.');
-      }
-    } catch (err) {
-      console.warn('Lỗi kiểm tra voucher:', err);
-      setVoucherError('Không thể kết nối máy chủ để kiểm tra voucher.');
-    } finally {
-      setIsValidatingVoucher(false);
-    }
-  };
-
-  const handleRemoveVoucher = () => {
-    setAppliedVoucher(null);
-    setVoucherInput('');
-    setVoucherError('');
-  };
 
   // Đồng bộ phương án trả góp từ Backend API dựa trên finalPayable (Single Source of Truth)
   useEffect(() => {
@@ -230,7 +152,7 @@ export default function CartPage({
         paymentMethod: paymentMethod === 'cod' ? 'COD' : 'VietQR',
         purchaseMode: purchaseMode,
         termMonths: purchaseMode === 'Installment' ? termMonths : null,
-        discountCode: appliedVoucher?.code || null,
+        discountCode: null,
         idempotencyKey: idempotencyKey || `IDEMP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         items: checkedItems.map((item) => ({
           productId: item.productId || item.id,
@@ -345,7 +267,6 @@ export default function CartPage({
       } else {
         // COD: Hiển thị ngay màn hình xác nhận đơn hàng thành công kèm mã đơn & tổng tiền
         setOrderSuccess(orderData);
-        setAppliedVoucher(null);
         if (showToast) {
           showToast(`🎉 Đặt hàng thành công! Mã đơn: #${realOrderCode}`, 5000);
         }
@@ -361,7 +282,6 @@ export default function CartPage({
     const completed = pendingOrder;
     setShowQrModal(false);
     setPendingOrder(null);
-    setAppliedVoucher(null);
     if (completed) {
       setOrderSuccess(completed);
     }
@@ -408,8 +328,24 @@ export default function CartPage({
               Cảm ơn quý khách <strong>{orderSuccess.name}</strong> đã mua sắm tại <strong>PCStore</strong>.
               <br />
               Mã đơn hàng của bạn là: <span className="text-danger fw-bold fs-6">#{orderSuccess.orderId}</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary ms-2 py-0 px-2"
+                style={{ fontSize: '12px' }}
+                onClick={() => {
+                  navigator.clipboard?.writeText(orderSuccess.orderId);
+                  setCopiedKey(orderSuccess.orderId);
+                  setTimeout(() => setCopiedKey(''), 2500);
+                }}
+              >
+                {copiedKey === orderSuccess.orderId ? (
+                  <><i className="bi bi-check2 text-success me-1"></i>Đã chép</>
+                ) : (
+                  <><i className="bi bi-copy me-1"></i>Lưu mã</>
+                )}
+              </button>
             </p>
-            <div className="bg-light p-3 rounded-3 text-start small mb-4">
+            <div className="bg-light p-3 rounded-3 text-start small mb-3">
               <div><strong>Giao đến:</strong> {orderSuccess.address}</div>
               <div><strong>Số điện thoại:</strong> {orderSuccess.phone}</div>
               <div><strong>Hình thức:</strong> {orderSuccess.paymentMethod}</div>
@@ -440,16 +376,39 @@ export default function CartPage({
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="btn btn-danger px-4 py-2 fw-semibold"
-              onClick={() => {
-                setOrderSuccess(null);
-                onGoHome();
-              }}
-            >
-              Tiếp tục mua sắm
-            </button>
+
+            <div className="alert alert-warning py-2 px-3 text-start small mb-4">
+              <i className="bi bi-shield-check text-success me-1"></i>
+              <strong>Theo dõi đơn hàng:</strong> Quý khách có thể xem tiến độ giao hàng, bảo hành máy tại mục <strong>Tài khoản cá nhân</strong> bất kỳ lúc nào.
+            </div>
+
+            <div className="d-flex flex-wrap justify-content-center gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-danger px-4 py-2 fw-semibold"
+                onClick={() => {
+                  setOrderSuccess(null);
+                  if (onNavigate) {
+                    onNavigate('account');
+                  } else {
+                    window.history.pushState({}, '', '/account');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }
+                }}
+              >
+                <i className="bi bi-person-circle me-1"></i> Đến trang Tài khoản & Đơn hàng
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger px-4 py-2 fw-semibold"
+                onClick={() => {
+                  setOrderSuccess(null);
+                  onGoHome();
+                }}
+              >
+                Tiếp tục mua sắm
+              </button>
+            </div>
           </div>
         ) : cartItems.length === 0 ? (
           /* Trạng thái giỏ hàng trống */
@@ -594,87 +553,6 @@ export default function CartPage({
 
             {/* Cột thông tin đơn hàng bên phải */}
             <div className="col-12 col-lg-4">
-              {/* KHUNG MÃ GIẢM GIÁ / VOUCHER */}
-              <div className="bg-white rounded-3 p-3 border shadow-sm mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="small fw-bold text-dark">
-                    <i className="bi bi-tag-fill text-danger me-1"></i> Mã giảm giá (Voucher)
-                  </span>
-                  {appliedVoucher && (
-                    <button
-                      type="button"
-                      className="btn btn-link p-0 text-danger small text-decoration-none"
-                      onClick={handleRemoveVoucher}
-                    >
-                      Gỡ mã
-                    </button>
-                  )}
-                </div>
-
-                {!appliedVoucher ? (
-                  <>
-                    <div className="input-group input-group-sm mb-2">
-                      <input
-                        type="text"
-                        className="form-control text-uppercase"
-                        placeholder="Nhập mã voucher (VD: LAPTOP2026)"
-                        value={voucherInput}
-                        onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleApplyVoucher(voucherInput);
-                          }
-                        }}
-                      />
-                      <button
-                        className="btn btn-danger px-3 fw-semibold"
-                        type="button"
-                        disabled={isValidatingVoucher || !voucherInput.trim()}
-                        onClick={() => handleApplyVoucher(voucherInput)}
-                      >
-                        {isValidatingVoucher ? 'Kiểm tra...' : 'Áp dụng'}
-                      </button>
-                    </div>
-
-                    {/* Danh sách mã trong ví khách hàng */}
-                    {claimedVouchers.length > 0 && (
-                      <div className="d-flex flex-wrap gap-1 align-items-center mt-1">
-                        <span className="text-muted" style={{ fontSize: '11px' }}>Ví của bạn:</span>
-                        {claimedVouchers.slice(0, 4).map((code) => (
-                          <button
-                            key={code}
-                            type="button"
-                            className="badge bg-light text-danger border border-danger-subtle px-2 py-1 btn btn-sm"
-                            style={{ fontSize: '11px', cursor: 'pointer' }}
-                            onClick={() => {
-                              setVoucherInput(code);
-                              handleApplyVoucher(code);
-                            }}
-                          >
-                            + {code}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="d-flex justify-content-between align-items-center bg-light p-2 rounded border border-success">
-                    <div>
-                      <span className="badge bg-success font-monospace me-1">{appliedVoucher.code}</span>
-                      <span className="small text-success fw-semibold">{appliedVoucher.title || 'Đã áp dụng'}</span>
-                    </div>
-                    <strong className="text-danger small">-{formatVND(appliedVoucher.discountAmount)}</strong>
-                  </div>
-                )}
-
-                {voucherError && (
-                  <div className="alert alert-danger p-2 mt-2 mb-0 small" style={{ fontSize: '12px' }}>
-                    <i className="bi bi-exclamation-triangle-fill me-1"></i> {voucherError}
-                  </div>
-                )}
-              </div>
-
               {/* TỔNG KẾT ĐƠN HÀNG */}
               <div className="cart-summary-card">
                 <h6 className="cart-summary-title">Thông tin đơn hàng</h6>
@@ -688,13 +566,6 @@ export default function CartPage({
                   <div className="cart-summary-line text-muted">
                     <span>Giảm giá sản phẩm</span>
                     <span>-{formatVND(totalDiscount)}</span>
-                  </div>
-                )}
-
-                {appliedVoucher && (
-                  <div className="cart-summary-line text-success fw-semibold">
-                    <span>Voucher ({appliedVoucher.code})</span>
-                    <span className="text-danger fw-bold">-{formatVND(appliedVoucher.discountAmount)}</span>
                   </div>
                 )}
 
@@ -910,13 +781,6 @@ export default function CartPage({
                       </label>
                     </div>
                   </div>
-
-                  {appliedVoucher && (
-                    <div className="d-flex justify-content-between text-success small mb-2 px-1">
-                      <span>Mã giảm giá ({appliedVoucher.code}):</span>
-                      <strong>-{formatVND(appliedVoucher.discountAmount)}</strong>
-                    </div>
-                  )}
 
                   <div className="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
                     <span className="small fw-semibold text-secondary">

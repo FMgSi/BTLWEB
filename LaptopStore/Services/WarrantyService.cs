@@ -81,6 +81,38 @@ public class WarrantyService : IWarrantyService
         }).ToList();
     }
 
+    public async Task<List<ServiceTicketDetailDto>> GetCustomerTicketsAsync(string? phoneNumber = null, int? userId = null)
+    {
+        var query = _db.ServiceTickets
+            .AsNoTracking()
+            .Include(x => x.Service)
+            .Include(x => x.SoldDevice)
+                .ThenInclude(d => d!.OrderItem)
+            .Include(x => x.Quotes)
+            .Include(x => x.Histories)
+            .AsQueryable();
+
+        if (userId.HasValue && userId.Value > 0)
+        {
+            query = query.Where(t => t.UserId == userId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            var cleanPhone = phoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
+            query = query.Where(t => t.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone);
+        }
+        else
+        {
+            return new List<ServiceTicketDetailDto>();
+        }
+
+        var tickets = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
+        return tickets.Select(MapEntityToDetailDto).ToList();
+    }
+
     public async Task<SoldDeviceDto?> GetDeviceBySerialAsync(string serialNumber)
     {
         if (string.IsNullOrWhiteSpace(serialNumber)) return null;

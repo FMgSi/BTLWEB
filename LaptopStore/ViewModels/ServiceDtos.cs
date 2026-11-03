@@ -34,6 +34,10 @@ public class SoldDeviceDto
     public int WarrantyMonths { get; set; }
     public bool IsUnderWarranty { get; set; }
     public string? Notes { get; set; }
+
+    public int DaysRemaining => Math.Max(0, (int)(WarrantyEndDate - System.DateTime.UtcNow).TotalDays);
+    public System.DateTime? PurchaseDate => DeliveredAt;
+    public string SelectedSpecs => !string.IsNullOrEmpty(SKU) ? $"SKU: {SKU} {(ColorName != null ? "• Màu: " + ColorName : "")}" : (ColorName ?? "Tiêu chuẩn");
 }
 
 public class CreateWarrantyTicketRequest
@@ -115,6 +119,10 @@ public class ServiceTicketHistoryDto
     public string ActionBy { get; set; } = string.Empty;
     public DateTime ActionAt { get; set; }
     public string? Notes { get; set; }
+
+    public string Action => !string.IsNullOrEmpty(PreviousStatus) ? $"{PreviousStatus} ➔ {NewStatus}" : NewStatus;
+    public System.DateTime CreatedAt => ActionAt;
+    public string StaffName => ActionBy;
 }
 
 public class ServiceTicketDetailDto

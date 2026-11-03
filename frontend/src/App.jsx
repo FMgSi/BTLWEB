@@ -14,7 +14,7 @@ import CartPage from './components/Cart/CartPage';
 import HomePage from './components/Pages/HomePage';
 import ContactPage from './components/Pages/ContactPage';
 import GuidesPage from './components/Pages/GuidesPage';
-import PromosPage from './components/Pages/PromosPage';
+import AccountPage from './components/Pages/AccountPage';
 import SearchResultsPage from './components/Pages/SearchResultsPage';
 import ServicePage from './components/Pages/ServicePage';
 import Pagination from './components/Common/Pagination';
@@ -144,13 +144,21 @@ export default function App() {
         setAuthView(null);
         setSelectedProductId(null);
       } else if (path.includes('/products') || path.includes('/san-pham')) {
+        handleResetFilters();
         setActiveNav('products');
         setIsCartView(false);
         setAuthView(null);
         setSelectedProductId(null);
       } else if (path.includes('/promotions') || path.includes('/khuyen-mai')) {
-        setActiveNav('promos');
-        setActiveTag('Khuyến mãi hot');
+        // Chuyển hướng các đường dẫn khuyến mãi cũ về danh sách sản phẩm mặc định
+        handleResetFilters();
+        setActiveNav('products');
+        setIsCartView(false);
+        setAuthView(null);
+        setSelectedProductId(null);
+        window.history.replaceState({}, '', '/products');
+      } else if (path.includes('/account') || path.includes('/tai-khoan')) {
+        setActiveNav('account');
         setIsCartView(false);
         setAuthView(null);
         setSelectedProductId(null);
@@ -197,28 +205,36 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Điều hướng các tab chính (Trang chủ, Sản phẩm, Khuyến mãi, Hướng dẫn, Liên hệ...)
+  // Điều hướng các tab chính (Trang chủ, Sản phẩm, Sửa chữa & bảo hành, Tài khoản, Liên hệ...)
   const handleNavigate = (tab) => {
     setSelectedProductId(null);
     setAuthView(null);
     setIsCartView(false);
-    setActiveNav(tab);
 
     if (tab === 'home') {
+      setActiveNav('home');
       window.history.pushState({}, '', '/');
-    } else if (tab === 'products') {
+    } else if (tab === 'products' || tab === 'promos') {
+      handleResetFilters();
+      setActiveNav('products');
       window.history.pushState({}, '', '/products');
-    } else if (tab === 'promos') {
-      setActiveTag("Khuyến mãi hot");
-      window.history.pushState({}, '', '/promotions');
+    } else if (tab === 'account') {
+      setActiveNav('account');
+      window.history.pushState({}, '', '/account');
     } else if (tab === 'news') {
+      setActiveNav('news');
       window.history.pushState({}, '', '/news');
     } else if (tab === 'guides') {
+      setActiveNav('guides');
       window.history.pushState({}, '', '/guides');
     } else if (tab === 'contact') {
+      setActiveNav('contact');
       window.history.pushState({}, '', '/contact');
     } else if (tab === 'service') {
+      setActiveNav('service');
       window.history.pushState({}, '', '/service');
+    } else {
+      setActiveNav(tab);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -642,12 +658,13 @@ export default function App() {
           onSelectProduct={handleSelectProduct}
           currentUser={currentUser}
           showToast={showToast}
+          onNavigate={handleNavigate}
         />
       ) : selectedProductId ? (
         <ProductDetail
           key={selectedProductId}
           productId={selectedProductId}
-          onBack={() => handleNavigate(activeNav === 'home' ? 'home' : 'products')}
+          onBack={handleBackToList}
           onSelectProduct={handleSelectProduct}
           allProducts={products}
           onAddToCart={handleAddToCart}
@@ -671,12 +688,17 @@ export default function App() {
           onNavigateToProducts={() => handleNavigate('products')}
           onSelectCategory={handleSelectCategoryFromHome}
         />
-      ) : activeNav === 'promos' ? (
-        <PromosPage
-          products={products}
-          onSelectProduct={handleSelectProduct}
-          onAddToCart={handleAddToCart}
-          onNavigateToProducts={() => handleNavigate('products')}
+      ) : activeNav === 'account' ? (
+        <AccountPage
+          currentUser={currentUser}
+          onGoHome={() => handleNavigate('home')}
+          onOpenLogin={() => handleOpenAuth('login')}
+          onNavigateToService={(opts) => {
+            const url = opts?.deviceId ? `/service?deviceId=${opts.deviceId}` : '/service';
+            window.history.pushState({}, '', url);
+            setActiveNav('service');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       ) : activeNav === 'contact' ? (
         <ContactPage onGoHome={() => handleNavigate('home')} />
@@ -686,7 +708,7 @@ export default function App() {
         <ServicePage
           currentUser={currentUser}
           onGoHome={() => handleNavigate('home')}
-          showToast={triggerToast}
+          showToast={showToast}
         />
       ) : (
         /* Trang danh sách sản phẩm - Đã xóa CategorySidebar theo yêu cầu */

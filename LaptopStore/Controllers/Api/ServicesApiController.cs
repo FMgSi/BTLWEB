@@ -57,6 +57,28 @@ public class ServicesApiController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/services/my-tickets?phoneNumber=0987654321
+    /// Lấy danh sách phiếu bảo hành & sửa chữa của khách hàng
+    /// </summary>
+    [HttpGet("my-tickets")]
+    public async Task<IActionResult> GetMyTickets([FromQuery] string? phoneNumber)
+    {
+        int? userId = null;
+        try
+        {
+            var userIdStr = HttpContext.Session?.GetString("UserId");
+            if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+            {
+                userId = parsedId;
+            }
+        }
+        catch { }
+
+        var tickets = await _warrantyService.GetCustomerTicketsAsync(phoneNumber, userId);
+        return Ok(new { success = true, tickets });
+    }
+
+    /// <summary>
     /// GET /api/services/device-by-serial/{serial}
     /// Tra cứu chi tiết một máy theo số Serial
     /// </summary>
