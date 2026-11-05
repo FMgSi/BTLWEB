@@ -221,7 +221,14 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
       } else {
         params.append('orderCode', clean);
       }
+    } else if (currentUser?.phoneNumber) {
+      params.append('phoneNumber', currentUser.phoneNumber);
     }
+
+    if (currentUser?.id) {
+      params.append('userId', currentUser.id);
+    }
+
     const queryString = params.toString();
     const url = queryString ? `/api/services/my-devices?${queryString}` : '/api/services/my-devices';
     fetch(url, { credentials: 'include' })
@@ -240,20 +247,49 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
       .finally(() => setIsLoadingDevices(false));
   };
 
+  // Tự động đồng bộ và nạp dữ liệu khi currentUser thay đổi
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.fullName && !customerName) setCustomerName(currentUser.fullName);
+      if (currentUser.phoneNumber && !customerPhone) setCustomerPhone(currentUser.phoneNumber);
+      if (currentUser.email && !customerEmail) setCustomerEmail(currentUser.email);
+      if (currentUser.phoneNumber && !phoneForDevices) setPhoneForDevices(currentUser.phoneNumber);
+      loadMyDevices(currentUser.phoneNumber || '');
+    }
+  }, [currentUser]);
+
+  // Tự động chọn thiết bị đầu tiên khi nạp danh sách máy của tài khoản
+  useEffect(() => {
+    if (myDevices.length > 0) {
+      if (!selectedDeviceId || !myDevices.some((d) => d.deviceId.toString() === selectedDeviceId)) {
+        const first = myDevices[0];
+        setSelectedDeviceId(first.deviceId.toString());
+        if (first.customerName && !customerName) setCustomerName(first.customerName);
+        if (first.phoneNumber && !customerPhone) setCustomerPhone(first.phoneNumber);
+      }
+    }
+  }, [myDevices]);
+
   useEffect(() => {
     if (activeTab === 'my-devices' || activeTab === 'request') {
-      loadMyDevices(deviceSearchTerm || phoneForDevices || customerPhone || '');
+      loadMyDevices(deviceSearchTerm || phoneForDevices || customerPhone || currentUser?.phoneNumber || '');
     }
     if (activeTab === 'lookup') {
-      loadMyTickets(currentUser?.phoneNumber || customerPhone);
+      loadMyTickets(currentUser?.phoneNumber || customerPhone || phoneForDevices || '');
     }
   }, [activeTab]);
 
   // 4. Tải danh sách phiếu của khách hàng
-  const loadMyTickets = (phone) => {
+  const loadMyTickets = (phone = '') => {
     setIsLoadingMyTickets(true);
     setMyTicketsError('');
-    const url = phone ? `/api/services/my-tickets?phoneNumber=${encodeURIComponent(phone)}` : '/api/services/my-tickets';
+    const params = new URLSearchParams();
+    const clean = (phone || '').trim();
+    if (clean) params.append('phoneNumber', clean);
+    if (currentUser?.id) params.append('userId', currentUser.id);
+
+    const queryString = params.toString();
+    const url = queryString ? `/api/services/my-tickets?${queryString}` : '/api/services/my-tickets';
     fetch(url, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {

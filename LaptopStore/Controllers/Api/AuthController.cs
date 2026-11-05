@@ -66,6 +66,8 @@ public class AuthController : ControllerBase
         HttpContext.Session.SetString("Username", user.Username);
         HttpContext.Session.SetString("Role", user.Role);
 
+        var (totalSpent, tier, phone) = await ResolveUserProfileDataAsync(user);
+
         return Ok(new
         {
             success = true,
@@ -77,7 +79,11 @@ public class AuthController : ControllerBase
                 email = user.Email,
                 fullName = string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName,
                 role = user.Role,
-                avatarUrl = user.AvatarUrl
+                avatarUrl = user.AvatarUrl,
+                phoneNumber = phone,
+                tier = tier,
+                memberTier = tier,
+                totalSpent = totalSpent
             }
         });
     }
@@ -187,6 +193,8 @@ public class AuthController : ControllerBase
             return Unauthorized(new { success = false, message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
         }
 
+        var (totalSpent, tier, phone) = await ResolveUserProfileDataAsync(user);
+
         return Ok(new
         {
             success = true,
@@ -197,9 +205,70 @@ public class AuthController : ControllerBase
                 email = user.Email,
                 fullName = string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName,
                 role = user.Role,
-                avatarUrl = user.AvatarUrl
+                avatarUrl = user.AvatarUrl,
+                phoneNumber = phone,
+                tier = tier,
+                memberTier = tier,
+                totalSpent = totalSpent
             }
         });
+    }
+
+    private async Task<(decimal TotalSpent, string MemberTier, string Phone)> ResolveUserProfileDataAsync(User user)
+    {
+        string phone = user.PhoneNumber ?? "";
+
+        // Nếu PhoneNumber rỗng, tìm kiếm từ đơn hàng gần nhất
+        if (string.IsNullOrEmpty(phone))
+        {
+            var latestOrderPhone = await _context.Orders
+                .Where(o => (o.UserId == user.UserId || (!string.IsNullOrEmpty(user.Email) && o.Email == user.Email) || (!string.IsNullOrEmpty(user.FullName) && o.CustomerName == user.FullName)) && !string.IsNullOrEmpty(o.PhoneNumber))
+                .OrderByDescending(o => o.OrderId)
+                .Select(o => o.PhoneNumber)
+                .FirstOrDefaultAsync();
+
+            if (!string.IsNullOrEmpty(latestOrderPhone))
+            {
+                phone = latestOrderPhone;
+                user.PhoneNumber = latestOrderPhone;
+            }
+        }
+
+        // Tự động liên kết các đơn hàng cũ chưa có UserId
+        if (!string.IsNullOrEmpty(phone) || !string.IsNullOrEmpty(user.Email))
+        {
+            var unlinkedOrders = await _context.Orders
+                .Where(o => o.UserId == null && (
+                    (!string.IsNullOrEmpty(phone) && o.PhoneNumber == phone) ||
+                    (!string.IsNullOrEmpty(user.Email) && o.Email == user.Email)
+                ))
+                .ToListAsync();
+
+            if (unlinkedOrders.Any())
+            {
+                foreach (var o in unlinkedOrders)
+                {
+                    o.UserId = user.UserId;
+                }
+            }
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch { }
+
+        // Tính tổng chi tiêu từ các đơn hàng hoàn thành / đã thanh toán
+        var completedOrders = await _context.Orders
+            .Where(o => (o.UserId == user.UserId || (!string.IsNullOrEmpty(phone) && o.PhoneNumber == phone))
+                && (o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.PaymentStatus == "Đã thanh toán" || o.PaymentStatus == "Đã tất toán"))
+            .ToListAsync();
+
+        decimal totalSpent = completedOrders.Sum(o => o.TotalAmount);
+        string tier = totalSpent >= 100000000m ? "Kim Cương" : (totalSpent >= 50000000m ? "Vàng" : (totalSpent >= 20000000m ? "Bạc" : "Đồng"));
+
+        return (totalSpent, tier, phone);
     }
 
     /// <summary>

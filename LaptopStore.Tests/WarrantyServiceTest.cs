@@ -375,5 +375,61 @@ public class WarrantyServiceTests
         Assert.Equal("SN-DELL-1001", devices[0].SerialNumber);
         Assert.Equal("ORD-TEST-001", devices[0].OrderCode);
     }
+
+    [Fact]
+    public async Task GetCustomerDevicesAsync_WithUserId_AutoProvisionsAndReturnsPurchasedDevices()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var service = new WarrantyService(db);
+
+        var user = new User
+        {
+            UserId = 10,
+            Username = "user10",
+            Email = "user10@gmail.com",
+            FullName = "Khách Hàng Mười",
+            PhoneNumber = "0911222333"
+        };
+        db.Users.Add(user);
+
+        // Tạo đơn hàng mới hoàn thành của user nhưng chưa hề được gán Serial trong SoldDevices
+        var newOrder = new Order
+        {
+            OrderId = 20,
+            OrderCode = "ORD-USER10-001",
+            UserId = 10,
+            CustomerName = "Khách Hàng Mười",
+            PhoneNumber = "0911222333",
+            OrderStatus = "Hoàn thành",
+            PaymentStatus = "Đã thanh toán",
+            TotalAmount = 18000000,
+            CreatedAt = DateTime.UtcNow,
+            OrderItems = new List<OrderItem>
+            {
+                new()
+                {
+                    OrderItemId = 50,
+                    ProductId = 1,
+                    ProductName = "Dell Inspiron 14",
+                    Quantity = 1,
+                    UnitPrice = 18000000,
+                    TotalPrice = 18000000
+                }
+            }
+        };
+        db.Orders.Add(newOrder);
+        await db.SaveChangesAsync();
+
+        // Act: Khách hàng vào trang bảo hành với userId = 10
+        var devices = await service.GetCustomerDevicesAsync(userId: 10);
+
+        // Assert: Hệ thống tự động kích hoạt bảo hành cho máy và trả về danh sách
+        Assert.NotNull(devices);
+        Assert.Single(devices);
+        Assert.Equal("ORD-USER10-001", devices[0].OrderCode);
+        Assert.StartsWith("SN-", devices[0].SerialNumber);
+        Assert.True(devices[0].IsUnderWarranty);
+    }
 }
 

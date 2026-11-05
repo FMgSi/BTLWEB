@@ -56,9 +56,10 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     setIsLoadingDevices(true);
     setDeviceError('');
     try {
-      const url = phone
-        ? `/api/services/my-devices?phoneNumber=${encodeURIComponent(phone)}`
-        : '/api/services/my-devices';
+      const params = new URLSearchParams();
+      if (phone) params.append('phoneNumber', phone);
+      if (currentUser?.id) params.append('userId', currentUser.id);
+      const url = params.toString() ? `/api/services/my-devices?${params.toString()}` : '/api/services/my-devices';
       const res = await fetch(url, { credentials: 'include' });
       const data = await res.json();
       if (res.ok && data.success) {

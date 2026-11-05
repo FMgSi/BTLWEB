@@ -405,4 +405,61 @@ public class DiscountServiceTests
         Assert.Equal(2800000, order.DiscountAmount);
         Assert.Equal(11200000, order.TotalAmount);
     }
+
+    [Fact]
+    public async Task CreateOrder_AutoAppliesMemberTier_BasedOnHistoricalSpendingWithoutRequestTier()
+    {
+        using var db = CreateInMemoryDbContext("Test_AutoMemberTier_" + Guid.NewGuid());
+        var installmentService = new InstallmentService(db);
+        var discountService = new DiscountService(db);
+        var orderService = new OrderService(db, installmentService, discountService);
+
+        // Tạo 1 tài khoản đã chi tiêu 60 triệu (đạt Hạng Vàng: >= 50tr)
+        var user = new User
+        {
+            UserId = 99,
+            Username = "golduser",
+            Email = "golduser@gmail.com",
+            PhoneNumber = "0988776655"
+        };
+        db.Users.Add(user);
+
+        db.Orders.Add(new Order
+        {
+            OrderId = 991,
+            OrderCode = "ORD-PREV-GOLD",
+            UserId = 99,
+            CustomerName = "Gold User",
+            PhoneNumber = "0988776655",
+            OrderStatus = "Hoàn thành",
+            PaymentStatus = "Đã thanh toán",
+            TotalAmount = 60000000,
+            CreatedAt = DateTime.UtcNow.AddMonths(-1)
+        });
+        await db.SaveChangesAsync();
+
+        // Khách hàng đặt đơn hàng mới, KHÔNG truyền MemberTier (để null)
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Gold User",
+            PhoneNumber = "0988776655",
+            ShippingAddress = "Đà Nẵng",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            MemberTier = null, // Không truyền hạng từ client, server phải tự động xác định
+            Items = new List<CreateOrderItemRequest>
+            {
+                new CreateOrderItemRequest { ProductId = 1, Quantity = 1 } // 14,000,000
+            }
+        };
+
+        var (success, msg, order) = await orderService.CreateOrderAsync(req, userId: 99);
+
+        Assert.True(success, msg);
+        Assert.NotNull(order);
+        Assert.Equal(14000000, order.SubTotal);
+        // Tự động được giảm 10% Hạng Vàng = 1.4tr
+        Assert.Equal(1400000, order.DiscountAmount);
+        Assert.Equal(12600000, order.TotalAmount);
+    }
 }

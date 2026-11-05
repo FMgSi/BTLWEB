@@ -38,6 +38,123 @@ public class WarrantyService : IWarrantyService
 
     public async Task<List<SoldDeviceDto>> GetCustomerDevicesAsync(string? phoneNumber = null, int? userId = null, string? orderCode = null)
     {
+        string? userPhone = null;
+        string? userEmail = null;
+        string? userFullName = null;
+
+        if (userId.HasValue && userId.Value > 0)
+        {
+            var user = await _db.Users.FindAsync(userId.Value);
+            userPhone = user?.PhoneNumber;
+            userEmail = user?.Email;
+            userFullName = user?.FullName;
+
+            if (string.IsNullOrEmpty(userPhone))
+            {
+                var latestPhone = await _db.Orders
+                    .Where(o => (o.UserId == userId.Value || (userEmail != null && o.Email == userEmail) || (userFullName != null && o.CustomerName == userFullName)) && !string.IsNullOrEmpty(o.PhoneNumber))
+                    .OrderByDescending(o => o.OrderId)
+                    .Select(o => o.PhoneNumber)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrEmpty(latestPhone))
+                {
+                    userPhone = latestPhone;
+                    if (user != null)
+                    {
+                        user.PhoneNumber = latestPhone;
+                    }
+                }
+            }
+
+            // Tự động liên kết các đơn hàng cũ chưa có UserId nếu khớp SĐT hoặc Email
+            if (!string.IsNullOrEmpty(userPhone) || !string.IsNullOrEmpty(userEmail))
+            {
+                var unlinkedOrders = await _db.Orders
+                    .Where(o => o.UserId == null && (
+                        (!string.IsNullOrEmpty(userPhone) && o.PhoneNumber == userPhone) ||
+                        (!string.IsNullOrEmpty(userEmail) && o.Email == userEmail)
+                    ))
+                    .ToListAsync();
+
+                foreach (var uo in unlinkedOrders)
+                {
+                    uo.UserId = userId.Value;
+                }
+            }
+        }
+
+        var cleanPhone = !string.IsNullOrWhiteSpace(phoneNumber)
+            ? phoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "")
+            : (!string.IsNullOrWhiteSpace(userPhone) ? userPhone.Trim().Replace(" ", "").Replace(".", "").Replace("-", "") : null);
+
+        var cleanCode = !string.IsNullOrWhiteSpace(orderCode) ? orderCode.Trim() : null;
+
+        // Tìm tất cả đơn hàng phù hợp với khách hàng
+        var targetOrders = await _db.Orders
+            .Include(o => o.OrderItems)
+                .ThenInclude(i => i.Product)
+            .Where(o => (userId.HasValue && o.UserId == userId.Value) ||
+                        (cleanPhone != null && o.PhoneNumber != null && o.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone) ||
+                        (cleanCode != null && (o.OrderCode == cleanCode || o.OrderCode.Contains(cleanCode))))
+            .ToListAsync();
+
+        bool hasNewDevices = false;
+        foreach (var ord in targetOrders)
+        {
+            foreach (var item in ord.OrderItems)
+            {
+                int existingCount = await _db.SoldDevices.CountAsync(d => d.OrderItemId == item.OrderItemId);
+                if (existingCount == 0)
+                {
+                    int neededCount = Math.Max(1, item.Quantity);
+                    var pName = (item.ProductName ?? item.Product?.ProductName ?? "").ToUpper();
+                    string serialPrefix = pName.Contains("SURFACE") ? "MSFT"
+                        : pName.Contains("ASUS") ? "ASUS"
+                        : pName.Contains("MACBOOK") || pName.Contains("APPLE") ? "APPL"
+                        : pName.Contains("DELL") ? "DELL"
+                        : pName.Contains("HP") ? "HP"
+                        : pName.Contains("LENOVO") || pName.Contains("THINKPAD") ? "LNV"
+                        : pName.Contains("ACER") ? "ACER"
+                        : pName.Contains("MSI") ? "MSI" : "LPT";
+
+                    for (int i = 1; i <= neededCount; i++)
+                    {
+                        string cleanOrdCode = ord.OrderCode?.Replace("PC", "")?.Replace("-", "") ?? $"{ord.OrderId}";
+                        string sn = $"SN-{serialPrefix}-{cleanOrdCode}-{(item.Quantity > 1 ? $"{i}" : $"{item.OrderItemId}")}";
+                        int suffix = 1;
+                        while (await _db.SoldDevices.AnyAsync(d => d.SerialNumber == sn))
+                        {
+                            sn = $"SN-{serialPrefix}-{cleanOrdCode}-{item.OrderItemId}-{suffix++}";
+                        }
+
+                        _db.SoldDevices.Add(new SoldDevice
+                        {
+                            OrderItemId = item.OrderItemId,
+                            SerialNumber = sn,
+                            DeliveredAt = ord.CreatedAt,
+                            WarrantyStartDate = ord.CreatedAt,
+                            WarrantyEndDate = ord.CreatedAt.AddMonths(12),
+                            WarrantyMonths = 12,
+                            Notes = $"Kích hoạt tự động cho đơn #{ord.OrderCode}"
+                        });
+                        hasNewDevices = true;
+                    }
+                }
+            }
+        }
+
+        if (hasNewDevices)
+        {
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch { }
+        }
+
+        var targetOrderItemIds = targetOrders.SelectMany(o => o.OrderItems).Select(i => i.OrderItemId).Distinct().ToList();
+
         var query = _db.SoldDevices
             .AsNoTracking()
             .Include(d => d.OrderItem)
@@ -48,23 +165,26 @@ public class WarrantyService : IWarrantyService
                 .ThenInclude(i => i!.Variant)
             .AsQueryable();
 
-        if (userId.HasValue && userId.Value > 0)
+        if (targetOrderItemIds.Any())
         {
-            query = query.Where(d => d.OrderItem != null && d.OrderItem.Order != null && d.OrderItem.Order.UserId == userId.Value);
+            query = query.Where(d => targetOrderItemIds.Contains(d.OrderItemId));
         }
         else if (!string.IsNullOrWhiteSpace(orderCode))
         {
-            var cleanCode = orderCode.Trim();
+            var code = orderCode.Trim();
             query = query.Where(d => d.OrderItem != null && d.OrderItem.Order != null &&
-                (d.OrderItem.Order.OrderCode.Contains(cleanCode) || d.SerialNumber.Contains(cleanCode)));
+                (d.OrderItem.Order.OrderCode.Contains(code) || d.SerialNumber.Contains(code)));
         }
-        else if (!string.IsNullOrWhiteSpace(phoneNumber))
+        else if (!string.IsNullOrWhiteSpace(cleanPhone))
         {
-            var cleanPhone = phoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
             query = query.Where(d => d.OrderItem != null && d.OrderItem.Order != null &&
-                (d.OrderItem.Order.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone ||
+                (d.OrderItem.Order.PhoneNumber != null && d.OrderItem.Order.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone ||
                  d.OrderItem.Order.OrderCode.Contains(cleanPhone) ||
                  d.SerialNumber.Contains(cleanPhone)));
+        }
+        else
+        {
+            return new List<SoldDeviceDto>();
         }
 
         var devices = await query.OrderByDescending(d => d.DeliveredAt).ToListAsync();
@@ -104,7 +224,13 @@ public class WarrantyService : IWarrantyService
 
         if (userId.HasValue && userId.Value > 0)
         {
-            query = query.Where(t => t.UserId == userId.Value);
+            var user = await _db.Users.FindAsync(userId.Value);
+            var cleanUserPhone = !string.IsNullOrWhiteSpace(user?.PhoneNumber)
+                ? user.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "")
+                : null;
+
+            query = query.Where(t => t.UserId == userId.Value ||
+                (cleanUserPhone != null && t.PhoneNumber != null && t.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanUserPhone));
         }
         else if (!string.IsNullOrWhiteSpace(phoneNumber))
         {

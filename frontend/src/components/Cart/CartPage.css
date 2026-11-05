@@ -537,16 +537,23 @@
 }
 
 .shopee-tier-pill {
-  border: 2px solid #e2e8f0;
+  border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  cursor: pointer;
+  cursor: default;
   transition: all 0.2s;
   background: #ffffff;
 }
 
 .shopee-tier-pill.active {
-  border-color: #ee4d2d;
-  background-color: #fff5f1;
+  border-color: #10b981;
+  background-color: #f0fdf4;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.shopee-tier-pill.inactive {
+  opacity: 0.72;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
 }
 
 .shopee-payment-option {

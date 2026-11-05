@@ -344,6 +344,7 @@ public static class DbInitializer
             SeedServiceCatalogIfEmpty(context);
             SeedSampleSoldDevicesIfEmpty(context);
             SeedDiscountsIfEmpty(context);
+            SyncUserPhoneAndLinkOrders(context);
             return;
         }
 
@@ -1133,6 +1134,63 @@ public static class DbInitializer
         catch (Exception ex)
         {
             Console.WriteLine("[DbInitializer] Cảnh báo SeedDiscountsIfEmpty: " + ex.Message);
+        }
+    }
+
+    private static void SyncUserPhoneAndLinkOrders(AppDbContext context)
+    {
+        try
+        {
+            var users = context.Users.ToList();
+            bool hasChanges = false;
+            foreach (var user in users)
+            {
+                // Tìm số điện thoại từ đơn hàng nếu user chưa có
+                if (string.IsNullOrEmpty(user.PhoneNumber))
+                {
+                    var orderPhone = context.Orders
+                        .Where(o => (o.UserId == user.UserId || (!string.IsNullOrEmpty(user.Email) && o.Email == user.Email) || (!string.IsNullOrEmpty(user.FullName) && o.CustomerName == user.FullName)) && !string.IsNullOrEmpty(o.PhoneNumber))
+                        .OrderByDescending(o => o.OrderId)
+                        .Select(o => o.PhoneNumber)
+                        .FirstOrDefault();
+
+                    if (!string.IsNullOrEmpty(orderPhone))
+                    {
+                        user.PhoneNumber = orderPhone;
+                        hasChanges = true;
+                    }
+                }
+
+                // Tự động liên kết các đơn hàng cũ chưa có UserId
+                if (!string.IsNullOrEmpty(user.PhoneNumber) || !string.IsNullOrEmpty(user.Email) || !string.IsNullOrEmpty(user.FullName))
+                {
+                    var unlinkedOrders = context.Orders
+                        .Where(o => o.UserId == null && (
+                            (!string.IsNullOrEmpty(user.PhoneNumber) && o.PhoneNumber == user.PhoneNumber) ||
+                            (!string.IsNullOrEmpty(user.Email) && o.Email == user.Email) ||
+                            (!string.IsNullOrEmpty(user.FullName) && o.CustomerName == user.FullName)
+                        ))
+                        .ToList();
+
+                    if (unlinkedOrders.Any())
+                    {
+                        foreach (var uo in unlinkedOrders)
+                        {
+                            uo.UserId = user.UserId;
+                        }
+                        hasChanges = true;
+                    }
+                }
+            }
+
+            if (hasChanges)
+            {
+                context.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[DbInitializer] Lỗi SyncUserPhoneAndLinkOrders: " + ex.Message);
         }
     }
 }

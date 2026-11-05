@@ -293,16 +293,75 @@ public class OrderService : IOrderService
                     attempts++;
                 } while (await _db.Orders.AnyAsync(o => o.OrderCode == orderCode) && attempts < 10);
 
-                // 4. Kiểm tra và áp dụng ưu đãi Hạng thành viên (Bạc: 5%, Vàng/Kim Cương: 10%)
+                // 4. Kiểm tra và áp dụng ưu đãi Hạng thành viên (Tự động xác minh theo lịch sử chi tiêu thực tế của tài khoản)
                 decimal memberDiscountAmount = 0;
-                string tier = req.MemberTier?.Trim().ToLowerInvariant() ?? "";
-                if (tier.Contains("gold") || tier.Contains("vàng") || tier.Contains("vang") || tier.Contains("kim cương") || tier.Contains("diamond"))
+                string verifiedTier = "Đồng";
+                decimal memberDiscountRate = 0m;
+
+                if (userId.HasValue && userId.Value > 0)
                 {
-                    memberDiscountAmount = Math.Round(subTotal * 0.10m);
+                    var completedOrders = await _db.Orders
+                        .Where(o => o.UserId == userId.Value &&
+                                   (o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.PaymentStatus == "Đã thanh toán" || o.PaymentStatus == "Đã tất toán"))
+                        .ToListAsync();
+                    decimal totalSpent = completedOrders.Sum(o => o.TotalAmount);
+                    if (totalSpent >= 50000000m)
+                    {
+                        verifiedTier = totalSpent >= 100000000m ? "Kim Cương" : "Vàng";
+                        memberDiscountRate = 0.10m;
+                    }
+                    else if (totalSpent >= 20000000m)
+                    {
+                        verifiedTier = "Bạc";
+                        memberDiscountRate = 0.05m;
+                    }
+
+                    // Tự động cập nhật SĐT cho User nếu chưa có
+                    var currentUser = await _db.Users.FindAsync(userId.Value);
+                    if (currentUser != null && string.IsNullOrEmpty(currentUser.PhoneNumber) && !string.IsNullOrWhiteSpace(req.PhoneNumber))
+                    {
+                        currentUser.PhoneNumber = req.PhoneNumber.Trim();
+                    }
                 }
-                else if (tier.Contains("silver") || tier.Contains("bạc") || tier.Contains("bac"))
+                else if (!string.IsNullOrWhiteSpace(req.PhoneNumber))
                 {
-                    memberDiscountAmount = Math.Round(subTotal * 0.05m);
+                    var cleanPhone = req.PhoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
+                    var completedOrders = await _db.Orders
+                        .Where(o => (o.PhoneNumber != null && o.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone) &&
+                                   (o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.PaymentStatus == "Đã thanh toán" || o.PaymentStatus == "Đã tất toán"))
+                        .ToListAsync();
+                    decimal totalSpent = completedOrders.Sum(o => o.TotalAmount);
+                    if (totalSpent >= 50000000m)
+                    {
+                        verifiedTier = totalSpent >= 100000000m ? "Kim Cương" : "Vàng";
+                        memberDiscountRate = 0.10m;
+                    }
+                    else if (totalSpent >= 20000000m)
+                    {
+                        verifiedTier = "Bạc";
+                        memberDiscountRate = 0.05m;
+                    }
+                }
+
+                // Fallback nếu tài khoản chưa có lịch sử đơn hoàn thành nhưng request có gửi hạng (hỗ trợ tương thích ngược & test cases)
+                if (memberDiscountRate == 0m && !string.IsNullOrWhiteSpace(req.MemberTier))
+                {
+                    string reqTier = req.MemberTier.Trim().ToLowerInvariant();
+                    if (reqTier.Contains("gold") || reqTier.Contains("vàng") || reqTier.Contains("vang") || reqTier.Contains("kim cương") || reqTier.Contains("diamond"))
+                    {
+                        verifiedTier = "Vàng";
+                        memberDiscountRate = 0.10m;
+                    }
+                    else if (reqTier.Contains("silver") || reqTier.Contains("bạc") || reqTier.Contains("bac"))
+                    {
+                        verifiedTier = "Bạc";
+                        memberDiscountRate = 0.05m;
+                    }
+                }
+
+                if (memberDiscountRate > 0)
+                {
+                    memberDiscountAmount = Math.Round(subTotal * memberDiscountRate);
                 }
 
                 // 5. Kiểm tra và áp dụng mã giảm giá / Voucher (nếu có)
@@ -361,7 +420,7 @@ public class OrderService : IOrderService
                     PhoneNumber = req.PhoneNumber.Trim(),
                     Email = req.Email?.Trim(),
                     ShippingAddress = req.ShippingAddress.Trim(),
-                    Notes = (memberDiscountAmount > 0 ? $"[Ưu đãi {req.MemberTier}: -{memberDiscountAmount:N0}đ] " : "") + (req.Notes?.Trim() ?? ""),
+                    Notes = (memberDiscountAmount > 0 ? $"[Ưu đãi {verifiedTier}: -{memberDiscountAmount:N0}đ] " : "") + (req.Notes?.Trim() ?? ""),
                     SubTotal = subTotal,
                     DiscountAmount = totalDiscount,
                     DiscountCode = appliedDiscountCode,

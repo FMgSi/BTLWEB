@@ -27,24 +27,26 @@ public class ServicesApiController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/services/my-devices?phoneNumber=0987654321&orderCode=PC20261028-1001
+    /// GET /api/services/my-devices?phoneNumber=0987654321&orderCode=PC20261028-1001&userId=3
     /// Lấy danh sách máy khách hàng đã mua và đã nhận để chọn bảo hành
     /// </summary>
     [HttpGet("my-devices")]
-    public async Task<IActionResult> GetMyDevices([FromQuery] string? phoneNumber, [FromQuery] string? orderCode)
+    public async Task<IActionResult> GetMyDevices([FromQuery] string? phoneNumber, [FromQuery] string? orderCode, [FromQuery] int? userId)
     {
-        int? userId = null;
-        try
+        if (!userId.HasValue || userId.Value <= 0)
         {
-            var userIdStr = HttpContext.Session?.GetString("UserId");
-            if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+            try
             {
-                userId = parsedId;
+                var userIdStr = HttpContext.Session?.GetString("UserId");
+                if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+                {
+                    userId = parsedId;
+                }
             }
-        }
-        catch
-        {
-            // Bỏ qua nếu Session chưa cấu hình
+            catch
+            {
+                // Bỏ qua nếu Session chưa cấu hình
+            }
         }
 
         var devices = await _warrantyService.GetCustomerDevicesAsync(phoneNumber, userId, orderCode);
@@ -52,22 +54,24 @@ public class ServicesApiController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/services/my-tickets?phoneNumber=0987654321
+    /// GET /api/services/my-tickets?phoneNumber=0987654321&userId=3
     /// Lấy danh sách phiếu bảo hành & sửa chữa của khách hàng
     /// </summary>
     [HttpGet("my-tickets")]
-    public async Task<IActionResult> GetMyTickets([FromQuery] string? phoneNumber)
+    public async Task<IActionResult> GetMyTickets([FromQuery] string? phoneNumber, [FromQuery] int? userId)
     {
-        int? userId = null;
-        try
+        if (!userId.HasValue || userId.Value <= 0)
         {
-            var userIdStr = HttpContext.Session?.GetString("UserId");
-            if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+            try
             {
-                userId = parsedId;
+                var userIdStr = HttpContext.Session?.GetString("UserId");
+                if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int parsedId))
+                {
+                    userId = parsedId;
+                }
             }
+            catch { }
         }
-        catch { }
 
         var tickets = await _warrantyService.GetCustomerTicketsAsync(phoneNumber, userId);
         return Ok(new { success = true, tickets });
