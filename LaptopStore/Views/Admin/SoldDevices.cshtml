@@ -34,26 +34,22 @@
     </div>
 }
 
-<!-- FILTER BAR -->
-<div class="admin-card mb-4 p-3">
-    <form method="get" asp-action="SoldDevices" class="row g-3 align-items-center">
-        <div class="col-md-8">
-            <div class="position-relative">
-                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
-                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo số Serial, tên máy, mã đơn hàng, khách hàng..." />
-            </div>
+<!-- FILTER BAR (CĂN LỀ TRÁI GỌN GÀNG) -->
+<div class="admin-card mb-4 p-3 shadow-sm border">
+    <form method="get" asp-action="SoldDevices" class="d-flex flex-wrap align-items-center gap-2">
+        <div class="position-relative" style="width: 380px; max-width: 100%;">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+            <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo số Serial, tên máy, mã đơn hàng..." />
         </div>
-        <div class="col-md-4 d-flex gap-2">
-            <button type="submit" class="btn-primary-custom w-100">
-                <i class="bi bi-funnel"></i> Tìm kiếm
-            </button>
-            @if (!string.IsNullOrEmpty(currentSearch))
-            {
-                <a href="/Admin/SoldDevices" class="btn-secondary-custom">
-                    <i class="bi bi-x-circle"></i>
-                </a>
-            }
-        </div>
+        <button type="submit" class="btn-action-tool">
+            <i class="bi bi-funnel"></i> Tìm kiếm
+        </button>
+        @if (!string.IsNullOrEmpty(currentSearch))
+        {
+            <a href="/Admin/SoldDevices" class="btn-action-tool" title="Đặt lại tìm kiếm">
+                <i class="bi bi-x-circle"></i> Xóa lọc
+            </a>
+        }
     </form>
 </div>
 

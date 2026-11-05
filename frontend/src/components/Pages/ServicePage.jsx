@@ -40,6 +40,7 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   // My devices state
   const [myDevices, setMyDevices] = useState([]);
   const [phoneForDevices, setPhoneForDevices] = useState(currentUser?.phoneNumber || '');
+  const [deviceSearchTerm, setDeviceSearchTerm] = useState('');
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState('');
 
@@ -209,10 +210,20 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   }, []);
 
   // 3. Tải danh sách máy đã mua khi chuyển sang tab my-devices hoặc request
-  const loadMyDevices = (phone) => {
+  const loadMyDevices = (query = '') => {
     setIsLoadingDevices(true);
     setDevicesError('');
-    const url = phone ? `/api/services/my-devices?phoneNumber=${encodeURIComponent(phone)}` : '/api/services/my-devices';
+    const params = new URLSearchParams();
+    const clean = (query || '').trim();
+    if (clean) {
+      if (/^[0-9+\s.-]{8,15}$/.test(clean)) {
+        params.append('phoneNumber', clean);
+      } else {
+        params.append('orderCode', clean);
+      }
+    }
+    const queryString = params.toString();
+    const url = queryString ? `/api/services/my-devices?${queryString}` : '/api/services/my-devices';
     fetch(url, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -231,7 +242,7 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
 
   useEffect(() => {
     if (activeTab === 'my-devices' || activeTab === 'request') {
-      loadMyDevices(phoneForDevices || customerPhone);
+      loadMyDevices(deviceSearchTerm || phoneForDevices || customerPhone || '');
     }
     if (activeTab === 'lookup') {
       loadMyTickets(currentUser?.phoneNumber || customerPhone);
@@ -467,65 +478,7 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
           </div>
         </div>
 
-        {/* 2 THAO TÁC NỔI BẬT ĐẦU TRANG */}
-        <div className="row g-3 mb-4">
-          <div className="col-md-6">
-            <div 
-              className={`p-4 rounded-3 border shadow-sm h-100 ${
-                activeTab === 'request' ? 'border-danger bg-white shadow' : 'bg-white'
-              }`}
-              style={{ cursor: 'pointer', borderLeft: activeTab === 'request' ? '5px solid #B91C1C' : undefined }}
-              onClick={() => setActiveTab('request')}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div className="rounded-3 p-3 bg-danger-subtle text-danger fs-3 flex-shrink-0">
-                  <i className="bi bi-send-plus-fill"></i>
-                </div>
-                <div>
-                  <h5 className="fw-bold text-dark mb-1">Gửi yêu cầu tiếp nhận</h5>
-                  <p className="small text-muted mb-0">
-                    Bảo hành <strong>0 ₫</strong> (máy mua tại cửa hàng) · Sửa chữa linh kiện chuyên sâu cho mọi dòng laptop.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 text-end">
-                <span className={`btn btn-sm fw-bold ${activeTab === 'request' ? 'btn-danger' : 'btn-outline-danger'}`}>
-                  Điền form gửi máy <i className="bi bi-arrow-right ms-1"></i>
-                </span>
-              </div>
-            </div>
-          </div>
 
-          <div className="col-md-6">
-            <div 
-              className={`p-4 rounded-3 border shadow-sm h-100 ${
-                activeTab === 'lookup' ? 'border-danger bg-white shadow' : 'bg-white'
-              }`}
-              style={{ cursor: 'pointer', borderLeft: activeTab === 'lookup' ? '5px solid #B91C1C' : undefined }}
-              onClick={() => {
-                setActiveTab('lookup');
-                loadMyTickets(currentUser?.phoneNumber || customerPhone);
-              }}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div className="rounded-3 p-3 bg-primary-subtle text-primary fs-3 flex-shrink-0">
-                  <i className="bi bi-search"></i>
-                </div>
-                <div>
-                  <h5 className="fw-bold text-dark mb-1">Theo dõi tiến độ phiếu</h5>
-                  <p className="small text-muted mb-0">
-                    Tra cứu quy trình chuẩn 7 bước, xem biên nhận tiếp nhận máy và duyệt báo giá linh kiện trực tuyến.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 text-end">
-                <span className={`btn btn-sm fw-bold ${activeTab === 'lookup' ? 'btn-danger' : 'btn-outline-danger'}`}>
-                  Xem tiến độ phiếu <i className="bi bi-arrow-right ms-1"></i>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* NAV TABS */}
         <div className="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
@@ -811,29 +764,136 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </div>
                     )}
 
-                    {/* CHỌN MÁY ĐÃ MUA */}
+                    {/* CHỌN MÁY ĐÃ MUA - TÌM THEO SĐT HOẶC MÃ ĐƠN HÀNG */}
                     {deviceSource === 'Purchased' ? (
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold text-dark">
-                          Chọn chiếc máy của quý khách <span className="text-danger">*</span>
+                      <div className="mb-3 p-3 bg-light rounded-3 border">
+                        <label className="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-2">
+                          <span>
+                            <i className="bi bi-laptop text-danger me-1"></i>
+                            Chọn máy đã mua tại cửa hàng để nhận bảo hành <span className="text-danger">*</span>
+                          </span>
+                          {selectedDeviceId && (
+                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                              <i className="bi bi-check-circle me-1"></i>Đã chọn máy
+                            </span>
+                          )}
                         </label>
-                        {myDevices.length > 0 ? (
-                          <select
-                            className="form-select form-select-sm"
-                            value={selectedDeviceId}
-                            onChange={(e) => setSelectedDeviceId(e.target.value)}
-                            required
+
+                        {/* Thanh tìm kiếm nhanh máy đã mua theo SĐT hoặc Mã đơn hàng */}
+                        <div className="input-group input-group-sm mb-2">
+                          <span className="input-group-text bg-white text-muted">
+                            <i className="bi bi-search"></i>
+                          </span>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="Nhập SĐT nhận hàng hoặc Mã đơn hàng (VD: 0987654321, PC2026...)"
+                            value={deviceSearchTerm}
+                            onChange={(e) => setDeviceSearchTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                loadMyDevices(deviceSearchTerm);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm px-3 fw-semibold"
+                            onClick={() => loadMyDevices(deviceSearchTerm)}
+                            disabled={isLoadingDevices}
                           >
-                            <option value="">-- Chọn máy đã mua (theo số Serial) --</option>
-                            {myDevices.map((d) => (
-                              <option key={d.deviceId} value={d.deviceId} disabled={requestType === 'warranty' && !d.isUnderWarranty}>
-                                {d.productName} ({d.serialNumber}) - {d.isUnderWarranty ? 'Còn bảo hành' : 'ĐÃ HẾT HẠN BH'}
-                              </option>
-                            ))}
-                          </select>
+                            {isLoadingDevices ? 'Đang tìm...' : 'Tìm máy'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => {
+                              setDeviceSearchTerm('');
+                              loadMyDevices('');
+                            }}
+                            title="Hiển thị tất cả máy đã mua"
+                          >
+                            Xem tất cả
+                          </button>
+                        </div>
+
+                        {/* Danh sách máy đã mua / Dropdown chọn */}
+                        {myDevices.length > 0 ? (
+                          <div>
+                            <select
+                              className="form-select form-select-sm mb-2 fw-semibold text-dark"
+                              value={selectedDeviceId}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSelectedDeviceId(val);
+                                const found = myDevices.find((d) => d.deviceId.toString() === val);
+                                if (found) {
+                                  if (found.customerName && !customerName) setCustomerName(found.customerName);
+                                  if (found.phoneNumber && !customerPhone) setCustomerPhone(found.phoneNumber);
+                                }
+                              }}
+                              required
+                            >
+                              <option value="">-- Bấm vào đây để chọn máy đã mua tại Shop --</option>
+                              {myDevices.map((d) => (
+                                <option
+                                  key={d.deviceId}
+                                  value={d.deviceId}
+                                  disabled={requestType === 'warranty' && !d.isUnderWarranty}
+                                >
+                                  {d.productName} [Serial: {d.serialNumber}] - Đơn #{d.orderCode} - {d.isUnderWarranty ? 'Còn BH' : 'HẾT HẠN BH'}
+                                </option>
+                              ))}
+                            </select>
+
+                            {/* Card xem chi tiết máy đã chọn */}
+                            {selectedDeviceId && (() => {
+                              const dev = myDevices.find((d) => d.deviceId.toString() === selectedDeviceId);
+                              if (!dev) return null;
+                              return (
+                                <div className="card p-2 border-success bg-white shadow-sm mt-2">
+                                  <div className="d-flex align-items-center gap-2">
+                                    <img
+                                      src={dev.thumbnailUrl || '/images/default.png'}
+                                      alt={dev.productName}
+                                      style={{ width: '48px', height: '48px', objectFit: 'contain' }}
+                                      className="rounded border"
+                                    />
+                                    <div className="flex-grow-1 small">
+                                      <div className="fw-bold text-dark">{dev.productName}</div>
+                                      <div className="text-muted" style={{ fontSize: '11px' }}>
+                                        Số Serial: <strong className="text-primary font-monospace">{dev.serialNumber}</strong> | Mã đơn: <strong>#{dev.orderCode}</strong>
+                                      </div>
+                                    </div>
+                                    <div className="text-end">
+                                      <span className={`badge ${dev.isUnderWarranty ? 'bg-success' : 'bg-warning text-dark'} px-2 py-1`}>
+                                        {dev.isUnderWarranty ? '✓ Còn bảo hành' : 'Hết hạn bảo hành'}
+                                      </span>
+                                      <div className="text-muted mt-1" style={{ fontSize: '10px' }}>
+                                        Hạn: {dev.warrantyEndDate ? new Date(dev.warrantyEndDate).toLocaleDateString('vi-VN') : '12 tháng'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         ) : (
-                          <div className="alert alert-warning py-2 px-3 small">
-                            <i className="bi bi-info-circle me-1"></i> Quý khách chưa có máy nào được tải. Vui lòng nhập số điện thoại mua hàng bên dưới để tự động tra cứu máy đã mua.
+                          <div className="alert alert-info py-2 px-3 small mb-0 d-flex justify-content-between align-items-center">
+                            <div>
+                              <i className="bi bi-info-circle me-1"></i> Chưa thấy thiết bị phù hợp.
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary py-0"
+                              onClick={() => {
+                                setDeviceSearchTerm('');
+                                loadMyDevices('');
+                              }}
+                            >
+                              Tải tất cả máy của Shop
+                            </button>
                           </div>
                         )}
                       </div>

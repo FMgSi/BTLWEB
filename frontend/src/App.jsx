@@ -70,7 +70,16 @@ export default function App() {
   // Đồng bộ phiên đăng nhập từ Backend Session (/api/auth/me)
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (res.status === 401) {
+          setCurrentUser(null);
+          try {
+            localStorage.removeItem('pcstore_user');
+          } catch (e) {}
+          return null;
+        }
+        return res.ok ? res.json() : null;
+      })
       .then((data) => {
         if (data && data.success && data.user) {
           setCurrentUser(data.user);

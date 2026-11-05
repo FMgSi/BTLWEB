@@ -341,4 +341,68 @@ public class DiscountServiceTests
         Assert.NotNull(voucherInDb); // Vẫn còn trong CSDL để bảo vệ lịch sử hóa đơn
         Assert.False(voucherInDb.IsActive); // Đã chuyển sang Ngừng áp dụng
     }
+
+    [Fact]
+    public async Task CreateOrder_WithMemberTierSilver_Applies5PercentDiscount()
+    {
+        using var db = CreateInMemoryDbContext("Test_MemberTier_Silver_" + Guid.NewGuid());
+        var installmentService = new InstallmentService(db);
+        var discountService = new DiscountService(db);
+        var orderService = new OrderService(db, installmentService, discountService);
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Khách Hàng Bạc",
+            PhoneNumber = "0987654321",
+            ShippingAddress = "Hà Nội",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            MemberTier = "Silver",
+            Items = new List<CreateOrderItemRequest>
+            {
+                new CreateOrderItemRequest { ProductId = 1, Quantity = 1 } // 14,000,000
+            }
+        };
+
+        var (success, msg, order) = await orderService.CreateOrderAsync(req);
+
+        Assert.True(success, msg);
+        Assert.NotNull(order);
+        Assert.Equal(14000000, order.SubTotal);
+        Assert.Equal(700000, order.DiscountAmount); // 5% của 14tr = 700k
+        Assert.Equal(13300000, order.TotalAmount); // 14tr - 700k = 13.3tr
+    }
+
+    [Fact]
+    public async Task CreateOrder_WithMemberTierGoldAndVoucher_AppliesBothDiscounts()
+    {
+        using var db = CreateInMemoryDbContext("Test_MemberTier_Gold_" + Guid.NewGuid());
+        var installmentService = new InstallmentService(db);
+        var discountService = new DiscountService(db);
+        var orderService = new OrderService(db, installmentService, discountService);
+
+        var req = new CreateOrderRequest
+        {
+            CustomerName = "Khách Hàng Vàng",
+            PhoneNumber = "0987654321",
+            ShippingAddress = "TP.HCM",
+            PaymentMethod = "COD",
+            PurchaseMode = "Full",
+            MemberTier = "Gold",
+            DiscountCode = "LAPTOP2026", // Giảm 10%
+            Items = new List<CreateOrderItemRequest>
+            {
+                new CreateOrderItemRequest { ProductId = 1, Quantity = 1 } // 14,000,000
+            }
+        };
+
+        var (success, msg, order) = await orderService.CreateOrderAsync(req);
+
+        Assert.True(success, msg);
+        Assert.NotNull(order);
+        Assert.Equal(14000000, order.SubTotal);
+        // Hạng Vàng: 10% = 1.4tr, Voucher: 10% = 1.4tr => Tổng giảm = 2.8tr
+        Assert.Equal(2800000, order.DiscountAmount);
+        Assert.Equal(11200000, order.TotalAmount);
+    }
 }

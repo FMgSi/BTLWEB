@@ -4,14 +4,15 @@
     var currentStatus = ViewBag.Status as string ?? "all";
     var currentType = ViewBag.Type as string ?? "all";
     var currentSearch = ViewBag.Search as string ?? "";
+    var serviceCatalog = ViewBag.Services as IEnumerable<LaptopStore.Models.ServiceCatalogItem> ?? Enumerable.Empty<LaptopStore.Models.ServiceCatalogItem>();
 }
 
 <div class="page-header">
     <div>
         <h2 class="page-title"><i class="bi bi-tools text-primary me-2"></i>Dịch vụ sau bán hàng (Bảo hành & Sửa chữa)</h2>
-        <p class="text-muted small mb-0">Tiếp nhận yêu cầu, kiểm tra kỹ thuật, báo giá và bàn giao máy cho khách hàng</p>
+        <p class="text-muted small mb-0">Tiếp nhận yêu cầu bảo hành & sửa chữa (tại quầy hoặc online), kiểm tra kỹ thuật, báo giá và bàn giao máy cho khách</p>
     </div>
-    <div class="page-actions">
+    <div class="page-actions d-flex gap-2">
         <a href="/Admin/SoldDevices" class="btn-secondary-custom">
             <i class="bi bi-laptop"></i> Tra cứu Serial máy đã bán
         </a>
@@ -23,14 +24,14 @@
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-3" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 @if (TempData["Error"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-4" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-3" role="alert">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -84,23 +85,190 @@
     </div>
 </div>
 
-<!-- FILTER BAR -->
-<div class="admin-card mb-4 p-3">
-    <form method="get" asp-action="ServiceTickets" class="row g-3 align-items-center">
-        <div class="col-md-4">
-            <div class="position-relative">
-                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
-                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã phiếu, Serial, tên, SĐT..." />
+<!-- ==================== KHUNG CÔNG CỤ & FORM TIẾP NHẬN (THÊM, SỬA, XÓA, LƯU, HỦY, THOÁT) ==================== -->
+<div class="admin-card mb-4 shadow-sm border">
+    <!-- THANH CÔNG CỤ NÚT BẤM TRÊN CÙNG THEO MẪU CHUẨN: THAO TÁC / [ THÊM ] [ SỬA ] [ XÓA ] [ LƯU ] [ HỦY ] [ THOÁT ] -->
+    <div class="p-3 bg-white border-bottom">
+        <div class="operation-label fw-bold mb-2 text-dark" style="font-size: 0.95rem;">Thao tác</div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- 1. NÚT THÊM -->
+            <button type="button" class="btn-action-tool" id="btnThemTicket" onclick="onThemTicketClick()">
+                Thêm
+            </button>
+
+            <!-- 2. NÚT SỬA -->
+            <button type="button" class="btn-action-tool" id="btnSuaTicket" onclick="onSuaTicketClick()" disabled>
+                Sửa
+            </button>
+
+            <!-- 3. NÚT XÓA -->
+            <button type="button" class="btn-action-tool" id="btnXoaTicket" onclick="onXoaTicketClick()" disabled>
+                Xóa
+            </button>
+
+            <!-- 4. NÚT LƯU -->
+            <button type="button" class="btn-action-tool" id="btnLuuTicket" onclick="onLuuTicketClick()" disabled>
+                Lưu
+            </button>
+
+            <!-- 5. NÚT HỦY -->
+            <button type="button" class="btn-action-tool" id="btnHuyTicket" onclick="onHuyTicketClick()" disabled>
+                Hủy
+            </button>
+
+            <!-- 6. NÚT THOÁT -->
+            <button type="button" class="btn-action-tool" id="btnThoatTicket" onclick="onThoatTicketClick()">
+                Thoát
+            </button>
+
+            <!-- DÒNG TRẠNG THÁI / HƯỚNG DẪN THAO TÁC -->
+            <div class="ms-auto text-muted small" id="toolbarTicketHint">
+                <i class="bi bi-info-circle me-1"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm</strong> để tạo phiếu tiếp nhận máy tại quầy.
             </div>
         </div>
-        <div class="col-md-3">
+    </div>
+
+    <!-- KHUNG NHẬP LIỆU PHIẾU TIẾP NHẬN DỊCH VỤ -->
+    <form id="ticketForm" method="post" asp-action="SaveServiceTicket" class="p-3 bg-light">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ticketId" id="inpTicketId" value="0" />
+
+        <!-- HÀNG 1: THÔNG TIN KHÁCH HÀNG & THIẾT BỊ -->
+        <div class="row g-3 align-items-end mb-2">
+            <!-- Loại phiếu -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Loại dịch vụ <span class="text-danger">*</span></label>
+                <select name="ticketType" id="inpTicketType" class="form-select-dark" disabled onchange="handleTicketTypeChange()">
+                    <option value="Sửa chữa">Sửa chữa dịch vụ</option>
+                    <option value="Bảo hành">Bảo hành chính hãng</option>
+                </select>
+            </div>
+
+            <!-- Mã phiếu -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Mã phiếu</label>
+                <input type="text" name="ticketCode" id="inpTicketCode" class="form-control-dark font-monospace fw-bold" placeholder="Tự sinh nếu để trống" disabled />
+            </div>
+
+            <!-- Tên khách hàng -->
+            <div class="col-lg-3 col-md-3 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Tên khách hàng <span class="text-danger">*</span></label>
+                <input type="text" name="customerName" id="inpCustomerName" class="form-control-dark" placeholder="VD: Nguyễn Văn A" disabled required />
+            </div>
+
+            <!-- Số điện thoại -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Số điện thoại <span class="text-danger">*</span></label>
+                <input type="text" name="phoneNumber" id="inpPhoneNumber" class="form-control-dark" placeholder="VD: 0912345678" disabled required />
+            </div>
+
+            <!-- Email -->
+            <div class="col-lg-3 col-md-4 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Email liên hệ (tùy chọn)</label>
+                <input type="email" name="email" id="inpEmail" class="form-control-dark" placeholder="khachhang@gmail.com" disabled />
+            </div>
+        </div>
+
+        <!-- HÀNG 2: THÔNG TIN MÁY & HẠNG MỤC SỬA CHỮA -->
+        <div class="row g-3 align-items-end mb-2">
+            <!-- Tên thiết bị / Model -->
+            <div class="col-lg-3 col-md-4 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Thiết bị / Model máy <span class="text-danger">*</span></label>
+                <input type="text" name="deviceModel" id="inpDeviceModel" class="form-control-dark" placeholder="VD: ASUS TUF Gaming A15 hoặc Dell XPS 13" disabled required />
+            </div>
+
+            <!-- Serial máy -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Số Serial / Service Tag</label>
+                <input type="text" name="serialNumber" id="inpSerialNumber" class="form-control-dark font-monospace" placeholder="VD: SN-DELL-1002" disabled />
+            </div>
+
+            <!-- Hạng mục dịch vụ -->
+            <div class="col-lg-3 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Hạng mục dịch vụ</label>
+                <select name="serviceId" id="inpServiceId" class="form-select-dark" disabled onchange="handleCatalogServiceChange()">
+                    <option value="">-- Chọn hạng mục bảng giá --</option>
+                    @foreach (var s in serviceCatalog)
+                    {
+                        <option value="@s.ServiceId" data-type="@s.ServiceType" data-cost="@s.EstimatedCost">
+                            [@s.ServiceCode] @s.ServiceName (@(s.ServiceType == "Bảo hành" ? "0đ" : string.Format("{0:N0}đ", s.EstimatedCost)))
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <!-- Lỗi phản ánh -->
+            <div class="col-lg-4 col-md-12 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Triệu chứng / Lỗi khách phản ánh <span class="text-danger">*</span></label>
+                <input type="text" name="faultDescription" id="inpFaultDescription" class="form-control-dark" placeholder="VD: Bật không lên màn hình, cắm sạc chập chờn..." disabled required />
+            </div>
+        </div>
+
+        <!-- HÀNG 3: NGOẠI QUAN, TRẠNG THÁI, CHI PHÍ & PHÂN CÔNG -->
+        <div class="row g-3 align-items-end">
+            <!-- Ngoại quan -->
+            <div class="col-lg-3 col-md-4 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Tình trạng ngoại quan</label>
+                <input type="text" name="physicalCondition" id="inpPhysicalCondition" class="form-control-dark" placeholder="VD: Vỏ xước nhẹ góc trái, màn hình nguyên vẹn" disabled />
+            </div>
+
+            <!-- Phụ kiện -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Phụ kiện nhận kèm</label>
+                <input type="text" name="accessories" id="inpAccessories" class="form-control-dark" placeholder="VD: Máy + Sạc zin 65W" disabled />
+            </div>
+
+            <!-- Trạng thái -->
+            <div class="col-lg-3 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Trạng thái phiếu</label>
+                <select name="status" id="inpStatus" class="form-select-dark" disabled>
+                    <option value="Chờ tiếp nhận">1. Chờ tiếp nhận (Khách gửi online)</option>
+                    <option value="Đã tiếp nhận" selected>2. Đã tiếp nhận (Cầm máy tại quầy)</option>
+                    <option value="Đang kiểm tra">3. Đang kiểm tra kỹ thuật</option>
+                    <option value="Chờ duyệt báo giá">4. Chờ duyệt báo giá</option>
+                    <option value="Đang xử lý">5. Đang xử lý / Sửa chữa</option>
+                    <option value="Chờ trả máy">6. Chờ trả máy (Đã sửa xong)</option>
+                    <option value="Đã trả máy">7. Đã trả máy (Bàn giao xong)</option>
+                    <option value="Đã hủy/Từ chối">8. Đã hủy / Từ chối</option>
+                </select>
+            </div>
+
+            <!-- Chi phí thực thu -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Chi phí (VNĐ)</label>
+                <input type="number" name="finalCost" id="inpFinalCost" class="form-control-dark fw-bold" placeholder="0" min="0" step="10000" disabled />
+            </div>
+
+            <!-- Kỹ thuật viên phụ trách -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Kỹ thuật phụ trách</label>
+                <input type="text" name="assignedStaff" id="inpAssignedStaff" class="form-control-dark" value="@(User.Identity?.Name ?? "Kỹ thuật viên")" disabled />
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- FORM ẨN DÙNG ĐỂ GỬI YÊU CẦU XÓA PHIẾU -->
+<form id="deleteTicketForm" method="post" asp-action="DeleteServiceTicket" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteTicketIdInput" value="0" />
+</form>
+
+<!-- FILTER BAR (CĂN LỀ TRÁI GỌN GÀNG) -->
+<div class="admin-card mb-4 p-3 shadow-sm border">
+    <form method="get" asp-action="ServiceTickets" class="d-flex flex-wrap align-items-center gap-2">
+        <div class="position-relative" style="width: 300px; max-width: 100%;">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+            <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã phiếu, Serial, tên, SĐT..." />
+        </div>
+        <div style="width: 180px; max-width: 100%;">
             <select name="type" class="form-select-dark" onchange="this.form.submit()">
                 <option value="all" selected="@(currentType == "all" ? "selected" : null)">Tất cả loại dịch vụ</option>
                 <option value="Bảo hành" selected="@(currentType == "Bảo hành" ? "selected" : null)">Bảo hành máy đã mua</option>
                 <option value="Sửa chữa" selected="@(currentType == "Sửa chữa" ? "selected" : null)">Sửa chữa dịch vụ</option>
             </select>
         </div>
-        <div class="col-md-3">
+        <div style="width: 210px; max-width: 100%;">
             <select name="status" class="form-select-dark" onchange="this.form.submit()">
                 <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
                 <option value="Chờ tiếp nhận" selected="@(currentStatus == "Chờ tiếp nhận" ? "selected" : null)">1. Chờ tiếp nhận</option>
@@ -113,37 +281,38 @@
                 <option value="Đã hủy/Từ chối" selected="@(currentStatus == "Đã hủy/Từ chối" ? "selected" : null)">8. Đã hủy / Từ chối</option>
             </select>
         </div>
-        <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn-primary-custom w-100">
-                <i class="bi bi-funnel"></i> Lọc
-            </button>
-            @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all" || currentType != "all")
-            {
-                <a href="/Admin/ServiceTickets" class="btn-secondary-custom">
-                    <i class="bi bi-x-circle"></i>
-                </a>
-            }
-        </div>
+        <button type="submit" class="btn-action-tool">
+            <i class="bi bi-funnel"></i> Lọc
+        </button>
+        @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all" || currentType != "all")
+        {
+            <a href="/Admin/ServiceTickets" class="btn-action-tool" title="Đặt lại bộ lọc">
+                <i class="bi bi-x-circle"></i> Xóa lọc
+            </a>
+        }
     </form>
 </div>
 
 <!-- BẢNG PHIẾU DỊCH VỤ -->
-<div class="admin-card">
-    <div class="admin-card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title-text mb-0"><i class="bi bi-card-checklist text-primary me-2"></i> Danh sách phiếu tiếp nhận (@Model.Count())</h5>
+<div class="admin-card shadow-sm border">
+    <div class="admin-card-header d-flex justify-content-between align-items-center py-3 bg-white border-bottom">
+        <h5 class="card-title-text mb-0 fw-bold">
+            <i class="bi bi-card-checklist text-primary me-2"></i> Danh sách phiếu tiếp nhận (@Model.Count())
+        </h5>
+        <span class="badge bg-light text-muted border small">Bấm vào hàng để chọn phiếu</span>
     </div>
     <div class="admin-table-container">
-        <table class="admin-table">
-            <thead>
+        <table class="admin-table table-hover align-middle mb-0">
+            <thead class="table-light small">
                 <tr>
-                    <th>Mã phiếu</th>
-                    <th>Loại & Thiết bị</th>
-                    <th>Khách hàng</th>
+                    <th style="width: 120px;">Mã phiếu</th>
+                    <th style="width: 180px;">Loại & Thiết bị</th>
+                    <th style="width: 160px;">Khách hàng</th>
                     <th>Hạng mục & Triệu chứng</th>
-                    <th>Chi phí</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày tạo</th>
-                    <th class="text-end">Thao tác</th>
+                    <th style="width: 130px;">Chi phí</th>
+                    <th style="width: 130px;">Trạng thái</th>
+                    <th style="width: 130px;">Ngày tạo</th>
+                    <th class="text-end pe-3" style="width: 150px;">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -163,9 +332,27 @@
                             _ => "badge-out-of-stock"
                         };
 
-                        <tr>
-                            <td class="fw-bold">
-                                <a href="/Admin/ServiceTicketDetails/@t.TicketId" class="text-primary text-decoration-none">
+                        <tr class="ticket-row"
+                            style="cursor: pointer; transition: all 0.15s ease;"
+                            data-id="@t.TicketId"
+                            data-code="@t.TicketCode"
+                            data-type="@t.TicketType"
+                            data-status="@t.Status"
+                            data-name="@t.CustomerName"
+                            data-phone="@t.PhoneNumber"
+                            data-email="@t.Email"
+                            data-device="@t.DeviceDisplayName"
+                            data-serial="@t.SerialNumber"
+                            data-serviceid="@(t.ServiceId ?? 0)"
+                            data-fault="@t.FaultDescription"
+                            data-physical="@t.PhysicalCondition"
+                            data-acc="@t.Accessories"
+                            data-cost="@Convert.ToInt64(t.FinalCost)"
+                            data-staff="@t.AssignedStaff"
+                            onclick="handleTicketRowClick(this)"
+                            ondblclick="handleTicketRowDblClick(this)">
+                            <td class="fw-bold font-monospace">
+                                <a href="/Admin/ServiceTicketDetails/@t.TicketId" class="text-primary text-decoration-none" onclick="event.stopPropagation()">
                                     #@t.TicketCode
                                 </a>
                             </td>
@@ -185,10 +372,13 @@
                                     }
                                 </div>
                                 <div class="fw-semibold text-dark small">@t.DeviceDisplayName</div>
-                                <div class="text-muted font-monospace small">Serial: @t.SerialNumber</div>
+                                @if (!string.IsNullOrEmpty(t.SerialNumber))
+                                {
+                                    <div class="text-muted font-monospace small" style="font-size: 11px;">SN: @t.SerialNumber</div>
+                                }
                             </td>
                             <td>
-                                <div class="text-dark fw-semibold">@t.CustomerName</div>
+                                <div class="text-dark fw-semibold small">@t.CustomerName</div>
                                 <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@t.PhoneNumber</div>
                             </td>
                             <td>
@@ -196,18 +386,18 @@
                                 {
                                     <div class="text-primary small fw-semibold">@t.ServiceName</div>
                                 }
-                                <div class="text-secondary small text-truncate" style="max-width: 220px;" title="@t.FaultDescription">
+                                <div class="text-secondary small text-truncate" style="max-width: 240px;" title="@t.FaultDescription">
                                     @t.FaultDescription
                                 </div>
                                 @if (!string.IsNullOrEmpty(t.PhysicalCondition))
                                 {
-                                    <div class="text-muted" style="font-size: 0.72rem;">Ngoại quan: @t.PhysicalCondition</div>
+                                    <div class="text-muted" style="font-size: 11px;">Ngoại quan: @t.PhysicalCondition</div>
                                 }
                             </td>
                             <td class="fw-bold text-dark text-nowrap">
                                 @if (t.TicketType == "Bảo hành" && t.FinalCost == 0)
                                 {
-                                    <span class="text-success">0đ (Bảo hành)</span>
+                                    <span class="text-success">0đ (BH)</span>
                                 }
                                 else
                                 {
@@ -222,88 +412,20 @@
                             <td class="text-muted small text-nowrap">
                                 @t.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                             </td>
-                            <td class="text-end text-nowrap">
-                                <a href="/Admin/ServiceTicketDetails/@t.TicketId" class="btn btn-sm btn-secondary-custom me-1" title="Xem chi tiết">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modal-ticket-@t.TicketId">
-                                    <i class="bi bi-pencil-square"></i> Xử lý
-                                </button>
+                            <td class="text-end pe-3 text-nowrap" onclick="event.stopPropagation()">
+                                <div class="d-inline-flex gap-1">
+                                    <a href="/Admin/ServiceTicketDetails/@t.TicketId" class="btn-action-tool btn-sm" title="Xem chi tiết phiếu & Báo giá">
+                                        <i class="bi bi-eye"></i> Xem
+                                    </a>
+                                    <button type="button" class="btn-action-tool btn-sm" onclick="quickEditTicket(@t.TicketId)" title="Sửa phiếu này">
+                                        <i class="bi bi-pencil"></i> Sửa
+                                    </button>
+                                    <button type="button" class="btn-action-tool btn-sm" onclick="quickDeleteTicket(@t.TicketId, '@t.TicketCode', '@t.CustomerName')" title="Xóa phiếu này">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </div>
                             </td>
                         </tr>
-
-                        <!-- MODAL XỬ LÝ NHANH CHO PHIẾU -->
-                        <div class="modal fade" id="modal-ticket-@t.TicketId" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
-                                    <div class="modal-header border-bottom bg-light">
-                                        <h5 class="modal-title fs-6 fw-bold">
-                                            <i class="bi bi-tools text-primary me-2"></i>Phiếu #@t.TicketCode (@t.TicketType)
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form method="post" asp-action="UpdateServiceTicket">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="ticketId" value="@t.TicketId" />
-                                        <input type="hidden" name="returnUrl" value="/Admin/ServiceTickets" />
-
-                                        <div class="modal-body text-start">
-                                            <div class="p-3 mb-3 bg-light rounded border small">
-                                                <div>Khách hàng: <strong>@t.CustomerName</strong> (@t.PhoneNumber)</div>
-                                                <div>Thiết bị: <strong>@t.DeviceDisplayName</strong> (Serial: @t.SerialNumber)</div>
-                                                <div>Triệu chứng: <span class="text-danger">@t.FaultDescription</span></div>
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label-dark">Trạng thái mới *</label>
-                                                <select name="newStatus" class="form-select-dark">
-                                                    <option value="Chờ tiếp nhận" selected="@(t.Status == "Chờ tiếp nhận" ? "selected" : null)">1. Chờ tiếp nhận (Khách vừa gửi online)</option>
-                                                    <option value="Đã tiếp nhận" selected="@(t.Status == "Đã tiếp nhận" ? "selected" : null)">2. Đã tiếp nhận (Đã cầm máy tại quầy)</option>
-                                                    <option value="Đang kiểm tra" selected="@(t.Status == "Đang kiểm tra" ? "selected" : null)">3. Đang kiểm tra kỹ thuật</option>
-                                                    <option value="Chờ duyệt báo giá" selected="@(t.Status == "Chờ duyệt báo giá" ? "selected" : null)">4. Chờ duyệt báo giá</option>
-                                                    <option value="Đang xử lý" selected="@(t.Status == "Đang xử lý" ? "selected" : null)">5. Đang xử lý / Sửa chữa</option>
-                                                    <option value="Chờ trả máy" selected="@(t.Status == "Chờ trả máy" ? "selected" : null)">6. Chờ trả máy (Máy đã sửa xong)</option>
-                                                    <option value="Đã trả máy" selected="@(t.Status == "Đã trả máy" ? "selected" : null)">7. Đã trả máy (Bàn giao xong)</option>
-                                                    <option value="Đã hủy/Từ chối" selected="@(t.Status == "Đã hủy/Từ chối" ? "selected" : null)">8. Đã hủy / Từ chối</option>
-                                                </select>
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label-dark">Tình trạng ngoại quan khi nhận máy</label>
-                                                <input type="text" name="physicalCondition" value="@t.PhysicalCondition" class="form-control-dark" placeholder="VD: Vỏ xước nhẹ góc trái, màn hình dán chống trầy..." />
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label-dark">Phụ kiện kèm theo</label>
-                                                <input type="text" name="accessories" value="@t.Accessories" class="form-control-dark" placeholder="VD: Sạc zin 65W, chuột không dây, túi chống sốc..." />
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label-dark">Chi phí thực thu (VND)</label>
-                                                <input type="number" step="1000" name="finalCost" value="@Convert.ToInt64(t.FinalCost)" class="form-control-dark" />
-                                                <small class="text-muted">Bảo hành hợp lệ giữ 0đ. Sửa chữa nhập theo báo giá đã duyệt.</small>
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label-dark">Thời hạn bảo hành sau sửa (tháng)</label>
-                                                <input type="number" name="warrantyMonthsAfterRepair" value="1" min="0" max="36" class="form-control-dark" />
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <label class="form-label-dark">Ghi chú hành động</label>
-                                                <input type="text" name="notes" class="form-control-dark" placeholder="VD: Kỹ thuật kiểm tra phát hiện hỏng quạt gió..." />
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer border-top bg-light">
-                                            <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Đóng</button>
-                                            <button type="submit" class="btn-primary-custom">
-                                                <i class="bi bi-check2-circle"></i> Lưu cập nhật
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     }
                 }
                 else
@@ -320,3 +442,284 @@
     </div>
 </div>
 
+<style>
+    .ticket-row.row-selected {
+        background-color: #eff6ff !important;
+        border-left: 4px solid #2563eb !important;
+    }
+    .ticket-row.row-selected td {
+        background-color: transparent !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let selectedTicketRow = null;
+        let ticketMode = 'view'; // 'view' | 'add' | 'edit'
+
+        const ticketInputs = [
+            'inpTicketType', 'inpTicketCode', 'inpCustomerName', 'inpPhoneNumber', 'inpEmail',
+            'inpDeviceModel', 'inpSerialNumber', 'inpServiceId', 'inpFaultDescription',
+            'inpPhysicalCondition', 'inpAccessories', 'inpStatus', 'inpFinalCost', 'inpAssignedStaff'
+        ];
+
+        function setTicketInputsDisabled(disabled) {
+            ticketInputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = disabled;
+            });
+        }
+
+        function clearTicketForm() {
+            document.getElementById('inpTicketId').value = '0';
+            document.getElementById('inpTicketType').value = 'Sửa chữa';
+            document.getElementById('inpTicketCode').value = '';
+            document.getElementById('inpCustomerName').value = '';
+            document.getElementById('inpPhoneNumber').value = '';
+            document.getElementById('inpEmail').value = '';
+            document.getElementById('inpDeviceModel').value = '';
+            document.getElementById('inpSerialNumber').value = '';
+            document.getElementById('inpServiceId').value = '';
+            document.getElementById('inpFaultDescription').value = '';
+            document.getElementById('inpPhysicalCondition').value = '';
+            document.getElementById('inpAccessories').value = '';
+            document.getElementById('inpStatus').value = 'Đã tiếp nhận';
+            document.getElementById('inpFinalCost').value = '0';
+        }
+
+        function populateTicketForm(row) {
+            if (!row) return;
+            document.getElementById('inpTicketId').value = row.dataset.id || '0';
+            document.getElementById('inpTicketType').value = row.dataset.type || 'Sửa chữa';
+            document.getElementById('inpTicketCode').value = row.dataset.code || '';
+            document.getElementById('inpCustomerName').value = row.dataset.name || '';
+            document.getElementById('inpPhoneNumber').value = row.dataset.phone || '';
+            document.getElementById('inpEmail').value = row.dataset.email || '';
+            document.getElementById('inpDeviceModel').value = row.dataset.device || '';
+            document.getElementById('inpSerialNumber').value = row.dataset.serial || '';
+            document.getElementById('inpServiceId').value = (row.dataset.serviceid && row.dataset.serviceid !== '0') ? row.dataset.serviceid : '';
+            document.getElementById('inpFaultDescription').value = row.dataset.fault || '';
+            document.getElementById('inpPhysicalCondition').value = row.dataset.physical || '';
+            document.getElementById('inpAccessories').value = row.dataset.acc || '';
+            document.getElementById('inpStatus').value = row.dataset.status || 'Đã tiếp nhận';
+            document.getElementById('inpFinalCost').value = row.dataset.cost || '0';
+            document.getElementById('inpAssignedStaff').value = row.dataset.staff || '';
+        }
+
+        function handleTicketRowClick(row) {
+            if (ticketMode === 'add' || ticketMode === 'edit') {
+                const ok = confirm('Bạn đang trong chế độ nhập liệu (' + (ticketMode === 'add' ? 'Thêm mới' : 'Chỉnh sửa') + '). Chọn dòng khác sẽ hủy các thay đổi chưa lưu?');
+                if (!ok) return;
+            }
+
+            if (selectedTicketRow) {
+                selectedTicketRow.classList.remove('row-selected');
+            }
+
+            selectedTicketRow = row;
+            selectedTicketRow.classList.add('row-selected');
+            ticketMode = 'view';
+
+            populateTicketForm(row);
+            setTicketInputsDisabled(true);
+
+            document.getElementById('btnThemTicket').disabled = false;
+            document.getElementById('btnSuaTicket').disabled = false;
+            document.getElementById('btnXoaTicket').disabled = false;
+            document.getElementById('btnLuuTicket').disabled = true;
+            document.getElementById('btnHuyTicket').disabled = true;
+
+            const code = row.dataset.code;
+            const name = row.dataset.name;
+            document.getElementById('toolbarTicketHint').innerHTML = 
+                '<span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Đã chọn: #' + code + '</span> ' +
+                'Khách hàng <strong>' + name + '</strong>. Bấm <strong>[Sửa]</strong> để chỉnh sửa hoặc <strong>[Xóa]</strong> để gỡ bỏ.';
+        }
+
+        function handleTicketRowDblClick(row) {
+            handleTicketRowClick(row);
+            onSuaTicketClick();
+        }
+
+        function onThemTicketClick() {
+            ticketMode = 'add';
+            if (selectedTicketRow) {
+                selectedTicketRow.classList.remove('row-selected');
+                selectedTicketRow = null;
+            }
+
+            clearTicketForm();
+            setTicketInputsDisabled(false);
+
+            // Sinh mã phiếu dự kiến theo ngày
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('inpTicketCode').value = 'SC-' + yyyy + mm + dd + '-' + randomSuffix;
+
+            document.getElementById('btnThemTicket').disabled = true;
+            document.getElementById('btnSuaTicket').disabled = true;
+            document.getElementById('btnXoaTicket').disabled = true;
+            document.getElementById('btnLuuTicket').disabled = false;
+            document.getElementById('btnHuyTicket').disabled = false;
+
+            document.getElementById('toolbarTicketHint').innerHTML = 
+                '<span class="badge bg-success-subtle text-success border border-success-subtle me-1">Chế độ Thêm phiếu mới</span> ' +
+                'Nhập thông tin tiếp nhận máy của khách tại quầy rồi nhấn <strong>[Lưu phiếu]</strong>.';
+
+            document.getElementById('inpCustomerName').focus();
+        }
+
+        function onSuaTicketClick() {
+            if (!selectedTicketRow) {
+                alert('Vui lòng nhấp chọn 1 phiếu trong bảng trước khi bấm Sửa.');
+                return;
+            }
+
+            ticketMode = 'edit';
+            setTicketInputsDisabled(false);
+
+            document.getElementById('btnThemTicket').disabled = true;
+            document.getElementById('btnSuaTicket').disabled = true;
+            document.getElementById('btnXoaTicket').disabled = true;
+            document.getElementById('btnLuuTicket').disabled = false;
+            document.getElementById('btnHuyTicket').disabled = false;
+
+            const code = selectedTicketRow.dataset.code;
+            document.getElementById('toolbarTicketHint').innerHTML = 
+                '<span class="badge bg-warning-subtle text-dark border border-warning me-1">Chế độ Chỉnh sửa</span> ' +
+                'Đang sửa phiếu <strong>#' + code + '</strong>. Sửa các thông tin cần thiết rồi nhấn <strong>[Lưu phiếu]</strong> hoặc <strong>[Hủy]</strong>.';
+
+            document.getElementById('inpCustomerName').focus();
+        }
+
+        function onXoaTicketClick() {
+            if (!selectedTicketRow) {
+                alert('Vui lòng nhấp chọn 1 phiếu trong bảng trước khi bấm Xóa.');
+                return;
+            }
+
+            const id = selectedTicketRow.dataset.id;
+            const code = selectedTicketRow.dataset.code;
+            const name = selectedTicketRow.dataset.name;
+
+            quickDeleteTicket(id, code, name);
+        }
+
+        function quickDeleteTicket(id, code, name) {
+            const confirmed = confirm('Bạn có chắc chắn muốn xóa vĩnh viễn phiếu tiếp nhận sau khỏi hệ thống?\n\n- Mã phiếu: #' + code + '\n- Khách hàng: ' + name + '\n\n* Lưu ý: Thao tác này sẽ xóa toàn bộ nhật ký và báo giá kèm theo của phiếu.');
+            if (confirmed) {
+                document.getElementById('deleteTicketIdInput').value = id;
+                document.getElementById('deleteTicketForm').submit();
+            }
+        }
+
+        function quickEditTicket(id) {
+            const row = document.querySelector('.ticket-row[data-id="' + id + '"]');
+            if (row) {
+                handleTicketRowClick(row);
+                onSuaTicketClick();
+            }
+        }
+
+        function onLuuTicketClick() {
+            const nameInput = document.getElementById('inpCustomerName');
+            const phoneInput = document.getElementById('inpPhoneNumber');
+            const faultInput = document.getElementById('inpFaultDescription');
+            const deviceInput = document.getElementById('inpDeviceModel');
+
+            if (!nameInput.value.trim()) {
+                alert('Vui lòng nhập Tên khách hàng.');
+                nameInput.focus();
+                return;
+            }
+
+            if (!phoneInput.value.trim()) {
+                alert('Vui lòng nhập Số điện thoại của khách.');
+                phoneInput.focus();
+                return;
+            }
+
+            if (!deviceInput.value.trim()) {
+                alert('Vui lòng nhập Thiết bị / Model máy.');
+                deviceInput.focus();
+                return;
+            }
+
+            if (!faultInput.value.trim()) {
+                alert('Vui lòng nhập Triệu chứng / Lỗi khách phản ánh.');
+                faultInput.focus();
+                return;
+            }
+
+            document.getElementById('ticketForm').submit();
+        }
+
+        function onHuyTicketClick() {
+            setTicketInputsDisabled(true);
+            ticketMode = 'view';
+
+            document.getElementById('btnThemTicket').disabled = false;
+            document.getElementById('btnLuuTicket').disabled = true;
+            document.getElementById('btnHuyTicket').disabled = true;
+
+            if (selectedTicketRow) {
+                populateTicketForm(selectedTicketRow);
+                document.getElementById('btnSuaTicket').disabled = false;
+                document.getElementById('btnXoaTicket').disabled = false;
+                document.getElementById('toolbarTicketHint').innerHTML = 
+                    '<span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Đã chọn: #' + selectedTicketRow.dataset.code + '</span> ' +
+                    'Khách hàng <strong>' + selectedTicketRow.dataset.name + '</strong>. Bấm <strong>[Sửa]</strong> để chỉnh sửa hoặc <strong>[Xóa]</strong> để gỡ bỏ.';
+            } else {
+                clearTicketForm();
+                document.getElementById('btnSuaTicket').disabled = true;
+                document.getElementById('btnXoaTicket').disabled = true;
+                document.getElementById('toolbarTicketHint').innerHTML = 
+                    '<i class="bi bi-info-circle me-1 text-primary"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm phiếu mới</strong> để tạo phiếu tiếp nhận máy tại quầy.';
+            }
+        }
+
+        function onThoatTicketClick() {
+            if (ticketMode !== 'view' && ticketMode !== 'idle') {
+                if (confirm('Bạn đang có thao tác nhập phiếu chưa lưu. Bạn có muốn hủy và thoát không?')) {
+                    onHuyTicketClick();
+                }
+            } else {
+                window.location.href = '/Admin/Orders';
+            }
+        }
+
+        function handleTicketTypeChange() {
+            const type = document.getElementById('inpTicketType').value;
+            const codeInput = document.getElementById('inpTicketCode');
+            const costInput = document.getElementById('inpFinalCost');
+
+            if (ticketMode === 'add') {
+                if (type === 'Bảo hành') {
+                    if (codeInput.value.startsWith('SC-')) {
+                        codeInput.value = codeInput.value.replace('SC-', 'BH-');
+                    }
+                    costInput.value = '0';
+                } else {
+                    if (codeInput.value.startsWith('BH-')) {
+                        codeInput.value = codeInput.value.replace('BH-', 'SC-');
+                    }
+                }
+            }
+        }
+
+        function handleCatalogServiceChange() {
+            const select = document.getElementById('inpServiceId');
+            const selectedOpt = select.options[select.selectedIndex];
+            if (!selectedOpt || !selectedOpt.value) return;
+
+            const cost = selectedOpt.dataset.cost;
+            const costInput = document.getElementById('inpFinalCost');
+            if (cost && (!costInput.value || costInput.value === '0')) {
+                costInput.value = cost;
+            }
+        }
+    </script>
+}

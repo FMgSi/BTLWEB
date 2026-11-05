@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace LaptopStore.Controllers;
 
 [Route("account")]
-[Route("Account")]
 [Route("tai-khoan")]
 public class AccountController : Controller
 {

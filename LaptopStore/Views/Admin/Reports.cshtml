@@ -10,33 +10,33 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h2 class="page-title text-dark fw-bold mb-1">
-            <i class="bi bi-graph-up-arrow me-2"></i>Báo cáo & Thống kê Đa chiều
+            <i class="bi bi-graph-up-arrow text-primary me-2"></i>Báo cáo & Thống kê Đa chiều
         </h2>
         <p class="text-muted small mb-0">
             Theo dõi hiệu suất bán hàng, dòng tiền thực thu trả góp, biến thể laptop và quy trình dịch vụ bảo hành
         </p>
     </div>
     <div class="page-actions d-flex gap-2">
-        <a href="/Admin/ExportProducts" class="btn-primary-custom">
+        <a href="/Admin/ExportProducts" class="btn-action-tool">
             <i class="bi bi-download"></i> Xuất dữ liệu sản phẩm (CSV)
         </a>
     </div>
 </div>
 
-<!-- 1. BỘ LỌC THỜI GIAN: HÔM NAY · 7 NGÀY · THÁNG NÀY · TÙY CHỌN -->
-<div class="card p-3 shadow-sm border rounded-3 mb-4 bg-white">
+<!-- 1. BỘ LỌC THỜI GIAN: HÔM NAY · 7 NGÀY · THÁNG NÀY · TÙY CHỌN (ĐỒNG NHẤT VỚI CÁC TRANG QUẢN TRỊ) -->
+<div class="admin-card p-3 shadow-sm border rounded-3 mb-4 bg-white">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div class="d-flex flex-wrap gap-2 align-items-center">
-            <span class="small fw-bold text-dark me-2">
+            <span class="small fw-bold text-dark me-1">
                 <i class="bi bi-calendar-event me-1"></i>Khoảng thời gian:
             </span>
-            <a href="/Admin/Reports?period=today" class="btn btn-sm @(Model.Period == "today" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+            <a href="/Admin/Reports?period=today" class="btn-action-tool @(Model.Period == "today" ? "active" : "")">
                 Hôm nay
             </a>
-            <a href="/Admin/Reports?period=7days" class="btn btn-sm @(Model.Period == "7days" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+            <a href="/Admin/Reports?period=7days" class="btn-action-tool @(Model.Period == "7days" ? "active" : "")">
                 7 ngày qua
             </a>
-            <a href="/Admin/Reports?period=month" class="btn btn-sm @(Model.Period == "month" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+            <a href="/Admin/Reports?period=month" class="btn-action-tool @(Model.Period == "month" ? "active" : "")">
                 Tháng này
             </a>
         </div>
@@ -44,10 +44,10 @@
         <form method="get" action="/Admin/Reports" class="d-flex flex-wrap gap-2 align-items-center m-0">
             <input type="hidden" name="period" value="custom" />
             <span class="small text-muted">Từ ngày:</span>
-            <input type="date" name="fromDate" class="form-control form-control-sm" style="width: 140px;" value="@Model.FromDate.ToString("yyyy-MM-dd")" />
+            <input type="date" name="fromDate" class="form-control form-control-dark" style="width: 145px; height: 36px;" value="@Model.FromDate.ToString("yyyy-MM-dd")" />
             <span class="small text-muted">Đến ngày:</span>
-            <input type="date" name="toDate" class="form-control form-control-sm" style="width: 140px;" value="@Model.ToDate.ToString("yyyy-MM-dd")" />
-            <button type="submit" class="btn btn-sm btn-dark fw-semibold">
+            <input type="date" name="toDate" class="form-control form-control-dark" style="width: 145px; height: 36px;" value="@Model.ToDate.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn-action-tool">
                 <i class="bi bi-funnel"></i> Lọc tùy chọn
             </button>
         </form>
@@ -57,15 +57,15 @@
     </div>
 </div>
 
-<!-- 2. BÁO CÁO BÁN HÀNG & DÒNG TIỀN THỰC THU -->
+<!-- 2. BÁO CÁO BÁN HÀNG & DÒNG TIỀN THỰC THU (MÀU SẮC HÀI HÒA, THANH LỊCH) -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
         <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="text-muted small fw-semibold">Đơn hàng mới tiếp nhận</span>
-                <span class="badge bg-primary">Mới</span>
+                <span class="text-secondary small fw-medium">Đơn hàng mới tiếp nhận</span>
+                <span class="badge bg-light text-dark border">Mới</span>
             </div>
-            <div class="fs-3 fw-bold text-dark mb-1">@Model.NewOrders <span class="fs-6 fw-normal text-muted">/ @Model.TotalOrders tổng</span></div>
+            <div class="fs-4 fw-bold text-dark mb-1">@Model.NewOrders <span class="fs-6 fw-normal text-muted">/ @Model.TotalOrders tổng</span></div>
             <div class="small text-muted">Đang xử lý/giao: <strong>@Model.ProcessingOrders</strong> • Đã hủy: <strong>@Model.CancelledOrders</strong></div>
         </div>
     </div>
@@ -73,32 +73,32 @@
     <div class="col-sm-6 col-xl-3">
         <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="text-muted small fw-semibold">Đơn hàng hoàn tất</span>
-                <span class="badge bg-success">Thành công</span>
+                <span class="text-secondary small fw-medium">Đơn hàng hoàn tất</span>
+                <span class="badge bg-light text-dark border">Thành công</span>
             </div>
-            <div class="fs-3 fw-bold text-success mb-1">@Model.CompletedOrders đơn</div>
+            <div class="fs-4 fw-bold text-dark mb-1">@Model.CompletedOrders đơn</div>
             <div class="small text-muted">Tổng doanh thu đơn: <strong>@FormatVND(Model.TotalCompletedRevenue)</strong></div>
-        </div>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 shadow-sm border rounded-3 bg-white h-100 border-start border-4 border-dark">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="text-dark small fw-bold">Dòng tiền thực thu</span>
-                <span class="badge bg-dark text-white">Tiền mặt + Chuyển khoản</span>
-            </div>
-            <div class="fs-3 fw-bold text-danger mb-1">@FormatVND(Model.ActualCashCollected)</div>
-            <div class="small text-muted">Đã thu thực tế từ đơn mua đứt & trả góp</div>
         </div>
     </div>
 
     <div class="col-sm-6 col-xl-3">
         <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
             <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="text-muted small fw-semibold">Dòng tiền Trả góp 0%</span>
-                <span class="badge bg-info text-dark">Hợp đồng</span>
+                <span class="text-secondary small fw-medium">Dòng tiền thực thu</span>
+                <span class="badge bg-light text-dark border">Tiền mặt & QR</span>
             </div>
-            <div class="fs-3 fw-bold text-primary mb-1">@FormatVND(Model.InstallmentCashCollected)</div>
+            <div class="fs-4 fw-bold text-dark mb-1">@FormatVND(Model.ActualCashCollected)</div>
+            <div class="small text-muted">Thu thực tế từ đơn mua đứt & trả góp</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-secondary small fw-medium">Dòng tiền Trả góp 0%</span>
+                <span class="badge bg-light text-dark border">Hợp đồng</span>
+            </div>
+            <div class="fs-4 fw-bold text-dark mb-1">@FormatVND(Model.InstallmentCashCollected)</div>
             <div class="small text-muted">Gồm trả trước 30% và các kỳ đã thu</div>
         </div>
     </div>
@@ -110,11 +110,11 @@
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                 <h6 class="fw-bold text-dark mb-0">
-                    <i class="bi bi-bar-chart-fill text-dark me-2"></i>Doanh thu bán hàng theo thời gian (Triệu VNĐ)
+                    <i class="bi bi-bar-chart-fill text-primary me-2"></i>Doanh thu bán hàng theo thời gian (Triệu VNĐ)
                 </h6>
-                <span class="badge bg-light text-dark border">Cập nhật thời gian thực</span>
+                <span class="badge bg-light text-secondary border small">Thời gian thực</span>
             </div>
-            <div style="height: 300px;">
+            <div style="height: 300px; position: relative;">
                 <canvas id="revenueChart"></canvas>
             </div>
         </div>
@@ -124,7 +124,7 @@
         <!-- BÁO CÁO DỊCH VỤ SỬA CHỮA & BẢO HÀNH -->
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">
-                <i class="bi bi-tools text-dark me-2"></i>Hiệu suất Dịch vụ & Bảo hành
+                <i class="bi bi-tools text-primary me-2"></i>Hiệu suất Dịch vụ & Bảo hành
             </h6>
             <div class="d-flex flex-column gap-3">
                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
@@ -132,23 +132,23 @@
                         <div class="small text-muted">Phiếu tiếp nhận trong kỳ</div>
                         <div class="fs-5 fw-bold text-dark">@Model.TotalReceivedTickets</div>
                     </div>
-                    <span class="badge bg-primary">Tiếp nhận</span>
+                    <span class="badge bg-white text-dark border">Tiếp nhận</span>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
                     <div>
                         <div class="small text-muted">Phiếu hoàn tất / Đã bàn giao</div>
-                        <div class="fs-5 fw-bold text-success">@Model.HandedOverTickets</div>
+                        <div class="fs-5 fw-bold text-dark">@Model.HandedOverTickets</div>
                     </div>
-                    <span class="badge bg-success">Đã bàn giao</span>
+                    <span class="badge bg-white text-dark border">Đã bàn giao</span>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
                     <div>
                         <div class="small text-muted">Phiếu chờ duyệt báo giá</div>
-                        <div class="fs-5 fw-bold text-warning">@Model.AwaitingQuoteTickets</div>
+                        <div class="fs-5 fw-bold text-dark">@Model.AwaitingQuoteTickets</div>
                     </div>
-                    <span class="badge bg-warning text-dark">Chờ khách duyệt</span>
+                    <span class="badge bg-white text-dark border">Chờ duyệt</span>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
@@ -156,7 +156,7 @@
                         <div class="small text-muted">Thời gian xử lý trung bình</div>
                         <div class="fs-5 fw-bold text-dark">@(Model.AverageProcessingHours > 0 ? $"{Model.AverageProcessingHours} giờ" : "---")</div>
                     </div>
-                    <span class="badge bg-secondary">Chuẩn SLA</span>
+                    <span class="badge bg-white text-dark border">Chuẩn SLA</span>
                 </div>
             </div>
         </div>
@@ -169,7 +169,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">
-                <i class="bi bi-fire text-danger me-2"></i>Sản phẩm bán chạy nhất trong kỳ
+                <i class="bi bi-star-fill text-primary me-2"></i>Sản phẩm bán chạy nhất trong kỳ
             </h6>
             @if (Model.TopSellingProducts.Any())
             {
@@ -190,8 +190,8 @@
                                         <div class="fw-semibold text-dark small">@p.ProductName</div>
                                         <div class="text-muted" style="font-size: 11px;">@p.VariantSpecs</div>
                                     </td>
-                                    <td class="text-center fw-bold fs-6">@p.QuantitySold</td>
-                                    <td class="text-end small fw-bold text-danger">@FormatVND(p.TotalRevenue)</td>
+                                    <td class="text-center fw-bold fs-6 text-dark">@p.QuantitySold</td>
+                                    <td class="text-end small fw-bold text-dark">@FormatVND(p.TotalRevenue)</td>
                                 </tr>
                             }
                         </tbody>
@@ -212,9 +212,9 @@
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                 <h6 class="fw-bold text-dark mb-0">
-                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Cảnh báo tồn kho theo cấu hình (Tồn &le; 3)
+                    <i class="bi bi-exclamation-triangle text-secondary me-2"></i>Cảnh báo tồn kho theo cấu hình (Tồn &le; 3)
                 </h6>
-                <a href="/Product" class="small text-decoration-none fw-semibold">Quản lý kho</a>
+                <a href="/Product" class="btn-action-tool btn-sm text-decoration-none">Quản lý kho</a>
             </div>
             @if (Model.LowStockProducts.Any())
             {
@@ -235,12 +235,12 @@
                                     <td class="small fw-semibold text-dark">@p.ProductName</td>
                                     <td class="small text-muted">@p.Configuration</td>
                                     <td class="text-center">
-                                        <span class="badge @(p.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
+                                        <span class="badge bg-light text-dark border">
                                             @p.StockQuantity
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <span class="small @(p.StockQuantity == 0 ? "text-danger fw-bold" : "text-warning-emphasis")">
+                                        <span class="small fw-medium @(p.StockQuantity == 0 ? "text-danger" : "text-muted")">
                                             @(p.StockQuantity == 0 ? "Hết hàng" : "Sắp hết")
                                         </span>
                                     </td>
@@ -252,8 +252,8 @@
             }
             else
             {
-                <div class="text-center py-4 text-success small">
-                    <i class="bi bi-check-circle me-1"></i> Kho hàng an toàn, không có cấu hình nào dưới ngưỡng tối thiểu.
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-check-circle me-1 text-success"></i> Kho hàng an toàn, không có cấu hình nào dưới ngưỡng tối thiểu.
                 </div>
             }
         </div>
@@ -274,22 +274,43 @@
                 datasets: [{
                     label: 'Doanh thu (Triệu VNĐ)',
                     data: values,
-                    backgroundColor: '#18181b',
-                    hoverBackgroundColor: '#27272a',
-                    borderRadius: 6
+                    backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                    hoverBackgroundColor: '#2563eb',
+                    borderColor: '#2563eb',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    maxBarThickness: 38
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Doanh thu: ' + context.parsed.y + ' tr VNĐ';
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    x: { grid: { display: false } },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#475569',
+                            font: { size: 12 }
+                        }
+                    },
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: '#f1f5f9'
+                        },
                         ticks: {
+                            color: '#475569',
+                            font: { size: 12 },
                             callback: function(value) { return value + ' tr'; }
                         }
                     }

@@ -460,3 +460,109 @@
     min-width: auto;
   }
 }
+
+/* =========================================================================
+   Giao diện Shopee Style Giỏ hàng & Thanh toán (PDF Hình 1 & Hình 2)
+   ========================================================================= */
+
+.shopee-address-card {
+  background: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.shopee-address-ribbon {
+  height: 3px;
+  width: 100%;
+  background-position-x: -30px;
+  background-size: 116px 3px;
+  background-image: repeating-linear-gradient(45deg, #6fa6d6, #6fa6d6 33px, transparent 0, transparent 41px, #f18d9b 0, #f18d9b 74px, transparent 0, transparent 82px);
+}
+
+.shopee-table-header {
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 14px 20px;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.05);
+  font-size: 14px;
+  color: #757575;
+}
+
+.shopee-cart-footer {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  border-top: 1px solid #e2e8f0;
+  z-index: 100;
+  padding: 14px 24px;
+  border-radius: 4px;
+  margin-top: 24px;
+}
+
+.shopee-btn-buy {
+  background-color: #ee4d2d;
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+  padding: 12px 36px;
+  border-radius: 4px;
+  font-size: 15px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.shopee-btn-buy:hover:not(:disabled) {
+  background-color: #d73211;
+  color: #ffffff;
+}
+
+.shopee-btn-buy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shopee-voucher-ticket {
+  border: 1px dashed #ee4d2d;
+  background: #fff5f1;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.shopee-voucher-ticket:hover {
+  background: #ffebe5;
+  box-shadow: 0 2px 10px rgba(238, 77, 45, 0.15);
+}
+
+.shopee-tier-pill {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #ffffff;
+}
+
+.shopee-tier-pill.active {
+  border-color: #ee4d2d;
+  background-color: #fff5f1;
+}
+
+.shopee-payment-option {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #ffffff;
+}
+
+.shopee-payment-option:hover {
+  border-color: #cbd5e1;
+}
+
+.shopee-payment-option.active {
+  border-color: #ee4d2d;
+  background-color: #fff8f6;
+  box-shadow: 0 0 0 1px #ee4d2d;
+}

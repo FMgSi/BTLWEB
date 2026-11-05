@@ -75,16 +75,14 @@
     </div>
 </div>
 
-<!-- THANH LỌC VÀ TÌM KIẾM -->
-<div class="admin-card mb-4 p-3">
-    <form method="get" asp-action="Installments" class="row g-3 align-items-center">
-        <div class="col-md-5">
-            <div class="position-relative">
-                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
-                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã HĐ, mã đơn, tên khách, số điện thoại..." />
-            </div>
+<!-- THANH LỌC VÀ TÌM KIẾM (CĂN LỀ TRÁI GỌN GÀNG) -->
+<div class="admin-card mb-4 p-3 shadow-sm border">
+    <form method="get" asp-action="Installments" class="d-flex flex-wrap align-items-center gap-2">
+        <div class="position-relative" style="width: 340px; max-width: 100%;">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+            <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã HĐ, mã đơn, tên khách, SĐT..." />
         </div>
-        <div class="col-md-4">
+        <div style="width: 230px; max-width: 100%;">
             <select name="status" class="form-select-dark" onchange="this.form.submit()">
                 <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
                 <option value="Chờ trả trước" selected="@(currentStatus == "Chờ trả trước" ? "selected" : null)">1. Chờ trả trước (Cần duyệt)</option>
@@ -94,17 +92,15 @@
                 <option value="Đã hủy" selected="@(currentStatus == "Đã hủy" ? "selected" : null)">5. Đã hủy</option>
             </select>
         </div>
-        <div class="col-md-3 d-flex gap-2">
-            <button type="submit" class="btn-primary-custom w-100">
-                <i class="bi bi-funnel"></i> Lọc hợp đồng
-            </button>
-            @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
-            {
-                <a href="/Admin/Installments" class="btn-secondary-custom">
-                    <i class="bi bi-x-circle"></i>
-                </a>
-            }
-        </div>
+        <button type="submit" class="btn-action-tool">
+            <i class="bi bi-funnel"></i> Lọc hợp đồng
+        </button>
+        @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
+        {
+            <a href="/Admin/Installments" class="btn-action-tool" title="Đặt lại bộ lọc">
+                <i class="bi bi-x-circle"></i> Xóa lọc
+            </a>
+        }
     </form>
 </div>
 

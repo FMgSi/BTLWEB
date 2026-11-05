@@ -3,7 +3,6 @@
    Theme: Clean, modern, high-contrast Enterprise Management Portal
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
     /* Page & Structure Backgrounds */
@@ -68,7 +67,7 @@
 }
 
 body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: var(--bg-page);
     color: var(--text-primary);
     margin: 0;
@@ -296,10 +295,152 @@ a {
 }
 
 /* ==========================================================================
-   MAIN CONTENT WRAPPER & TOPBAR (Trắng sáng, sạch sẽ)
+   HORIZONTAL TASKBAR / NAVBAR (Thanh điều hướng ngang trên cùng)
    ========================================================================== */
+.admin-horizontal-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    overflow: visible !important;
+}
+
+.horizontal-taskbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0;
+    overflow: visible !important;
+    white-space: nowrap;
+}
+
+.nav-taskbar-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #334155 !important;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    text-decoration: none !important;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.nav-taskbar-item:hover {
+    color: #000000 !important;
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.nav-taskbar-item.active {
+    color: #0f172a !important;
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+    font-weight: 600;
+}
+
+/* Group dropdown cho Quản lý sản phẩm và Dịch vụ & Bảo hành */
+.nav-taskbar-group {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.nav-taskbar-group:hover,
+.nav-taskbar-group.show {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.nav-taskbar-group .nav-taskbar-item {
+    border: none !important;
+    background: transparent !important;
+}
+
+.nav-taskbar-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: #475569 !important;
+    padding: 0.42rem 0.45rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+}
+
+.nav-taskbar-toggle:hover,
+.nav-taskbar-group:hover .nav-taskbar-toggle {
+    color: #000000 !important;
+}
+
+.nav-taskbar-group:hover .nav-taskbar-item {
+    color: #000000 !important;
+}
+
+/* Tự động bung menu khi di chuột (hover) trên desktop hoặc khi có class show */
+.nav-taskbar-group:hover > .dropdown-menu,
+.nav-taskbar-group .dropdown-menu.show {
+    display: block !important;
+    margin-top: 2px !important;
+}
+
+.nav-taskbar-group .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1060 !important;
+    min-width: 220px;
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06) !important;
+    padding: 0.4rem 0;
+}
+
+.nav-taskbar-group .dropdown-item {
+    font-size: 0.88rem;
+    padding: 0.5rem 1rem;
+    color: #1e293b !important;
+    display: flex;
+    align-items: center;
+    transition: all 0.12s ease;
+    text-decoration: none !important;
+}
+
+.nav-taskbar-group .dropdown-item:hover {
+    background-color: #f1f5f9 !important;
+    color: #000000 !important;
+}
+
+.nav-taskbar-group .dropdown-item.active {
+    background-color: #e2e8f0 !important;
+    color: #000000 !important;
+    font-weight: 600;
+}
+
+.admin-main-horizontal {
+    width: 100%;
+    min-height: calc(100vh - 105px);
+    background-color: var(--bg-page);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Base resets for full-width layout */
 .admin-main {
-    margin-left: var(--sidebar-width);
+    margin-left: 0 !important;
+    width: 100% !important;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -758,110 +899,154 @@ a {
 }
 
 /* ==========================================================================
-   ACTION BUTTONS (Nút bấm sắc nét, hiện đại)
+   ACTION BUTTONS: ĐỒNG NHẤT KÍCH THƯỚC & PHONG CÁCH NỀN XÁM TRẮNG, VIỀN GỌN, CHỮ ĐEN DỄ NHÌN
+   (Chuẩn hóa: Nút chính height 36px, Nút bảng height 28px min-width 60px)
    ========================================================================== */
-.btn-primary-custom {
-    background: #18181b;
-    color: #ffffff !important;
-    border: 1px solid #18181b;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-size: 0.88rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s ease;
+.btn-action-tool,
+.btn-primary-custom,
+.btn-secondary-custom,
+.admin-horizontal-header .btn:not(.btn-close),
+.admin-main .btn:not(.btn-close):not(.dropdown-item):not(.btn-sm):not(.nav-taskbar-toggle),
+.admin-main button:not(.btn-close):not(.carousel-control-prev):not(.carousel-control-next):not(.dropdown-item):not(.navbar-toggler):not(.btn-sm):not(.nav-taskbar-toggle),
+.admin-card .btn:not(.btn-close):not(.dropdown-item):not(.btn-sm),
+.page-actions .btn,
+.page-actions a,
+.modal-footer .btn:not(.btn-close) {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 0.86rem !important;
+    font-weight: 500 !important;
+    line-height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.15s ease-in-out !important;
+    text-decoration: none !important;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box !important;
 }
 
-.btn-primary-custom:hover {
-    background: #27272a;
-    border-color: #27272a;
-    color: #ffffff !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
+.btn-action-tool:hover:not(:disabled),
+.btn-primary-custom:hover:not(:disabled),
+.btn-secondary-custom:hover:not(:disabled),
+.admin-horizontal-header .btn:not(.btn-close):hover:not(:disabled),
+.admin-main .btn:not(.btn-close):hover:not(:disabled),
+.admin-main button:not(.btn-close):hover:not(:disabled),
+.admin-card .btn:not(.btn-close):hover:not(:disabled),
+.admin-table .btn:hover:not(:disabled),
+.page-actions .btn:hover,
+.page-actions a:hover,
+.modal-footer .btn:not(.btn-close):hover:not(:disabled) {
+    background-color: #f1f5f9 !important;
+    color: #000000 !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
-.btn-secondary-custom {
-    background: #ffffff;
-    color: #334155;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 0.5rem 0.95rem;
-    font-size: 0.88rem;
+.btn-action-tool:active:not(:disabled),
+.btn-primary-custom:active:not(:disabled),
+.btn-secondary-custom:active:not(:disabled),
+.admin-main .btn:not(.btn-close):active:not(:disabled),
+.admin-main button:not(.btn-close):active:not(:disabled),
+.admin-card .btn:not(.btn-close):active:not(:disabled) {
+    background-color: #e2e8f0 !important;
+    border-color: #64748b !important;
+    color: #000000 !important;
+}
+
+.btn-action-tool:disabled,
+.btn-action-tool.disabled,
+.admin-main .btn:disabled,
+.admin-main .btn.disabled,
+.admin-main button:disabled,
+.admin-card .btn:disabled,
+.admin-card .btn.disabled {
+    background-color: #f8fafc !important;
+    color: #9ca3af !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    opacity: 0.65 !important;
+}
+
+/* Biểu tượng bên trong nút cũng mang màu đen/xám đậm đồng nhất */
+.btn-action-tool i,
+.btn-primary-custom i,
+.btn-secondary-custom i,
+.admin-main .btn:not(.btn-close) i,
+.admin-main button:not(.btn-close) i,
+.admin-card .btn:not(.btn-close) i,
+.admin-table .btn i,
+.page-actions i {
+    color: #111827 !important;
+}
+
+/* NÚT BẢNG DỮ LIỆU ĐỒNG ĐỀU (Table action buttons: Biến thể, Xem, Sửa, Xóa, Serial, Xử lý) */
+.btn-action-view,
+.btn-action-edit,
+.btn-action-delete,
+.btn-action-tool.btn-sm,
+.admin-table .btn,
+.admin-table .btn-group .btn,
+.admin-table .btn-sm {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 3px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    min-width: 62px !important;
+    padding: 0 8px !important;
+    font-size: 0.78rem !important;
+    line-height: 26px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+    text-decoration: none !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+.btn-action-view:hover,
+.btn-action-edit:hover,
+.btn-action-delete:hover,
+.btn-action-tool.btn-sm:hover,
+.admin-table .btn:hover,
+.admin-table .btn-group .btn:hover,
+.admin-table .btn-sm:hover {
+    background-color: #f1f5f9 !important;
+    color: #000000 !important;
+    border-color: #94a3b8 !important;
+}
+
+/* Đồng bộ chiều cao ô input và select trong bộ lọc */
+.form-control-dark,
+.form-select-dark {
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 0.86rem !important;
+    box-sizing: border-box !important;
+}
+
+/* Tiêu đề nhóm Thao tác chuẩn */
+.operation-label {
+    font-size: 0.95rem;
     font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.btn-secondary-custom:hover {
-    background: #f8fafc;
-    color: #0f172a;
-    border-color: #94a3b8;
-}
-
-.btn-action-view {
-    color: #1d4ed8 !important;
-    background: #eff6ff !important;
-    border: 1px solid #bfdbfe !important;
-    border-radius: 6px;
-    padding: 0.3rem 0.65rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    transition: all 0.2s ease;
-}
-
-.btn-action-view:hover {
-    background: #dbeafe !important;
-    color: #1e40af !important;
-}
-
-.btn-action-edit {
-    color: #0369a1 !important;
-    background: #f0f9ff !important;
-    border: 1px solid #bae6fd !important;
-    border-radius: 6px;
-    padding: 0.3rem 0.65rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    transition: all 0.2s ease;
-}
-
-.btn-action-edit:hover {
-    background: #e0f2fe !important;
-    color: #0284c7 !important;
-}
-
-.btn-action-delete {
-    color: #b91c1c !important;
-    background: #fef2f2 !important;
-    border: 1px solid #fecaca !important;
-    border-radius: 6px;
-    padding: 0.3rem 0.65rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.btn-action-delete:hover {
-    background: #fee2e2 !important;
-    color: #991b1b !important;
+    color: #111827;
+    margin-bottom: 0.35rem;
 }
 
 /* ==========================================================================

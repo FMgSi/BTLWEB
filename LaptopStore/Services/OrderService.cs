@@ -293,8 +293,20 @@ public class OrderService : IOrderService
                     attempts++;
                 } while (await _db.Orders.AnyAsync(o => o.OrderCode == orderCode) && attempts < 10);
 
-                // 4. Kiểm tra và áp dụng mã giảm giá / Voucher (nếu có)
-                decimal discountAmount = 0;
+                // 4. Kiểm tra và áp dụng ưu đãi Hạng thành viên (Bạc: 5%, Vàng/Kim Cương: 10%)
+                decimal memberDiscountAmount = 0;
+                string tier = req.MemberTier?.Trim().ToLowerInvariant() ?? "";
+                if (tier.Contains("gold") || tier.Contains("vàng") || tier.Contains("vang") || tier.Contains("kim cương") || tier.Contains("diamond"))
+                {
+                    memberDiscountAmount = Math.Round(subTotal * 0.10m);
+                }
+                else if (tier.Contains("silver") || tier.Contains("bạc") || tier.Contains("bac"))
+                {
+                    memberDiscountAmount = Math.Round(subTotal * 0.05m);
+                }
+
+                // 5. Kiểm tra và áp dụng mã giảm giá / Voucher (nếu có)
+                decimal voucherDiscountAmount = 0;
                 string? appliedDiscountCode = null;
 
                 if (!string.IsNullOrWhiteSpace(req.DiscountCode))
@@ -309,14 +321,15 @@ public class OrderService : IOrderService
                         return (false, valMsg, null);
                     }
 
-                    discountAmount = calcDiscount;
+                    voucherDiscountAmount = calcDiscount;
                     appliedDiscountCode = discountEntity.Code;
 
                     // Tăng số lượt đã sử dụng của voucher trong CSDL
                     discountEntity.UsedCount += 1;
                 }
 
-                decimal finalTotal = Math.Max(0, subTotal - discountAmount);
+                decimal totalDiscount = memberDiscountAmount + voucherDiscountAmount;
+                decimal finalTotal = Math.Max(0, subTotal - totalDiscount);
 
                 bool isInstallment = req.PurchaseMode?.Equals("Installment", StringComparison.OrdinalIgnoreCase) == true;
                 int termMonths = (req.TermMonths == 3 || req.TermMonths == 6 || req.TermMonths == 9 || req.TermMonths == 12)
@@ -348,9 +361,9 @@ public class OrderService : IOrderService
                     PhoneNumber = req.PhoneNumber.Trim(),
                     Email = req.Email?.Trim(),
                     ShippingAddress = req.ShippingAddress.Trim(),
-                    Notes = req.Notes?.Trim(),
+                    Notes = (memberDiscountAmount > 0 ? $"[Ưu đãi {req.MemberTier}: -{memberDiscountAmount:N0}đ] " : "") + (req.Notes?.Trim() ?? ""),
                     SubTotal = subTotal,
-                    DiscountAmount = discountAmount,
+                    DiscountAmount = totalDiscount,
                     DiscountCode = appliedDiscountCode,
                     TotalAmount = finalTotal,
                     PurchaseMode = isInstallment ? "Installment" : "Full",

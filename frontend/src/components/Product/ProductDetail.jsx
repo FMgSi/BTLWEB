@@ -6,6 +6,7 @@ import { PRODUCT_DATA } from '../../data/mockData';
 export default function ProductDetail({ productId, onBack, onSelectProduct, allProducts = [], onAddToCart, onBuyNow }) {
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
 
   // States quản lý Gallery ảnh & Tự động chuyển ảnh mỗi 10s
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -95,45 +96,13 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
           }
 
           setProduct(enriched);
+          setFetchError('');
           setIsLoading(false);
         }
       } catch (err) {
-        console.warn('Không kết nối được API Backend, sử dụng dữ liệu dự phòng:', err);
+        console.warn('Lỗi kết nối API Backend khi tải chi tiết sản phẩm:', err);
         if (isMounted) {
-          const found = PRODUCT_DATA.find((p) => p.id === Number(productId)) || PRODUCT_DATA[0];
-          const fallbackImgs = [
-            found.image,
-            'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&q=80',
-            'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&q=80',
-            'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80',
-            'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800&q=80'
-          ];
-          const fallbackProduct = {
-            id: found.id,
-            name: found.name,
-            brand: found.brand,
-            category: found.category,
-            price: found.price,
-            originalPrice: found.originalPrice || Math.round(found.price * 1.12),
-            discountPercent: found.originalPrice ? Math.round((1 - found.price / found.originalPrice) * 100) : 12,
-            stockQuantity: 12,
-            image: found.image,
-            images: fallbackImgs,
-            description: `Laptop ${found.name} là dòng máy tính xách tay chính hãng với cấu hình mạnh mẽ ${found.specs}, phù hợp tuyệt vời cho nhu cầu học tập, làm việc văn phòng, thiết kế đồ họa và giải trí đa phương tiện.`,
-            specification: {
-              cpu: found.specs.split('/')[0]?.trim() || 'Intel Core i5',
-              ramGB: parseInt(found.specs.match(/(\d+)\s*GB/i)?.[1] || '16', 10),
-              storageGB: parseInt(found.specs.match(/(\d+)\s*(GB|TB)/i)?.[1] || '512', 10),
-              storageType: 'SSD NVMe PCIe 4.0 Siêu tốc',
-              gpu: 'Intel Iris Xe Graphics / NVIDIA GeForce',
-              screenSizeInch: parseFloat(found.screenSize || '15.6'),
-              refreshRateHz: found.category.includes('gaming') ? 144 : 60,
-              weightKg: 1.65,
-              batteryWh: 56,
-              os: 'Windows 11 Home Bản quyền'
-            }
-          };
-          setProduct(fallbackProduct);
+          setFetchError(err.message || 'Không thể tải thông tin sản phẩm từ máy chủ.');
           setIsLoading(false);
         }
       }
@@ -220,16 +189,21 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     );
   }
 
-  if (!product) {
+  if (fetchError || !product) {
     return (
       <div className="site-container py-5 text-center">
         <div className="bg-white p-5 rounded-3 border shadow-sm my-4">
-          <i className="bi bi-exclamation-triangle-fill text-warning fs-1 mb-3 d-block"></i>
-          <h4 className="fw-bold mb-2">Không tìm thấy sản phẩm</h4>
-          <p className="text-muted mb-4">Sản phẩm có thể đã ngừng kinh doanh hoặc đường dẫn không chính xác.</p>
-          <button onClick={onBack} className="btn btn-pc-red px-4 py-2">
-            <i className="bi bi-arrow-left me-2"></i>Quay lại danh sách sản phẩm
-          </button>
+          <i className="bi bi-exclamation-circle-fill text-danger fs-1 mb-3 d-block"></i>
+          <h4 className="fw-bold mb-2 text-danger">Không thể tải thông tin sản phẩm</h4>
+          <p className="text-muted mb-4">{fetchError || 'Sản phẩm có thể đã ngừng kinh doanh hoặc đường dẫn không chính xác.'}</p>
+          <div className="d-flex justify-content-center gap-2">
+            <button onClick={() => window.location.reload()} className="btn btn-outline-danger px-4 py-2">
+              <i className="bi bi-arrow-clockwise me-1"></i>Thử lại
+            </button>
+            <button onClick={onBack} className="btn btn-secondary px-4 py-2">
+              <i className="bi bi-arrow-left me-1"></i>Quay lại danh sách sản phẩm
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace LaptopStore.Controllers;
 
 [Route("service")]
-[Route("Service")]
 [Route("bao-hanh")]
 [Route("sua-chua")]
 public class ServiceController : Controller

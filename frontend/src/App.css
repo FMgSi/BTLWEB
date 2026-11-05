@@ -1,6 +1,3 @@
-/* 1. Nhúng font Inter cực nịnh mắt và tối ưu tiếng Việt */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 :root {
   --pc-red: #B91C1C;
   --pc-dark: #171717;
@@ -8,11 +5,10 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #2b2b2b;
   background-color: #f8f9fa;
   text-align: left;
-  letter-spacing: -0.01em; /* Giúp chữ thanh thoát hơn */
 }
 
 /* Container full màn hình */

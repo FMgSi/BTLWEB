@@ -17,35 +17,171 @@
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-4" role="alert">
+    <div class="alert alert-success alert-dismissible fade show bg-success-subtle text-success border border-success mb-3" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<div class="admin-card">
-    <div class="admin-card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title-text mb-0"><i class="bi bi-wrench-adjustable text-primary me-2"></i> Danh mục dịch vụ chuẩn (@Model.Count())</h5>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show bg-danger-subtle text-danger border border-danger mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- ==================== KHUNG CÔNG CỤ & FORM NHẬP LIỆU (THÊM, SỬA, XÓA, LƯU, HỦY, THOÁT) ==================== -->
+<div class="admin-card mb-4 shadow-sm border">
+    <!-- THANH CÔNG CỤ NÚT BẤM TRÊN CÙNG THEO MẪU CHUẨN: THAO TÁC / [ THÊM ] [ SỬA ] [ XÓA ] [ LƯU ] [ HỦY ] [ THOÁT ] -->
+    <div class="p-3 bg-white border-bottom">
+        <div class="operation-label fw-bold mb-2 text-dark" style="font-size: 0.95rem;">Thao tác</div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- 1. NÚT THÊM -->
+            <button type="button" class="btn-action-tool" id="btnThem" onclick="onThemClick()">
+                Thêm
+            </button>
+
+            <!-- 2. NÚT SỬA -->
+            <button type="button" class="btn-action-tool" id="btnSua" onclick="onSuaClick()" disabled>
+                Sửa
+            </button>
+
+            <!-- 3. NÚT XÓA -->
+            <button type="button" class="btn-action-tool" id="btnXoa" onclick="onXoaClick()" disabled>
+                Xóa
+            </button>
+
+            <!-- 4. NÚT LƯU -->
+            <button type="button" class="btn-action-tool" id="btnLuu" onclick="onLuuClick()" disabled>
+                Lưu
+            </button>
+
+            <!-- 5. NÚT HỦY -->
+            <button type="button" class="btn-action-tool" id="btnHuy" onclick="onHuyClick()" disabled>
+                Hủy
+            </button>
+
+            <!-- 6. NÚT THOÁT -->
+            <button type="button" class="btn-action-tool" id="btnThoat" onclick="onThoatClick()">
+                Thoát
+            </button>
+
+            <!-- DÒNG TRẠNG THÁI / HƯỚNG DẪN THAO TÁC -->
+            <div class="ms-auto text-muted small" id="toolbarHint">
+                <i class="bi bi-info-circle me-1"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm</strong> để tạo dịch vụ mới.
+            </div>
+        </div>
+    </div>
+
+    <!-- KHUNG NHẬP LIỆU THÔNG TIN DỊCH VỤ -->
+    <form id="serviceForm" method="post" asp-action="SaveServiceCatalog" class="p-3 bg-light">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ServiceId" id="inpServiceId" value="0" />
+
+        <div class="row g-3 align-items-end">
+            <!-- Mã DV -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Mã dịch vụ <span class="text-danger">*</span></label>
+                <input type="text" name="ServiceCode" id="inpServiceCode" class="form-control-dark font-monospace fw-bold" placeholder="VD: DV-SC09" disabled required />
+            </div>
+
+            <!-- Loại DV -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Loại dịch vụ <span class="text-danger">*</span></label>
+                <select name="ServiceType" id="inpServiceType" class="form-select-dark" disabled onchange="handleTypeChange()">
+                    <option value="Sửa chữa">Sửa chữa</option>
+                    <option value="Bảo hành">Bảo hành</option>
+                </select>
+            </div>
+
+            <!-- Tên dịch vụ -->
+            <div class="col-lg-5 col-md-6 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Tên dịch vụ <span class="text-danger">*</span></label>
+                <input type="text" name="ServiceName" id="inpServiceName" class="form-control-dark" placeholder="VD: Thay thế cụm bản lề Laptop Gaming..." disabled required />
+            </div>
+
+            <!-- Trạng thái -->
+            <div class="col-lg-3 col-md-4 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Trạng thái nhận</label>
+                <select name="IsActive" id="inpIsActive" class="form-select-dark" disabled>
+                    <option value="true">Đang nhận dịch vụ</option>
+                    <option value="false">Tạm ngưng nhận</option>
+                </select>
+            </div>
+
+            <!-- Giá tham khảo -->
+            <div class="col-lg-3 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Giá tham khảo (VNĐ)</label>
+                <input type="number" name="EstimatedCost" id="inpEstimatedCost" class="form-control-dark" placeholder="0" min="0" step="10000" disabled />
+            </div>
+
+            <!-- Thời gian dự kiến -->
+            <div class="col-lg-3 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">Thời gian dự kiến</label>
+                <input type="text" name="EstimatedTime" id="inpEstimatedTime" class="form-control-dark" placeholder="VD: 30 - 45 phút, 1 - 2 ngày" disabled />
+            </div>
+
+            <!-- Bảo hành dịch vụ -->
+            <div class="col-lg-2 col-md-4 col-6">
+                <label class="form-label-dark small fw-bold mb-1">BH dịch vụ (tháng)</label>
+                <input type="number" name="ServiceWarrantyMonths" id="inpWarranty" class="form-control-dark" placeholder="0" min="0" max="60" disabled />
+            </div>
+
+            <!-- Triệu chứng / Điều kiện -->
+            <div class="col-lg-4 col-md-8 col-12">
+                <label class="form-label-dark small fw-bold mb-1">Triệu chứng / Điều kiện áp dụng</label>
+                <input type="text" name="ApplicableConditions" id="inpConditions" class="form-control-dark" placeholder="VD: Máy nóng quạt kêu, bản lề bung gãy..." disabled />
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- FORM ẨN DÙNG ĐỂ GỬI YÊU CẦU XÓA -->
+<form id="deleteForm" method="post" asp-action="DeleteServiceCatalog" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteIdInput" value="0" />
+</form>
+
+<!-- ==================== BẢNG DANH SÁCH DỊCH VỤ ==================== -->
+<div class="admin-card shadow-sm border">
+    <div class="admin-card-header d-flex justify-content-between align-items-center py-3 bg-white border-bottom">
+        <h5 class="card-title-text mb-0 fw-bold">
+            <i class="bi bi-wrench-adjustable text-primary me-2"></i> Danh mục dịch vụ chuẩn (@Model.Count())
+        </h5>
+        <span class="badge bg-light text-muted border small">Bấm vào hàng để chọn dịch vụ</span>
     </div>
     <div class="admin-table-container">
-        <table class="admin-table">
-            <thead>
+        <table class="admin-table table-hover align-middle mb-0" id="servicesTable">
+            <thead class="table-light small">
                 <tr>
-                    <th>Mã DV</th>
-                    <th>Loại dịch vụ</th>
-                    <th>Tên dịch vụ</th>
-                    <th>Triệu chứng / Điều kiện áp dụng</th>
-                    <th>Giá tham khảo</th>
-                    <th>Thời gian dự kiến</th>
-                    <th>BH dịch vụ</th>
-                    <th>Trạng thái</th>
-                    <th class="text-end">Thao tác</th>
+                    <th style="width: 100px;">MÃ DV</th>
+                    <th style="width: 120px;">LOẠI DỊCH VỤ</th>
+                    <th>TÊN DỊCH VỤ</th>
+                    <th>TRIỆU CHỨNG / ĐIỀU KIỆN ÁP DỤNG</th>
+                    <th style="width: 130px;">GIÁ THAM KHẢO</th>
+                    <th style="width: 140px;">THỜI GIAN DỰ KIẾN</th>
+                    <th style="width: 110px;">BH DỊCH VỤ</th>
+                    <th style="width: 110px;">TRẠNG THÁI</th>
+                    <th class="text-end pe-3" style="width: 180px;">THAO TÁC</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var s in Model)
                 {
-                    <tr>
+                    <tr class="service-row" 
+                        style="cursor: pointer; transition: all 0.15s ease;"
+                        data-id="@s.ServiceId"
+                        data-code="@s.ServiceCode"
+                        data-name="@s.ServiceName"
+                        data-type="@s.ServiceType"
+                        data-cost="@s.EstimatedCost"
+                        data-time="@s.EstimatedTime"
+                        data-warranty="@s.ServiceWarrantyMonths"
+                        data-conditions="@s.ApplicableConditions"
+                        data-active="@(s.IsActive ? "true" : "false")"
+                        onclick="handleRowClick(this)"
+                        ondblclick="handleRowDblClick(this)">
                         <td class="font-monospace fw-bold text-primary">@s.ServiceCode</td>
                         <td>
                             @if (s.ServiceType == "Bảo hành")
@@ -62,7 +198,9 @@
                             }
                         </td>
                         <td class="fw-semibold text-dark">@s.ServiceName</td>
-                        <td class="small text-muted" style="max-width: 250px;">@s.ApplicableConditions</td>
+                        <td class="small text-muted" style="max-width: 250px;">
+                            @(string.IsNullOrEmpty(s.ApplicableConditions) ? "-" : s.ApplicableConditions)
+                        </td>
                         <td class="fw-bold text-dark text-nowrap">
                             @if (s.ServiceType == "Bảo hành")
                             {
@@ -73,7 +211,9 @@
                                 <span>@string.Format("{0:N0}đ", s.EstimatedCost)</span>
                             }
                         </td>
-                        <td class="small text-secondary text-nowrap">@s.EstimatedTime</td>
+                        <td class="small text-secondary text-nowrap">
+                            @(string.IsNullOrEmpty(s.EstimatedTime) ? "-" : s.EstimatedTime)
+                        </td>
                         <td class="small text-nowrap">
                             @if (s.ServiceWarrantyMonths > 0)
                             {
@@ -94,14 +234,22 @@
                                 <span class="badge bg-secondary">Tạm ngưng</span>
                             }
                         </td>
-                        <td class="text-end text-nowrap">
-                            <form method="post" asp-action="ToggleServiceStatus" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@s.ServiceId" />
-                                <button type="submit" class="btn btn-sm @(s.IsActive ? "btn-outline-danger" : "btn-outline-success")">
-                                    @(s.IsActive ? "Tạm ngưng" : "Kích hoạt")
+                        <td class="text-end pe-3 text-nowrap" onclick="event.stopPropagation()">
+                            <div class="d-inline-flex gap-1">
+                                <button type="button" class="btn-action-tool btn-sm" onclick="quickEdit(@s.ServiceId)" title="Sửa dịch vụ này">
+                                    <i class="bi bi-pencil"></i> Sửa
                                 </button>
-                            </form>
+                                <button type="button" class="btn-action-tool btn-sm" onclick="quickDelete(@s.ServiceId, '@s.ServiceCode', '@s.ServiceName')" title="Xóa dịch vụ này">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </button>
+                                <form method="post" asp-action="ToggleServiceStatus" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@s.ServiceId" />
+                                    <button type="submit" class="btn-action-tool btn-sm" title="@(s.IsActive ? "Tạm ngưng nhận dịch vụ này" : "Kích hoạt nhận lại dịch vụ này")">
+                                        @(s.IsActive ? "Ngưng" : "Nhận")
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -110,3 +258,249 @@
     </div>
 </div>
 
+<style>
+    /* Hiệu ứng khi một dòng trong bảng được chọn */
+    .service-row.row-selected {
+        background-color: #eff6ff !important;
+        border-left: 4px solid #2563eb !important;
+    }
+    .service-row.row-selected td {
+        background-color: transparent !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let selectedRow = null;
+        let currentMode = 'view'; // 'view' | 'add' | 'edit'
+
+        const formInputs = [
+            'inpServiceCode', 'inpServiceType', 'inpServiceName',
+            'inpIsActive', 'inpEstimatedCost', 'inpEstimatedTime',
+            'inpWarranty', 'inpConditions'
+        ];
+
+        function setInputsDisabled(disabled) {
+            formInputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = disabled;
+            });
+        }
+
+        function clearForm() {
+            document.getElementById('inpServiceId').value = '0';
+            document.getElementById('inpServiceCode').value = '';
+            document.getElementById('inpServiceType').value = 'Sửa chữa';
+            document.getElementById('inpServiceName').value = '';
+            document.getElementById('inpIsActive').value = 'true';
+            document.getElementById('inpEstimatedCost').value = '0';
+            document.getElementById('inpEstimatedTime').value = '';
+            document.getElementById('inpWarranty').value = '0';
+            document.getElementById('inpConditions').value = '';
+        }
+
+        function populateFormFromRow(row) {
+            if (!row) return;
+            document.getElementById('inpServiceId').value = row.dataset.id || '0';
+            document.getElementById('inpServiceCode').value = row.dataset.code || '';
+            document.getElementById('inpServiceType').value = row.dataset.type || 'Sửa chữa';
+            document.getElementById('inpServiceName').value = row.dataset.name || '';
+            document.getElementById('inpIsActive').value = (row.dataset.active === 'true') ? 'true' : 'false';
+            document.getElementById('inpEstimatedCost').value = row.dataset.cost || '0';
+            document.getElementById('inpEstimatedTime').value = row.dataset.time || '';
+            document.getElementById('inpWarranty').value = row.dataset.warranty || '0';
+            document.getElementById('inpConditions').value = row.dataset.conditions || '';
+        }
+
+        function handleRowClick(row) {
+            if (currentMode === 'add' || currentMode === 'edit') {
+                const ok = confirm('Bạn đang trong chế độ nhập liệu (' + (currentMode === 'add' ? 'Thêm mới' : 'Chỉnh sửa') + '). Chọn dòng khác sẽ hủy các thay đổi chưa lưu?');
+                if (!ok) return;
+            }
+
+            // Bỏ chọn dòng cũ
+            if (selectedRow) {
+                selectedRow.classList.remove('row-selected');
+            }
+
+            selectedRow = row;
+            selectedRow.classList.add('row-selected');
+            currentMode = 'view';
+
+            // Đổ dữ liệu vào form (ở trạng thái disabled)
+            populateFormFromRow(row);
+            setInputsDisabled(true);
+
+            // Cập nhật trạng thái các nút
+            document.getElementById('btnThem').disabled = false;
+            document.getElementById('btnSua').disabled = false;
+            document.getElementById('btnXoa').disabled = false;
+            document.getElementById('btnLuu').disabled = true;
+            document.getElementById('btnHuy').disabled = true;
+
+            const code = row.dataset.code;
+            const name = row.dataset.name;
+            document.getElementById('toolbarHint').innerHTML = 
+                '<span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Đã chọn: ' + code + '</span> ' +
+                '<strong>' + name + '</strong>. Bấm <strong>[Sửa]</strong> để chỉnh sửa hoặc <strong>[Xóa]</strong> để gỡ bỏ.';
+        }
+
+        function handleRowDblClick(row) {
+            handleRowClick(row);
+            onSuaClick();
+        }
+
+        function onThemClick() {
+            currentMode = 'add';
+            if (selectedRow) {
+                selectedRow.classList.remove('row-selected');
+                selectedRow = null;
+            }
+
+            clearForm();
+            setInputsDisabled(false);
+
+            // Gợi ý mã dịch vụ tiếp theo
+            const tableRows = document.querySelectorAll('.service-row');
+            let nextNum = tableRows.length + 1;
+            document.getElementById('inpServiceCode').value = 'DV-SC' + (nextNum < 10 ? '0' + nextNum : nextNum);
+
+            document.getElementById('btnThem').disabled = true;
+            document.getElementById('btnSua').disabled = true;
+            document.getElementById('btnXoa').disabled = true;
+            document.getElementById('btnLuu').disabled = false;
+            document.getElementById('btnHuy').disabled = false;
+
+            document.getElementById('toolbarHint').innerHTML = 
+                '<span class="badge bg-success-subtle text-success border border-success-subtle me-1">Chế độ Thêm mới</span> ' +
+                'Vui lòng điền thông tin dịch vụ vào form rồi nhấn <strong>[Lưu]</strong>.';
+
+            document.getElementById('inpServiceName').focus();
+        }
+
+        function onSuaClick() {
+            if (!selectedRow) {
+                alert('Vui lòng nhấp chọn 1 dịch vụ trong bảng trước khi bấm Sửa.');
+                return;
+            }
+
+            currentMode = 'edit';
+            setInputsDisabled(false);
+
+            document.getElementById('btnThem').disabled = true;
+            document.getElementById('btnSua').disabled = true;
+            document.getElementById('btnXoa').disabled = true;
+            document.getElementById('btnLuu').disabled = false;
+            document.getElementById('btnHuy').disabled = false;
+
+            const code = selectedRow.dataset.code;
+            document.getElementById('toolbarHint').innerHTML = 
+                '<span class="badge bg-warning-subtle text-dark border border-warning me-1">Chế độ Chỉnh sửa</span> ' +
+                'Đang sửa dịch vụ <strong>' + code + '</strong>. Chỉnh sửa thông tin rồi nhấn <strong>[Lưu]</strong> hoặc <strong>[Hủy]</strong>.';
+
+            document.getElementById('inpServiceName').focus();
+        }
+
+        function onXoaClick() {
+            if (!selectedRow) {
+                alert('Vui lòng nhấp chọn 1 dịch vụ trong bảng trước khi bấm Xóa.');
+                return;
+            }
+
+            const id = selectedRow.dataset.id;
+            const code = selectedRow.dataset.code;
+            const name = selectedRow.dataset.name;
+
+            quickDelete(id, code, name);
+        }
+
+        function quickDelete(id, code, name) {
+            const confirmed = confirm('Bạn có chắc chắn muốn xóa dịch vụ sau khỏi danh mục?\n\n- Mã DV: ' + code + '\n- Tên DV: ' + name + '\n\n* Lưu ý: Nếu dịch vụ này đã có phiếu tiếp nhận, hệ thống sẽ tự động chuyển sang trạng thái "Tạm ngưng" để bảo toàn dữ liệu lịch sử.');
+            if (confirmed) {
+                document.getElementById('deleteIdInput').value = id;
+                document.getElementById('deleteForm').submit();
+            }
+        }
+
+        function quickEdit(id) {
+            const row = document.querySelector('.service-row[data-id="' + id + '"]');
+            if (row) {
+                handleRowClick(row);
+                onSuaClick();
+            }
+        }
+
+        function onLuuClick() {
+            const codeInput = document.getElementById('inpServiceCode');
+            const nameInput = document.getElementById('inpServiceName');
+
+            if (!codeInput.value.trim()) {
+                alert('Vui lòng nhập Mã dịch vụ (ví dụ: DV-SC09, DV-BH03).');
+                codeInput.focus();
+                return;
+            }
+
+            if (!nameInput.value.trim()) {
+                alert('Vui lòng nhập Tên dịch vụ.');
+                nameInput.focus();
+                return;
+            }
+
+            // Submit form
+            document.getElementById('serviceForm').submit();
+        }
+
+        function onHuyClick() {
+            setInputsDisabled(true);
+            currentMode = 'view';
+
+            document.getElementById('btnThem').disabled = false;
+            document.getElementById('btnLuu').disabled = true;
+            document.getElementById('btnHuy').disabled = true;
+
+            if (selectedRow) {
+                populateFormFromRow(selectedRow);
+                document.getElementById('btnSua').disabled = false;
+                document.getElementById('btnXoa').disabled = false;
+                document.getElementById('toolbarHint').innerHTML = 
+                    '<span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Đã chọn: ' + selectedRow.dataset.code + '</span> ' +
+                    '<strong>' + selectedRow.dataset.name + '</strong>. Bấm <strong>[Sửa]</strong> để chỉnh sửa hoặc <strong>[Xóa]</strong> để gỡ bỏ.';
+            } else {
+                clearForm();
+                document.getElementById('btnSua').disabled = true;
+                document.getElementById('btnXoa').disabled = true;
+                document.getElementById('toolbarHint').innerHTML = 
+                    '<i class="bi bi-info-circle me-1 text-primary"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm</strong> để tạo dịch vụ mới.';
+            }
+        }
+
+        function onThoatClick() {
+            if (currentMode !== 'view' && currentMode !== 'idle') {
+                if (confirm('Bạn đang có thao tác chỉnh sửa chưa lưu. Bạn có muốn hủy và thoát không?')) {
+                    onHuyClick();
+                }
+            } else {
+                window.location.href = '/Admin/ServiceTickets';
+            }
+        }
+
+        function handleTypeChange() {
+            const typeSelect = document.getElementById('inpServiceType');
+            const costInput = document.getElementById('inpEstimatedCost');
+            const codeInput = document.getElementById('inpServiceCode');
+
+            if (typeSelect.value === 'Bảo hành') {
+                costInput.value = '0';
+                costInput.disabled = true;
+                if (currentMode === 'add' && codeInput.value.startsWith('DV-SC')) {
+                    codeInput.value = codeInput.value.replace('DV-SC', 'DV-BH');
+                }
+            } else {
+                costInput.disabled = false;
+                if (currentMode === 'add' && codeInput.value.startsWith('DV-BH')) {
+                    codeInput.value = codeInput.value.replace('DV-BH', 'DV-SC');
+                }
+            }
+        }
+    </script>
+}

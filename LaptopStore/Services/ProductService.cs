@@ -36,6 +36,7 @@ public class ProductService : IProductService
             .Include(p => p.Brand)
             .Include(p => p.Category)
             .Include(p => p.Specification)
+            .Include(p => p.Images)
             .Where(p => p.IsActive)
             .AsQueryable();
 
@@ -235,7 +236,9 @@ public class ProductService : IProductService
                 OriginalPrice = oldPrice,
                 Badge = badge,
                 BadgeColor = badgeColor,
-                Image = p.ThumbnailUrl ?? "/images/default.png"
+                Image = (!string.IsNullOrEmpty(p.ThumbnailUrl) && p.ThumbnailUrl != "/images/default.png")
+                    ? p.ThumbnailUrl
+                    : (p.Images?.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).FirstOrDefault() ?? p.ThumbnailUrl ?? "/images/default.png")
             };
         }).ToList();
 
@@ -465,9 +468,10 @@ public class ProductService : IProductService
             try
             {
                 string? imgPath = null;
-                if (vm.UploadedImage != null && vm.UploadedImage.Length > 0)
+                var mainImgFile = vm.Slot1Image ?? vm.UploadedImage;
+                if (mainImgFile != null && mainImgFile.Length > 0)
                 {
-                    imgPath = await SaveImageFileAsync(vm.UploadedImage);
+                    imgPath = await SaveImageFileAsync(mainImgFile);
                 }
 
                 var product = new Product
@@ -511,6 +515,60 @@ public class ProductService : IProductService
                 };
 
                 _db.Products.Add(product);
+                await _db.SaveChangesAsync();
+
+                // Xác định màu sắc khởi tạo
+                int? colorId = vm.SelectedColorId;
+                if (!colorId.HasValue || colorId.Value <= 0)
+                {
+                    var defaultColor = await _db.Colors.FirstOrDefaultAsync(c => c.IsActive);
+                    if (defaultColor != null) colorId = defaultColor.ColorId;
+                }
+
+                // Lưu các ô ảnh 1, 2, 3, 4 nếu có
+                async Task SaveSlotAsync(int slot, IFormFile? file, string? preSavedUrl = null)
+                {
+                    string? url = preSavedUrl;
+                    if (file != null && file.Length > 0)
+                    {
+                        url = await SaveImageFileAsync(file);
+                    }
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        _db.ProductImages.Add(new ProductImage
+                        {
+                            ProductId = product.ProductId,
+                            ColorId = colorId,
+                            DisplayOrder = slot,
+                            ImageUrl = url
+                        });
+                    }
+                }
+
+                await SaveSlotAsync(1, vm.Slot1Image, imgPath);
+                await SaveSlotAsync(2, vm.Slot2Image);
+                await SaveSlotAsync(3, vm.Slot3Image);
+                await SaveSlotAsync(4, vm.Slot4Image);
+
+                // Tạo biến thể ban đầu tương ứng với màu đã chọn
+                if (colorId.HasValue && colorId.Value > 0)
+                {
+                    var initialVariant = new ProductVariant
+                    {
+                        ProductId = product.ProductId,
+                        ColorId = colorId.Value,
+                        RamGB = ramGb,
+                        StorageGB = storageGb,
+                        Price = vm.Price,
+                        DiscountPrice = vm.DiscountPrice,
+                        StockQuantity = vm.StockQuantity,
+                        SKU = $"SKU-{product.ProductId}-{colorId.Value}-{ramGb}-{storageGb}",
+                        ImageUrl = imgPath ?? product.ThumbnailUrl,
+                        IsActive = true
+                    };
+                    _db.ProductVariants.Add(initialVariant);
+                }
+
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
                 return true;
@@ -583,7 +641,7 @@ public class ProductService : IProductService
                                         p.Images.Add(newImg);
                                     }
 
-                                    // Nếu là ô 1 (Ảnh đại diện), đồng bộ với các variant cùng màu
+                                    // Nếu là ô 1 (Ảnh đại diện), đồng bộ với các variant cùng màu và luôn cập nhật ảnh đại diện của laptop
                                     if (slot == 1)
                                     {
                                         foreach (var v in p.Variants.Where(v => v.ColorId == colorId))
@@ -591,10 +649,7 @@ public class ProductService : IProductService
                                             v.ImageUrl = newUrl;
                                         }
 
-                                        if (string.IsNullOrEmpty(p.ThumbnailUrl))
-                                        {
-                                            p.ThumbnailUrl = newUrl;
-                                        }
+                                        p.ThumbnailUrl = newUrl;
                                     }
                                 }
                             }

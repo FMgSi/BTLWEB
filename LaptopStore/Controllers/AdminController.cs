@@ -28,39 +28,6 @@ public class AdminController : Controller
     private readonly IDiscountService _discountService;
     private readonly IWebHostEnvironment _env;
 
-    private string SettingsFilePath => Path.Combine(_env.ContentRootPath, "App_Data", "systemsettings.json");
-
-    private SystemSettingsViewModel LoadSettings()
-    {
-        try
-        {
-            if (System.IO.File.Exists(SettingsFilePath))
-            {
-                var json = System.IO.File.ReadAllText(SettingsFilePath);
-                var settings = System.Text.Json.JsonSerializer.Deserialize<SystemSettingsViewModel>(json);
-                if (settings != null) return settings;
-            }
-        }
-        catch { }
-        return new SystemSettingsViewModel();
-    }
-
-    private bool SaveSettingsToFile(SystemSettingsViewModel settings)
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(SettingsFilePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            System.IO.File.WriteAllText(SettingsFilePath, json);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     public AdminController(
         AppDbContext db,
         IOrderService orderService,
@@ -524,35 +491,6 @@ public class AdminController : Controller
     }
 
     /// <summary>
-    /// Cấu hình Hệ thống (Chỉ dành riêng cho Admin)
-    /// GET: /Admin/Settings
-    /// </summary>
-    [Authorize(Roles = "Admin")]
-    public IActionResult Settings(string activeTab = "payments")
-    {
-        ViewBag.ActiveTab = activeTab;
-        return View(LoadSettings());
-    }
-
-    /// <summary>
-    /// POST: /Admin/SaveSettings
-    /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult SaveSettings(SystemSettingsViewModel model, string activeTab = "payments")
-    {
-        if (SaveSettingsToFile(model))
-        {
-            TempData["Success"] = "Đã lưu toàn bộ cấu hình hệ thống thành công!";
-        }
-        else
-        {
-            TempData["Error"] = "Lỗi khi ghi tệp cấu hình hệ thống. Vui lòng kiểm tra quyền thư mục App_Data!";
-        }
-        return RedirectToAction(nameof(Settings), new { activeTab });
-    }
-
-    /// <summary>
     /// Báo cáo thống kê nâng cao đa chiều (Bán hàng, Dòng tiền thực thu trả góp, Sản phẩm biến thể, Dịch vụ bảo hành)
     /// GET: /Admin/Reports
     /// </summary>
@@ -904,6 +842,13 @@ public class AdminController : Controller
         ViewBag.WaitingReturnCount = allTickets.Count(t => t.Status == "Chờ trả máy");
         ViewBag.TotalRevenue = allTickets.Where(t => t.Status == "Đã trả máy").Sum(t => t.FinalCost);
 
+        ViewBag.Services = await _db.ServiceCatalog
+            .AsNoTracking()
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.ServiceType)
+            .ThenBy(s => s.ServiceCode)
+            .ToListAsync();
+
         return View(tickets);
     }
 
@@ -951,6 +896,181 @@ public class AdminController : Controller
         {
             return Redirect(returnUrl);
         }
+
+        return RedirectToAction(nameof(ServiceTickets));
+    }
+
+    /// <summary>
+    /// POST: /Admin/SaveServiceTicket
+    /// Thêm mới hoặc Cập nhật thông tin phiếu tiếp nhận Bảo hành / Sửa chữa
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveServiceTicket(
+        int ticketId,
+        string ticketType,
+        string? ticketCode,
+        string customerName,
+        string phoneNumber,
+        string? email,
+        string? deviceModel,
+        string? serialNumber,
+        int? serviceId,
+        string faultDescription,
+        string? physicalCondition,
+        string? accessories,
+        string status,
+        decimal finalCost,
+        string? assignedStaff,
+        string? notes)
+    {
+        if (string.IsNullOrWhiteSpace(customerName) || string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(faultDescription))
+        {
+            TempData["Error"] = "Vui lòng nhập đầy đủ Tên khách hàng, Số điện thoại và Triệu chứng/Lỗi.";
+            return RedirectToAction(nameof(ServiceTickets));
+        }
+
+        var staffName = !string.IsNullOrWhiteSpace(assignedStaff) ? assignedStaff.Trim() : (User.Identity?.Name ?? "Kỹ thuật viên");
+
+        if (ticketId <= 0)
+        {
+            // THÊM MỚI PHIẾU TIẾP NHẬN TẠI QUẦY
+            var todayStr = DateTime.Now.ToString("yyyyMMdd");
+            var countToday = await _db.ServiceTickets.CountAsync(t => t.TicketCode.Contains(todayStr)) + 1;
+            var prefix = ticketType == "Bảo hành" ? "BH" : "SC";
+            var finalCode = !string.IsNullOrWhiteSpace(ticketCode) ? ticketCode.Trim().ToUpper() : $"{prefix}-{todayStr}-{countToday:D4}";
+
+            while (await _db.ServiceTickets.AnyAsync(t => t.TicketCode == finalCode))
+            {
+                countToday++;
+                finalCode = $"{prefix}-{todayStr}-{countToday:D4}";
+            }
+
+            var ticket = new ServiceTicket
+            {
+                TicketCode = finalCode,
+                TicketType = string.IsNullOrWhiteSpace(ticketType) ? "Sửa chữa" : ticketType.Trim(),
+                CustomerName = customerName.Trim(),
+                PhoneNumber = phoneNumber.Trim(),
+                Email = email?.Trim(),
+                ExternalDeviceModel = !string.IsNullOrWhiteSpace(deviceModel) ? deviceModel.Trim() : "Laptop khách mang tới",
+                ExternalSerialNumber = serialNumber?.Trim(),
+                ServiceId = serviceId > 0 ? serviceId : null,
+                FaultDescription = faultDescription.Trim(),
+                PhysicalCondition = physicalCondition?.Trim(),
+                Accessories = accessories?.Trim(),
+                Status = string.IsNullOrWhiteSpace(status) ? "Đã tiếp nhận" : status.Trim(),
+                FinalCost = finalCost >= 0 ? finalCost : 0,
+                AssignedStaff = staffName,
+                Notes = notes?.Trim(),
+                CreatedAt = DateTime.UtcNow,
+                ReceivedAt = DateTime.UtcNow
+            };
+
+            // Nếu là bảo hành và có Serial, tìm kiếm SoldDevices
+            if (!string.IsNullOrWhiteSpace(ticket.ExternalSerialNumber))
+            {
+                var soldDevice = await _db.SoldDevices
+                    .Include(d => d.OrderItem)
+                        .ThenInclude(oi => oi!.Order)
+                    .FirstOrDefaultAsync(d => d.SerialNumber == ticket.ExternalSerialNumber);
+                if (soldDevice != null)
+                {
+                    ticket.SoldDeviceId = soldDevice.DeviceId;
+                    ticket.UserId = soldDevice.OrderItem?.Order?.UserId;
+                }
+            }
+
+            _db.ServiceTickets.Add(ticket);
+            await _db.SaveChangesAsync();
+
+            // Thêm nhật ký lịch sử
+            _db.ServiceTicketHistories.Add(new ServiceTicketHistory
+            {
+                TicketId = ticket.TicketId,
+                PreviousStatus = null,
+                NewStatus = ticket.Status,
+                ActionBy = staffName,
+                ActionAt = DateTime.UtcNow,
+                Notes = $"Tiếp nhận máy mới tại quầy: {ticket.FaultDescription}"
+            });
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = $"Đã tạo mới thành công phiếu tiếp nhận #{ticket.TicketCode} cho khách hàng {ticket.CustomerName}.";
+        }
+        else
+        {
+            // CẬP NHẬT PHIẾU TIẾP NHẬN
+            var existing = await _db.ServiceTickets
+                .Include(t => t.Histories)
+                .FirstOrDefaultAsync(t => t.TicketId == ticketId);
+
+            if (existing == null)
+            {
+                TempData["Error"] = "Không tìm thấy phiếu tiếp nhận cần cập nhật.";
+                return RedirectToAction(nameof(ServiceTickets));
+            }
+
+            var oldStatus = existing.Status;
+            var newStatus = string.IsNullOrWhiteSpace(status) ? existing.Status : status.Trim();
+
+            existing.TicketType = string.IsNullOrWhiteSpace(ticketType) ? existing.TicketType : ticketType.Trim();
+            existing.CustomerName = customerName.Trim();
+            existing.PhoneNumber = phoneNumber.Trim();
+            existing.Email = email?.Trim();
+            if (!string.IsNullOrWhiteSpace(deviceModel)) existing.ExternalDeviceModel = deviceModel.Trim();
+            existing.ExternalSerialNumber = serialNumber?.Trim();
+            existing.ServiceId = serviceId > 0 ? serviceId : null;
+            existing.FaultDescription = faultDescription.Trim();
+            existing.PhysicalCondition = physicalCondition?.Trim();
+            existing.Accessories = accessories?.Trim();
+            existing.Status = newStatus;
+            existing.FinalCost = finalCost >= 0 ? finalCost : 0;
+            existing.AssignedStaff = staffName;
+            existing.Notes = notes?.Trim();
+
+            if (newStatus != oldStatus)
+            {
+                if (newStatus == "Đã tiếp nhận" && existing.ReceivedAt == null) existing.ReceivedAt = DateTime.UtcNow;
+                if ((newStatus == "Đã trả máy" || newStatus == "Chờ trả máy") && existing.CompletedAt == null) existing.CompletedAt = DateTime.UtcNow;
+                if (newStatus == "Đã trả máy" && existing.ReturnedAt == null) existing.ReturnedAt = DateTime.UtcNow;
+
+                _db.ServiceTicketHistories.Add(new ServiceTicketHistory
+                {
+                    TicketId = existing.TicketId,
+                    PreviousStatus = oldStatus,
+                    NewStatus = newStatus,
+                    ActionBy = staffName,
+                    ActionAt = DateTime.UtcNow,
+                    Notes = $"Cập nhật phiếu: {oldStatus} ➔ {newStatus}. Ghi chú: {notes ?? "Cập nhật thông tin phiếu"}"
+                });
+            }
+
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Đã cập nhật thành công phiếu tiếp nhận #{existing.TicketCode}.";
+        }
+
+        return RedirectToAction(nameof(ServiceTickets));
+    }
+
+    /// <summary>
+    /// POST: /Admin/DeleteServiceTicket
+    /// Xóa phiếu tiếp nhận dịch vụ
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteServiceTicket(int id)
+    {
+        var ticket = await _db.ServiceTickets.FindAsync(id);
+        if (ticket == null)
+        {
+            TempData["Error"] = "Không tìm thấy phiếu tiếp nhận cần xóa.";
+            return RedirectToAction(nameof(ServiceTickets));
+        }
+
+        _db.ServiceTickets.Remove(ticket);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"Đã xóa thành công phiếu tiếp nhận #{ticket.TicketCode} khỏi hệ thống.";
 
         return RedirectToAction(nameof(ServiceTickets));
     }
@@ -1032,8 +1152,125 @@ public class AdminController : Controller
     /// </summary>
     public async Task<IActionResult> ServiceCatalog()
     {
-        var items = await _warrantyService.GetCatalogAsync();
+        var items = await _db.ServiceCatalog
+            .AsNoTracking()
+            .OrderBy(s => s.ServiceCode)
+            .Select(s => new ServiceCatalogDto
+            {
+                ServiceId = s.ServiceId,
+                ServiceCode = s.ServiceCode,
+                ServiceName = s.ServiceName,
+                ServiceType = s.ServiceType,
+                ApplicableConditions = s.ApplicableConditions,
+                EstimatedCost = s.EstimatedCost,
+                EstimatedTime = s.EstimatedTime,
+                ServiceWarrantyMonths = s.ServiceWarrantyMonths,
+                IsActive = s.IsActive
+            })
+            .ToListAsync();
         return View(items);
+    }
+
+    /// <summary>
+    /// POST: /Admin/SaveServiceCatalog
+    /// Thêm mới hoặc Cập nhật thông tin dịch vụ Sửa chữa / Bảo hành
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveServiceCatalog(ServiceCatalogItem model)
+    {
+        if (string.IsNullOrWhiteSpace(model.ServiceCode) || string.IsNullOrWhiteSpace(model.ServiceName))
+        {
+            TempData["Error"] = "Vui lòng nhập đầy đủ Mã dịch vụ và Tên dịch vụ.";
+            return RedirectToAction(nameof(ServiceCatalog));
+        }
+
+        model.ServiceCode = model.ServiceCode.Trim().ToUpper();
+        model.ServiceName = model.ServiceName.Trim();
+        model.ServiceType = string.IsNullOrWhiteSpace(model.ServiceType) ? "Sửa chữa" : model.ServiceType.Trim();
+        model.ApplicableConditions = model.ApplicableConditions?.Trim();
+        model.EstimatedTime = model.EstimatedTime?.Trim();
+        if (model.EstimatedCost < 0) model.EstimatedCost = 0;
+        if (model.ServiceWarrantyMonths < 0) model.ServiceWarrantyMonths = 0;
+
+        if (model.ServiceId <= 0)
+        {
+            // Thêm mới dịch vụ
+            var codeExists = await _db.ServiceCatalog.AnyAsync(s => s.ServiceCode == model.ServiceCode);
+            if (codeExists)
+            {
+                TempData["Error"] = $"Mã dịch vụ '{model.ServiceCode}' đã tồn tại trong hệ thống. Vui lòng chọn mã khác.";
+                return RedirectToAction(nameof(ServiceCatalog));
+            }
+
+            _db.ServiceCatalog.Add(model);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Đã thêm thành công dịch vụ mới: {model.ServiceName} ({model.ServiceCode})";
+        }
+        else
+        {
+            // Cập nhật dịch vụ
+            var existing = await _db.ServiceCatalog.FindAsync(model.ServiceId);
+            if (existing == null)
+            {
+                TempData["Error"] = "Không tìm thấy dịch vụ cần cập nhật.";
+                return RedirectToAction(nameof(ServiceCatalog));
+            }
+
+            var duplicateCode = await _db.ServiceCatalog.AnyAsync(s => s.ServiceCode == model.ServiceCode && s.ServiceId != model.ServiceId);
+            if (duplicateCode)
+            {
+                TempData["Error"] = $"Mã dịch vụ '{model.ServiceCode}' đã được sử dụng bởi dịch vụ khác.";
+                return RedirectToAction(nameof(ServiceCatalog));
+            }
+
+            existing.ServiceCode = model.ServiceCode;
+            existing.ServiceName = model.ServiceName;
+            existing.ServiceType = model.ServiceType;
+            existing.ApplicableConditions = model.ApplicableConditions;
+            existing.EstimatedCost = model.EstimatedCost;
+            existing.EstimatedTime = model.EstimatedTime;
+            existing.ServiceWarrantyMonths = model.ServiceWarrantyMonths;
+            existing.IsActive = model.IsActive;
+
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Đã cập nhật thành công dịch vụ: {existing.ServiceName} ({existing.ServiceCode})";
+        }
+
+        return RedirectToAction(nameof(ServiceCatalog));
+    }
+
+    /// <summary>
+    /// POST: /Admin/DeleteServiceCatalog
+    /// Xóa một dịch vụ khỏi danh mục
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteServiceCatalog(int id)
+    {
+        var existing = await _db.ServiceCatalog.FindAsync(id);
+        if (existing == null)
+        {
+            TempData["Error"] = "Không tìm thấy dịch vụ cần xóa.";
+            return RedirectToAction(nameof(ServiceCatalog));
+        }
+
+        var ticketsCount = await _db.ServiceTickets.CountAsync(t => t.ServiceId == id);
+        if (ticketsCount > 0)
+        {
+            // Dịch vụ đã phát sinh phiếu bảo hành/sửa chữa -> chuyển sang tạm ngưng để bảo toàn dữ liệu lịch sử
+            existing.IsActive = false;
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Dịch vụ '{existing.ServiceName}' đã phát sinh {ticketsCount} phiếu tiếp nhận trong hệ thống nên được chuyển sang trạng thái 'Tạm ngưng' thay vì xóa để bảo toàn dữ liệu lịch sử.";
+        }
+        else
+        {
+            _db.ServiceCatalog.Remove(existing);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = $"Đã xóa thành công dịch vụ '{existing.ServiceName}' ({existing.ServiceCode}) khỏi bảng giá.";
+        }
+
+        return RedirectToAction(nameof(ServiceCatalog));
     }
 
     /// <summary>

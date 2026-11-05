@@ -32,16 +32,14 @@
     </div>
 }
 
-<!-- FILTER BAR -->
-<div class="admin-card mb-4 p-3">
-    <form method="get" asp-action="Orders" class="row g-3 align-items-center">
-        <div class="col-md-5">
-            <div class="position-relative">
-                <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
-                <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã đơn, tên khách, số điện thoại..." />
-            </div>
+<!-- FILTER BAR (CĂN LỀ TRÁI GỌN GÀNG) -->
+<div class="admin-card mb-4 p-3 shadow-sm border">
+    <form method="get" asp-action="Orders" class="d-flex flex-wrap align-items-center gap-2">
+        <div class="position-relative" style="width: 340px; max-width: 100%;">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+            <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã đơn, tên khách, SĐT..." />
         </div>
-        <div class="col-md-4">
+        <div style="width: 210px; max-width: 100%;">
             <select name="status" class="form-select-dark" onchange="this.form.submit()">
                 <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
                 <option value="Đang xử lý" selected="@(currentStatus == "Đang xử lý" ? "selected" : null)">Đang xử lý</option>
@@ -51,17 +49,15 @@
                 <option value="Đã hủy" selected="@(currentStatus == "Đã hủy" ? "selected" : null)">Đã hủy</option>
             </select>
         </div>
-        <div class="col-md-3 d-flex gap-2">
-            <button type="submit" class="btn-primary-custom w-100">
-                <i class="bi bi-funnel"></i> Lọc đơn
-            </button>
-            @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
-            {
-                <a href="/Admin/Orders" class="btn-secondary-custom">
-                    <i class="bi bi-x-circle"></i>
-                </a>
-            }
-        </div>
+        <button type="submit" class="btn-action-tool">
+            <i class="bi bi-funnel"></i> Lọc đơn
+        </button>
+        @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
+        {
+            <a href="/Admin/Orders" class="btn-action-tool" title="Đặt lại bộ lọc">
+                <i class="bi bi-x-circle"></i> Xóa lọc
+            </a>
+        }
     </form>
 </div>
 
@@ -136,7 +132,7 @@
                                     foreach (var item in o.Items.Take(2))
                                     {
                                         <div class="text-dark small fw-medium">
-                                            @item.ProductName <span class="text-primary">x@item.Quantity</span>
+                                            @item.ProductName <span class="text-primary">x@(item.Quantity)</span>
                                         </div>
                                         <div class="d-flex flex-wrap gap-1 my-1">
                                             @if (!string.IsNullOrEmpty(item.ColorName))
@@ -193,12 +189,12 @@
                                 @o.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                             </td>
                             <td class="text-end text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary me-1" 
-                                        data-bs-toggle="modal" data-bs-target="#modal-serial-@o.OrderId" title="Gán hoặc bổ sung số Serial cho máy đã giao">
+                                <button type="button" class="btn-action-tool btn-sm me-1" 
+                                        data-bs-toggle="modal" data-bs-target="#modal-serial-@o.OrderId" title="Gán số Serial">
                                     <i class="bi bi-upc-scan"></i> Serial
                                 </button>
-                                <button type="button" class="btn btn-sm btn-secondary-custom" 
-                                        data-bs-toggle="modal" data-bs-target="#modal-order-@o.OrderId">
+                                <button type="button" class="btn-action-tool btn-sm" 
+                                        data-bs-toggle="modal" data-bs-target="#modal-order-@o.OrderId" title="Xử lý đơn">
                                     <i class="bi bi-pencil-square"></i> Xử lý
                                 </button>
                             </td>

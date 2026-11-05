@@ -346,5 +346,34 @@ public class WarrantyServiceTests
         Assert.Equal("Chờ trả máy", updated.Status);
         Assert.Equal("Từ chối", updated.Quotes.First().CustomerDecision);
     }
+
+    [Fact]
+    public async Task GetCustomerDevicesAsync_WithOrderCode_ReturnsMatchingDevices()
+    {
+        // Arrange
+        var db = GetInMemoryDbContext();
+        var service = new WarrantyService(db);
+
+        db.SoldDevices.Add(new SoldDevice
+        {
+            DeviceId = 1,
+            OrderItemId = 1,
+            SerialNumber = "SN-DELL-1001",
+            DeliveredAt = DateTime.UtcNow.AddMonths(-1),
+            WarrantyStartDate = DateTime.UtcNow.AddMonths(-1),
+            WarrantyEndDate = DateTime.UtcNow.AddMonths(11),
+            WarrantyMonths = 12
+        });
+        await db.SaveChangesAsync();
+
+        // Act: Tra cứu theo mã đơn hàng
+        var devices = await service.GetCustomerDevicesAsync(orderCode: "ORD-TEST-001");
+
+        // Assert
+        Assert.NotNull(devices);
+        Assert.Single(devices);
+        Assert.Equal("SN-DELL-1001", devices[0].SerialNumber);
+        Assert.Equal("ORD-TEST-001", devices[0].OrderCode);
+    }
 }
 

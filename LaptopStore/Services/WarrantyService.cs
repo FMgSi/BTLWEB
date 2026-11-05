@@ -36,7 +36,7 @@ public class WarrantyService : IWarrantyService
         }).ToListAsync();
     }
 
-    public async Task<List<SoldDeviceDto>> GetCustomerDevicesAsync(string? phoneNumber = null, int? userId = null)
+    public async Task<List<SoldDeviceDto>> GetCustomerDevicesAsync(string? phoneNumber = null, int? userId = null, string? orderCode = null)
     {
         var query = _db.SoldDevices
             .AsNoTracking()
@@ -44,17 +44,27 @@ public class WarrantyService : IWarrantyService
                 .ThenInclude(i => i!.Order)
             .Include(d => d.OrderItem)
                 .ThenInclude(i => i!.Product)
+            .Include(d => d.OrderItem)
+                .ThenInclude(i => i!.Variant)
             .AsQueryable();
 
         if (userId.HasValue && userId.Value > 0)
         {
             query = query.Where(d => d.OrderItem != null && d.OrderItem.Order != null && d.OrderItem.Order.UserId == userId.Value);
         }
-        else if (!string.IsNullOrEmpty(phoneNumber))
+        else if (!string.IsNullOrWhiteSpace(orderCode))
+        {
+            var cleanCode = orderCode.Trim();
+            query = query.Where(d => d.OrderItem != null && d.OrderItem.Order != null &&
+                (d.OrderItem.Order.OrderCode.Contains(cleanCode) || d.SerialNumber.Contains(cleanCode)));
+        }
+        else if (!string.IsNullOrWhiteSpace(phoneNumber))
         {
             var cleanPhone = phoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
             query = query.Where(d => d.OrderItem != null && d.OrderItem.Order != null &&
-                (d.OrderItem.Order.PhoneNumber == cleanPhone || d.OrderItem.Order.PhoneNumber == phoneNumber));
+                (d.OrderItem.Order.PhoneNumber.Replace(" ", "").Replace(".", "").Replace("-", "") == cleanPhone ||
+                 d.OrderItem.Order.OrderCode.Contains(cleanPhone) ||
+                 d.SerialNumber.Contains(cleanPhone)));
         }
 
         var devices = await query.OrderByDescending(d => d.DeliveredAt).ToListAsync();

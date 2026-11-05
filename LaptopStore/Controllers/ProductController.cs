@@ -79,10 +79,14 @@ public class ProductController : Controller
     {
         ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName");
         ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName");
+        var activeColors = await _db.Colors.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        ViewBag.Colors = new SelectList(activeColors, "ColorId", "Name");
+
         return View(new ProductEditViewModel
         {
             Price = 20000000,
             StockQuantity = 10,
+            SelectedColorId = activeColors.FirstOrDefault()?.ColorId,
             RamGB = 16,
             StorageGB = 512,
             StorageType = "SSD NVMe",
@@ -108,6 +112,7 @@ public class ProductController : Controller
         {
             ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", vm.BrandId);
             ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", vm.CategoryId);
+            ViewBag.Colors = new SelectList(await _db.Colors.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync(), "ColorId", "Name", vm.SelectedColorId);
             return View(vm);
         }
 
@@ -117,6 +122,7 @@ public class ProductController : Controller
             ModelState.AddModelError("", "Đã xảy ra lỗi khi lưu sản phẩm vào cơ sở dữ liệu. Vui lòng thử lại.");
             ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", vm.BrandId);
             ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", vm.CategoryId);
+            ViewBag.Colors = new SelectList(await _db.Colors.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync(), "ColorId", "Name", vm.SelectedColorId);
             return View(vm);
         }
 

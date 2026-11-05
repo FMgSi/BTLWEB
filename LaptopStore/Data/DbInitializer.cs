@@ -61,20 +61,7 @@ public static class DbInitializer
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('OrderItems') AND name = 'ColorName')
                         ALTER TABLE OrderItems ADD ColorName NVARCHAR(100) NULL;
 
-                    -- Nâng cấp an toàn cho bảng ProductImages hỗ trợ 4 ô ảnh theo từng màu sắc
-                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductImages') AND name = 'ColorId')
-                    BEGIN
-                        ALTER TABLE ProductImages ADD ColorId INT NULL;
-                    END
-                    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_ProductImages_Colors_ColorId')
-                    BEGIN
-                        ALTER TABLE ProductImages ADD CONSTRAINT FK_ProductImages_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId) ON DELETE SET NULL;
-                    END
-                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ProductImages_Product_Color_Slot' AND object_id = OBJECT_ID('ProductImages'))
-                    BEGIN
-                        CREATE UNIQUE NONCLUSTERED INDEX IX_ProductImages_Product_Color_Slot ON ProductImages (ProductId, ColorId, DisplayOrder) WHERE ColorId IS NOT NULL;
-                    END
-
+                    -- 1. Bảng danh mục màu sắc máy tính (Colors)
                     IF OBJECT_ID('dbo.Colors', 'U') IS NULL
                     BEGIN
                         CREATE TABLE Colors (
@@ -313,10 +300,34 @@ public static class DbInitializer
                         );
                     END
                 ");
+
+                // Bước 2: Nâng cấp an toàn cho bảng ProductImages (thêm cột ColorId trong batch độc lập)
+                context.Database.ExecuteSqlRaw(@"
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductImages') AND name = 'ColorId')
+                    BEGIN
+                        ALTER TABLE ProductImages ADD ColorId INT NULL;
+                    END
+                ");
+
+                // Bước 3: Ràng buộc khóa ngoại và Index lọc ColorId với SET QUOTED_IDENTIFIER ON
+                context.Database.ExecuteSqlRaw(@"
+                    SET QUOTED_IDENTIFIER ON;
+                    SET ANSI_NULLS ON;
+
+                    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_ProductImages_Colors_ColorId')
+                    BEGIN
+                        ALTER TABLE ProductImages ADD CONSTRAINT FK_ProductImages_Colors_ColorId FOREIGN KEY (ColorId) REFERENCES Colors (ColorId) ON DELETE SET NULL;
+                    END
+
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ProductImages_Product_Color_Slot' AND object_id = OBJECT_ID('ProductImages'))
+                    BEGIN
+                        CREATE UNIQUE NONCLUSTERED INDEX IX_ProductImages_Product_Color_Slot ON ProductImages (ProductId, ColorId, DisplayOrder) WHERE ColorId IS NOT NULL;
+                    END
+                ");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DbInitializer] Cảnh báo khởi tạo bảng Hợp đồng/Trả góp: {ex.Message}");
+                Console.WriteLine($"[DbInitializer] Cảnh báo khởi tạo schema CSDL: {ex.Message}");
             }
         }
 
@@ -955,11 +966,16 @@ public static class DbInitializer
         {
             if (context.SoldDevices.Any()) return;
 
-            // Tìm các đơn hàng Hoàn thành để gắn số Serial mẫu cho máy đã giao
+            // Tìm các đơn hàng để gắn số Serial mẫu cho máy đã giao/bán
             var completedOrders = context.Orders
                 .Include(o => o.OrderItems)
-                .Where(o => o.OrderStatus == "Hoàn thành")
+                .Where(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã xác nhận" || o.OrderStatus == "Đang xử lý")
                 .ToList();
+
+            if (!completedOrders.Any())
+            {
+                completedOrders = context.Orders.Include(o => o.OrderItems).ToList();
+            }
 
             if (!completedOrders.Any()) return;
 

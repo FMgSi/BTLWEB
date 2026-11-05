@@ -5,7 +5,7 @@ namespace LaptopStore.Services;
 public interface IWarrantyService
 {
     Task<List<ServiceCatalogDto>> GetCatalogAsync(string? type = null);
-    Task<List<SoldDeviceDto>> GetCustomerDevicesAsync(string? phoneNumber = null, int? userId = null);
+    Task<List<SoldDeviceDto>> GetCustomerDevicesAsync(string? phoneNumber = null, int? userId = null, string? orderCode = null);
     Task<List<ServiceTicketDetailDto>> GetCustomerTicketsAsync(string? phoneNumber = null, int? userId = null);
     Task<SoldDeviceDto?> GetDeviceBySerialAsync(string serialNumber);
     Task<(bool Success, string Message, ServiceTicketDetailDto? Ticket)> CreateWarrantyTicketAsync(CreateWarrantyTicketRequest request, int? userId = null);

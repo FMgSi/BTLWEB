@@ -27,11 +27,11 @@ public class ServicesApiController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/services/my-devices?phoneNumber=0987654321
+    /// GET /api/services/my-devices?phoneNumber=0987654321&orderCode=PC20261028-1001
     /// Lấy danh sách máy khách hàng đã mua và đã nhận để chọn bảo hành
     /// </summary>
     [HttpGet("my-devices")]
-    public async Task<IActionResult> GetMyDevices([FromQuery] string? phoneNumber)
+    public async Task<IActionResult> GetMyDevices([FromQuery] string? phoneNumber, [FromQuery] string? orderCode)
     {
         int? userId = null;
         try
@@ -47,12 +47,7 @@ public class ServicesApiController : ControllerBase
             // Bỏ qua nếu Session chưa cấu hình
         }
 
-        if (!userId.HasValue && string.IsNullOrWhiteSpace(phoneNumber))
-        {
-            return BadRequest(new { success = false, message = "Vui lòng nhập số điện thoại hoặc đăng nhập để tải danh sách máy đã mua." });
-        }
-
-        var devices = await _warrantyService.GetCustomerDevicesAsync(phoneNumber, userId);
+        var devices = await _warrantyService.GetCustomerDevicesAsync(phoneNumber, userId, orderCode);
         return Ok(new { success = true, devices });
     }
 

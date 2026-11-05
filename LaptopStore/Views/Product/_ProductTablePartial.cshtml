@@ -47,17 +47,17 @@
                                 @statusText
                             </span>
                         </td>
-                        <td class="text-end">
-                            <a asp-action="Variants" asp-route-id="@item.ProductId" class="btn btn-sm btn-outline-info me-1 text-decoration-none py-1 px-2" title="Quản lý phiên bản màu & tồn kho">
+                        <td class="text-end text-nowrap">
+                            <a asp-action="Variants" asp-route-id="@item.ProductId" class="btn-action-tool btn-sm me-1" title="Quản lý phiên bản màu & tồn kho">
                                 <i class="bi bi-palette"></i> Biến thể
                             </a>
-                            <a asp-action="Details" asp-route-id="@item.ProductId" class="btn-action-view me-1 text-decoration-none">
+                            <a asp-action="Details" asp-route-id="@item.ProductId" class="btn-action-tool btn-sm me-1" title="Xem chi tiết">
                                 <i class="bi bi-eye"></i> Xem
                             </a>
-                            <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn-action-edit me-1 text-decoration-none">
+                            <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn-action-tool btn-sm me-1" title="Sửa thông tin">
                                 <i class="bi bi-pencil-square"></i> Sửa
                             </a>
-                            <button type="button" class="btn-action-delete" onclick="deleteProduct(@item.ProductId)">
+                            <button type="button" class="btn-action-tool btn-sm" onclick="deleteProduct(@item.ProductId)" title="Xóa">
                                 <i class="bi bi-trash"></i> Xóa
                             </button>
                         </td>

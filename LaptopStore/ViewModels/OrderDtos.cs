@@ -45,6 +45,11 @@ public class CreateOrderRequest
     /// </summary>
     public string? DiscountCode { get; set; }
 
+    /// <summary>
+    /// Hạng thành viên của khách hàng: "Silver" (Bạc - 5%), "Gold" (Vàng - 10%)
+    /// </summary>
+    public string? MemberTier { get; set; }
+
     [Required]
     [MinLength(1, ErrorMessage = "Giỏ hàng phải có ít nhất 1 sản phẩm để đặt hàng")]
     public List<CreateOrderItemRequest> Items { get; set; } = new();
