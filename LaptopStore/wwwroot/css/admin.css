@@ -899,22 +899,23 @@ a {
 }
 
 /* ==========================================================================
-   ACTION BUTTONS: ĐỒNG NHẤT KÍCH THƯỚC & PHONG CÁCH NỀN XÁM TRẮNG, VIỀN GỌN, CHỮ ĐEN DỄ NHÌN
-   (Chuẩn hóa: Nút chính height 36px, Nút bảng height 28px min-width 60px)
+   ACTION BUTTONS: ĐỒNG NHẤT KÍCH THƯỚC & PHONG CÁCH NỀN XÁM TRẮNG, BỎ VIỀN, CHỮ ĐEN DỄ NHÌN
+   (Chuẩn hóa: Nút chính height 36px, Nút bảng height 28px min-width 60px, không viền)
    ========================================================================== */
 .btn-action-tool,
 .btn-primary-custom,
 .btn-secondary-custom,
 .admin-horizontal-header .btn:not(.btn-close),
-.admin-main .btn:not(.btn-close):not(.dropdown-item):not(.btn-sm):not(.nav-taskbar-toggle),
-.admin-main button:not(.btn-close):not(.carousel-control-prev):not(.carousel-control-next):not(.dropdown-item):not(.navbar-toggler):not(.btn-sm):not(.nav-taskbar-toggle),
-.admin-card .btn:not(.btn-close):not(.dropdown-item):not(.btn-sm),
+.admin-main .btn:not(.btn-close):not(.dropdown-item):not(.btn-sm):not(.nav-taskbar-toggle):not(.filter-btn-item),
+.admin-main button:not(.btn-close):not(.carousel-control-prev):not(.carousel-control-next):not(.dropdown-item):not(.navbar-toggler):not(.btn-sm):not(.nav-taskbar-toggle):not(.filter-btn-item),
+.admin-card .btn:not(.btn-close):not(.dropdown-item):not(.btn-sm):not(.filter-btn-item),
 .page-actions .btn,
 .page-actions a,
 .modal-footer .btn:not(.btn-close) {
     background-color: #ffffff !important;
     color: #000000 !important;
-    border: 1px solid #cbd5e1 !important;
+    border: none !important;
+    outline: none !important;
     border-radius: 4px !important;
     height: 36px !important;
     min-height: 36px !important;
@@ -922,13 +923,13 @@ a {
     padding: 0 16px !important;
     font-size: 0.86rem !important;
     font-weight: 500 !important;
-    line-height: 34px !important;
+    line-height: 36px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
     white-space: nowrap !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
     transition: all 0.15s ease-in-out !important;
     text-decoration: none !important;
     cursor: pointer;
@@ -939,27 +940,27 @@ a {
 .btn-primary-custom:hover:not(:disabled),
 .btn-secondary-custom:hover:not(:disabled),
 .admin-horizontal-header .btn:not(.btn-close):hover:not(:disabled),
-.admin-main .btn:not(.btn-close):hover:not(:disabled),
-.admin-main button:not(.btn-close):hover:not(:disabled),
-.admin-card .btn:not(.btn-close):hover:not(:disabled),
+.admin-main .btn:not(.btn-close):not(.filter-btn-item):hover:not(:disabled),
+.admin-main button:not(.btn-close):not(.filter-btn-item):hover:not(:disabled),
+.admin-card .btn:not(.btn-close):not(.filter-btn-item):hover:not(:disabled),
 .admin-table .btn:hover:not(:disabled),
 .page-actions .btn:hover,
 .page-actions a:hover,
 .modal-footer .btn:not(.btn-close):hover:not(:disabled) {
     background-color: #f1f5f9 !important;
     color: #000000 !important;
-    border-color: #94a3b8 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    border: none !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12) !important;
 }
 
 .btn-action-tool:active:not(:disabled),
 .btn-primary-custom:active:not(:disabled),
 .btn-secondary-custom:active:not(:disabled),
-.admin-main .btn:not(.btn-close):active:not(:disabled),
-.admin-main button:not(.btn-close):active:not(:disabled),
-.admin-card .btn:not(.btn-close):active:not(:disabled) {
+.admin-main .btn:not(.btn-close):not(.filter-btn-item):active:not(:disabled),
+.admin-main button:not(.btn-close):not(.filter-btn-item):active:not(:disabled),
+.admin-card .btn:not(.btn-close):not(.filter-btn-item):active:not(:disabled) {
     background-color: #e2e8f0 !important;
-    border-color: #64748b !important;
+    border: none !important;
     color: #000000 !important;
 }
 
@@ -972,7 +973,7 @@ a {
 .admin-card .btn.disabled {
     background-color: #f8fafc !important;
     color: #9ca3af !important;
-    border-color: #e2e8f0 !important;
+    border: none !important;
     cursor: not-allowed !important;
     box-shadow: none !important;
     opacity: 0.65 !important;
@@ -1000,21 +1001,23 @@ a {
 .admin-table .btn-sm {
     background-color: #ffffff !important;
     color: #000000 !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 3px !important;
+    border: none !important;
+    outline: none !important;
+    border-radius: 4px !important;
     height: 28px !important;
     min-height: 28px !important;
     max-height: 28px !important;
     min-width: 62px !important;
-    padding: 0 8px !important;
+    padding: 0 10px !important;
     font-size: 0.78rem !important;
-    line-height: 26px !important;
+    line-height: 28px !important;
     font-weight: 500 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 0.25rem !important;
     text-decoration: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
     transition: all 0.15s ease !important;
     white-space: nowrap !important;
     box-sizing: border-box !important;
@@ -1029,7 +1032,8 @@ a {
 .admin-table .btn-sm:hover {
     background-color: #f1f5f9 !important;
     color: #000000 !important;
-    border-color: #94a3b8 !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Đồng bộ chiều cao ô input và select trong bộ lọc */
@@ -1081,24 +1085,26 @@ a {
     min-width: 34px;
     height: 34px;
     padding: 0 0.5rem;
-    border-radius: 7px;
+    border-radius: 6px;
     background: #ffffff;
-    border: 1px solid #cbd5e1;
+    border: none !important;
     color: #475569;
     font-size: 0.83rem;
     font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
 }
 
 .admin-page-item a:hover {
     background: #f1f5f9;
     color: #0f172a;
-    border-color: #94a3b8;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .admin-page-item.active a {
     background: var(--primary-blue);
-    border-color: var(--primary-blue);
+    border: none !important;
     color: #ffffff !important;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
@@ -1223,34 +1229,42 @@ input:checked + .admin-slider:before {
 .filter-btn-group {
     display: inline-flex;
     background: #f1f5f9;
-    border: 1px solid var(--border-color);
+    border: none !important;
     border-radius: 8px;
     padding: 3px;
     gap: 3px;
 }
 
 .filter-btn-item {
-    border: none;
-    background: transparent;
-    color: #475569;
-    font-size: 0.8rem;
-    font-weight: 500;
-    padding: 0.35rem 0.75rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    color: #475569 !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    padding: 0.35rem 0.75rem !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
 }
 
 .filter-btn-item:hover {
-    color: var(--primary-blue);
-    background: rgba(255, 255, 255, 0.5);
+    color: var(--primary-blue) !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .filter-btn-item.active {
-    background: #ffffff;
-    color: var(--primary-blue);
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    background: #ffffff !important;
+    color: var(--primary-blue) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    border: none !important;
 }
 
 /* Bootstrap Table integration */
