@@ -5,6 +5,7 @@
     var currentType = ViewBag.Type as string ?? "all";
     var currentSearch = ViewBag.Search as string ?? "";
     var serviceCatalog = ViewBag.Services as IEnumerable<LaptopStore.Models.ServiceCatalogItem> ?? Enumerable.Empty<LaptopStore.Models.ServiceCatalogItem>();
+    var customerLookup = ViewBag.CustomerLookup as IEnumerable<LaptopStore.ViewModels.SoldDeviceDto> ?? Enumerable.Empty<LaptopStore.ViewModels.SoldDeviceDto>();
 }
 
 <div class="page-header">
@@ -128,121 +129,181 @@
         </div>
     </div>
 
-    <!-- KHUNG NHẬP LIỆU PHIẾU TIẾP NHẬN DỊCH VỤ -->
+    <!-- KHUNG NHẬP LIỆU PHIẾU TIẾP NHẬN DỊCH VỤ (SẮP XẾP THEO DẠNG 3 CỘT RÕ RÀNG) -->
     <form id="ticketForm" method="post" asp-action="SaveServiceTicket" class="p-3 bg-light">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ticketId" id="inpTicketId" value="0" />
 
-        <!-- HÀNG 1: THÔNG TIN KHÁCH HÀNG & THIẾT BỊ -->
-        <div class="row g-3 align-items-end mb-2">
-            <!-- Loại phiếu -->
-            <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Loại dịch vụ <span class="text-danger">*</span></label>
-                <select name="ticketType" id="inpTicketType" class="form-select-dark" disabled onchange="handleTicketTypeChange()">
-                    <option value="Sửa chữa">Sửa chữa dịch vụ</option>
-                    <option value="Bảo hành">Bảo hành chính hãng</option>
-                </select>
+        <div class="row g-3">
+            <!-- CỘT 1: THÔNG TIN TIẾP NHẬN & KHÁCH HÀNG -->
+            <div class="col-lg-4 col-md-12">
+                <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
+                        <span class="fw-bold text-dark">
+                            <i class="bi bi-person-lines-fill text-primary me-2"></i>1. Khách hàng & Tiếp nhận
+                        </span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 1</span>
+                    </div>
+
+                    <!-- Loại dịch vụ -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Loại dịch vụ <span class="text-danger">*</span></label>
+                        <select name="ticketType" id="inpTicketType" class="form-select-dark" disabled onchange="handleTicketTypeChange(true)">
+                            <option value="Sửa chữa">Sửa chữa dịch vụ</option>
+                            <option value="Bảo hành">Bảo hành chính hãng</option>
+                        </select>
+                    </div>
+
+                    <!-- Mã phiếu -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Mã phiếu tiếp nhận</label>
+                        <input type="text" name="ticketCode" id="inpTicketCode" class="form-control-dark font-monospace fw-bold" placeholder="Tự sinh nếu để trống" disabled />
+                    </div>
+
+                    <!-- Ô CHỌN SỐ ĐIỆN THOẠI (Dành riêng cho phần Bảo hành để tự điền tên) -->
+                    <div class="mb-3" id="divSelectPhone" style="display: none;">
+                        <label class="form-label-dark small fw-bold mb-1 text-primary">
+                            <i class="bi bi-telephone-inbound me-1"></i>Chọn số điện thoại khách hàng <span class="text-danger">*</span>
+                        </label>
+                        <select id="selCustomerPhone" class="form-select-dark border-primary" disabled onchange="handleCustomerPhoneSelect(this)">
+                            <option value="">-- Chọn SĐT khách đã mua máy --</option>
+                            @if (customerLookup != null)
+                            {
+                                foreach (var c in customerLookup)
+                                {
+                                    <option value="@c.PhoneNumber"
+                                            data-name="@c.CustomerName"
+                                            data-device="@c.ProductName"
+                                            data-serial="@c.SerialNumber"
+                                            data-warranty="@(c.IsUnderWarranty ? "Còn BH" : "Hết BH")">
+                                        @c.PhoneNumber - @c.CustomerName (@c.ProductName - @c.SerialNumber)
+                                    </option>
+                                }
+                            }
+                        </select>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">
+                            <i class="bi bi-magic text-primary"></i> Chọn SĐT để tự động điền Tên, Thiết bị & Serial máy.
+                        </small>
+                    </div>
+
+                    <!-- Ô NHẬP SỐ ĐIỆN THOẠI THỦ CÔNG (Dành cho Sửa chữa máy ngoài) -->
+                    <div class="mb-3" id="divInputPhone">
+                        <label class="form-label-dark small fw-bold mb-1">Số điện thoại khách hàng <span class="text-danger">*</span></label>
+                        <input type="text" name="phoneNumber" id="inpPhoneNumber" class="form-control-dark" placeholder="VD: 0912345678" disabled required />
+                    </div>
+
+                    <!-- Tên khách hàng (Tự điền khi chọn SĐT ở phần bảo hành) -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">
+                            Tên khách hàng <span class="text-danger">*</span>
+                            <span id="lblAutoFillNameHint" class="badge bg-success-subtle text-success ms-1 small d-none">
+                                <i class="bi bi-magic"></i> Tự động điền theo SĐT
+                            </span>
+                        </label>
+                        <input type="text" name="customerName" id="inpCustomerName" class="form-control-dark" placeholder="VD: Nguyễn Văn A" disabled required />
+                    </div>
+
+                    <!-- Email liên hệ -->
+                    <div class="mb-2">
+                        <label class="form-label-dark small fw-bold mb-1">Email liên hệ (tùy chọn)</label>
+                        <input type="email" name="email" id="inpEmail" class="form-control-dark" placeholder="khachhang@gmail.com" disabled />
+                    </div>
+                </div>
             </div>
 
-            <!-- Mã phiếu -->
-            <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Mã phiếu</label>
-                <input type="text" name="ticketCode" id="inpTicketCode" class="form-control-dark font-monospace fw-bold" placeholder="Tự sinh nếu để trống" disabled />
+            <!-- CỘT 2: THÔNG TIN MÁY & NGOẠI QUAN -->
+            <div class="col-lg-4 col-md-12">
+                <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
+                        <span class="fw-bold text-dark">
+                            <i class="bi bi-laptop text-primary me-2"></i>2. Thông tin máy & Ngoại quan
+                        </span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 2</span>
+                    </div>
+
+                    <!-- Tên thiết bị / Model máy -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Thiết bị / Model máy <span class="text-danger">*</span></label>
+                        <input type="text" name="deviceModel" id="inpDeviceModel" class="form-control-dark" placeholder="VD: ASUS TUF Gaming A15..." disabled required />
+                    </div>
+
+                    <!-- Số Serial / Service Tag -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Số Serial / Service Tag</label>
+                        <input type="text" name="serialNumber" id="inpSerialNumber" class="form-control-dark font-monospace" placeholder="VD: SN-DELL-1002" disabled />
+                    </div>
+
+                    <!-- Tình trạng ngoại quan -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Tình trạng ngoại quan lúc nhận</label>
+                        <input type="text" name="physicalCondition" id="inpPhysicalCondition" class="form-control-dark" placeholder="VD: Vỏ xước nhẹ góc trái, màn hình nguyên vẹn" disabled />
+                    </div>
+
+                    <!-- Phụ kiện nhận kèm -->
+                    <div class="mb-2">
+                        <label class="form-label-dark small fw-bold mb-1">Phụ kiện nhận kèm theo</label>
+                        <input type="text" name="accessories" id="inpAccessories" class="form-control-dark" placeholder="VD: Thân máy + Sạc zin 65W" disabled />
+                    </div>
+                </div>
             </div>
 
-            <!-- Tên khách hàng -->
-            <div class="col-lg-3 col-md-3 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Tên khách hàng <span class="text-danger">*</span></label>
-                <input type="text" name="customerName" id="inpCustomerName" class="form-control-dark" placeholder="VD: Nguyễn Văn A" disabled required />
-            </div>
+            <!-- CỘT 3: HẠNG MỤC DỊCH VỤ, CHI PHÍ & TRẠNG THÁI -->
+            <div class="col-lg-4 col-md-12">
+                <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
+                        <span class="fw-bold text-dark">
+                            <i class="bi bi-tools text-primary me-2"></i>3. Dịch vụ, Chi phí & Trạng thái
+                        </span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 3</span>
+                    </div>
 
-            <!-- Số điện thoại -->
-            <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Số điện thoại <span class="text-danger">*</span></label>
-                <input type="text" name="phoneNumber" id="inpPhoneNumber" class="form-control-dark" placeholder="VD: 0912345678" disabled required />
-            </div>
+                    <!-- Hạng mục dịch vụ -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Hạng mục dịch vụ (Bảng giá niêm yết)</label>
+                        <select name="serviceId" id="inpServiceId" class="form-select-dark" disabled onchange="handleCatalogServiceChange()">
+                            <option value="">-- Chọn hạng mục bảng giá --</option>
+                            @foreach (var s in serviceCatalog)
+                            {
+                                <option value="@s.ServiceId" data-type="@s.ServiceType" data-cost="@s.EstimatedCost">
+                                    [@s.ServiceCode] @s.ServiceName (@(s.ServiceType == "Bảo hành" ? "0đ" : string.Format("{0:N0}đ", s.EstimatedCost)))
+                                </option>
+                            }
+                        </select>
+                    </div>
 
-            <!-- Email -->
-            <div class="col-lg-3 col-md-4 col-12">
-                <label class="form-label-dark small fw-bold mb-1">Email liên hệ (tùy chọn)</label>
-                <input type="email" name="email" id="inpEmail" class="form-control-dark" placeholder="khachhang@gmail.com" disabled />
-            </div>
-        </div>
+                    <!-- Triệu chứng / Lỗi khách phản ánh -->
+                    <div class="mb-3">
+                        <label class="form-label-dark small fw-bold mb-1">Triệu chứng / Lỗi khách phản ánh <span class="text-danger">*</span></label>
+                        <input type="text" name="faultDescription" id="inpFaultDescription" class="form-control-dark" placeholder="VD: Bật không lên màn hình, cắm sạc chập chờn..." disabled required />
+                    </div>
 
-        <!-- HÀNG 2: THÔNG TIN MÁY & HẠNG MỤC SỬA CHỮA -->
-        <div class="row g-3 align-items-end mb-2">
-            <!-- Tên thiết bị / Model -->
-            <div class="col-lg-3 col-md-4 col-12">
-                <label class="form-label-dark small fw-bold mb-1">Thiết bị / Model máy <span class="text-danger">*</span></label>
-                <input type="text" name="deviceModel" id="inpDeviceModel" class="form-control-dark" placeholder="VD: ASUS TUF Gaming A15 hoặc Dell XPS 13" disabled required />
-            </div>
+                    <!-- Chi phí & Kỹ thuật viên (2 ô nhỏ cùng hàng) -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label-dark small fw-bold mb-1">Chi phí (VNĐ)</label>
+                            <input type="number" name="finalCost" id="inpFinalCost" class="form-control-dark fw-bold" placeholder="0" min="0" step="10000" disabled />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-dark small fw-bold mb-1">Kỹ thuật phụ trách</label>
+                            <input type="text" name="assignedStaff" id="inpAssignedStaff" class="form-control-dark" value="@(User.Identity?.Name ?? "Quản Trị Viên")" disabled />
+                        </div>
+                    </div>
 
-            <!-- Serial máy -->
-            <div class="col-lg-2 col-md-4 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Số Serial / Service Tag</label>
-                <input type="text" name="serialNumber" id="inpSerialNumber" class="form-control-dark font-monospace" placeholder="VD: SN-DELL-1002" disabled />
-            </div>
-
-            <!-- Hạng mục dịch vụ -->
-            <div class="col-lg-3 col-md-4 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Hạng mục dịch vụ</label>
-                <select name="serviceId" id="inpServiceId" class="form-select-dark" disabled onchange="handleCatalogServiceChange()">
-                    <option value="">-- Chọn hạng mục bảng giá --</option>
-                    @foreach (var s in serviceCatalog)
-                    {
-                        <option value="@s.ServiceId" data-type="@s.ServiceType" data-cost="@s.EstimatedCost">
-                            [@s.ServiceCode] @s.ServiceName (@(s.ServiceType == "Bảo hành" ? "0đ" : string.Format("{0:N0}đ", s.EstimatedCost)))
-                        </option>
-                    }
-                </select>
-            </div>
-
-            <!-- Lỗi phản ánh -->
-            <div class="col-lg-4 col-md-12 col-12">
-                <label class="form-label-dark small fw-bold mb-1">Triệu chứng / Lỗi khách phản ánh <span class="text-danger">*</span></label>
-                <input type="text" name="faultDescription" id="inpFaultDescription" class="form-control-dark" placeholder="VD: Bật không lên màn hình, cắm sạc chập chờn..." disabled required />
-            </div>
-        </div>
-
-        <!-- HÀNG 3: NGOẠI QUAN, TRẠNG THÁI, CHI PHÍ & PHÂN CÔNG -->
-        <div class="row g-3 align-items-end">
-            <!-- Ngoại quan -->
-            <div class="col-lg-3 col-md-4 col-12">
-                <label class="form-label-dark small fw-bold mb-1">Tình trạng ngoại quan</label>
-                <input type="text" name="physicalCondition" id="inpPhysicalCondition" class="form-control-dark" placeholder="VD: Vỏ xước nhẹ góc trái, màn hình nguyên vẹn" disabled />
-            </div>
-
-            <!-- Phụ kiện -->
-            <div class="col-lg-2 col-md-4 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Phụ kiện nhận kèm</label>
-                <input type="text" name="accessories" id="inpAccessories" class="form-control-dark" placeholder="VD: Máy + Sạc zin 65W" disabled />
-            </div>
-
-            <!-- Trạng thái -->
-            <div class="col-lg-3 col-md-4 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Trạng thái phiếu</label>
-                <select name="status" id="inpStatus" class="form-select-dark" disabled>
-                    <option value="Chờ tiếp nhận">1. Chờ tiếp nhận (Khách gửi online)</option>
-                    <option value="Đã tiếp nhận" selected>2. Đã tiếp nhận (Cầm máy tại quầy)</option>
-                    <option value="Đang kiểm tra">3. Đang kiểm tra kỹ thuật</option>
-                    <option value="Chờ duyệt báo giá">4. Chờ duyệt báo giá</option>
-                    <option value="Đang xử lý">5. Đang xử lý / Sửa chữa</option>
-                    <option value="Chờ trả máy">6. Chờ trả máy (Đã sửa xong)</option>
-                    <option value="Đã trả máy">7. Đã trả máy (Bàn giao xong)</option>
-                    <option value="Đã hủy/Từ chối">8. Đã hủy / Từ chối</option>
-                </select>
-            </div>
-
-            <!-- Chi phí thực thu -->
-            <div class="col-lg-2 col-md-4 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Chi phí (VNĐ)</label>
-                <input type="number" name="finalCost" id="inpFinalCost" class="form-control-dark fw-bold" placeholder="0" min="0" step="10000" disabled />
-            </div>
-
-            <!-- Kỹ thuật viên phụ trách -->
-            <div class="col-lg-2 col-md-4 col-6">
-                <label class="form-label-dark small fw-bold mb-1">Kỹ thuật phụ trách</label>
-                <input type="text" name="assignedStaff" id="inpAssignedStaff" class="form-control-dark" value="@(User.Identity?.Name ?? "Kỹ thuật viên")" disabled />
+                    <!-- Trạng thái phiếu tiếp nhận -->
+                    <div class="mb-2">
+                        <label class="form-label-dark small fw-bold mb-1">Trạng thái phiếu</label>
+                        <select name="status" id="inpStatus" class="form-select-dark" disabled>
+                            <option value="Chờ tiếp nhận">1. Chờ tiếp nhận (Khách gửi online)</option>
+                            <option value="Đã tiếp nhận" selected>2. Đã tiếp nhận (Cầm máy tại quầy)</option>
+                            <option value="Đang kiểm tra">3. Đang kiểm tra kỹ thuật</option>
+                            <option value="Chờ duyệt báo giá">4. Chờ duyệt báo giá</option>
+                            <option value="Đang xử lý">5. Đang xử lý / Sửa chữa</option>
+                            <option value="Chờ trả máy">6. Chờ trả máy (Đã sửa xong)</option>
+                            <option value="Đã trả máy">7. Đã trả máy (Bàn giao xong)</option>
+                            <option value="Đã hủy/Từ chối">8. Đã hủy / Từ chối</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -460,7 +521,8 @@
         const ticketInputs = [
             'inpTicketType', 'inpTicketCode', 'inpCustomerName', 'inpPhoneNumber', 'inpEmail',
             'inpDeviceModel', 'inpSerialNumber', 'inpServiceId', 'inpFaultDescription',
-            'inpPhysicalCondition', 'inpAccessories', 'inpStatus', 'inpFinalCost', 'inpAssignedStaff'
+            'inpPhysicalCondition', 'inpAccessories', 'inpStatus', 'inpFinalCost', 'inpAssignedStaff',
+            'selCustomerPhone'
         ];
 
         function setTicketInputsDisabled(disabled) {
@@ -468,6 +530,82 @@
                 const el = document.getElementById(id);
                 if (el) el.disabled = disabled;
             });
+        }
+
+        function handleTicketTypeChange(isUserAction = true) {
+            const type = document.getElementById('inpTicketType').value;
+            const codeInput = document.getElementById('inpTicketCode');
+            const costInput = document.getElementById('inpFinalCost');
+            const divSelect = document.getElementById('divSelectPhone');
+            const divInput = document.getElementById('divInputPhone');
+            const nameInput = document.getElementById('inpCustomerName');
+            const nameHint = document.getElementById('lblAutoFillNameHint');
+
+            if (type === 'Bảo hành') {
+                // Hiển thị ô chọn số điện thoại, ẩn ô nhập SĐT tự do
+                if (divSelect) divSelect.style.display = 'block';
+                if (divInput) divInput.style.display = 'none';
+                if (nameHint) nameHint.classList.remove('d-none');
+                if (nameInput) {
+                    nameInput.readOnly = true;
+                    nameInput.placeholder = 'Hệ thống tự động điền Tên khi chọn SĐT bên trên';
+                }
+
+                if (ticketMode === 'add' && isUserAction) {
+                    if (codeInput.value.startsWith('SC-')) {
+                        codeInput.value = codeInput.value.replace('SC-', 'BH-');
+                    }
+                    costInput.value = '0';
+                }
+            } else {
+                // Hiển thị ô nhập SĐT tự do cho khách sửa ngoài
+                if (divSelect) divSelect.style.display = 'none';
+                if (divInput) divInput.style.display = 'block';
+                if (nameHint) nameHint.classList.add('d-none');
+                if (nameInput) {
+                    nameInput.readOnly = false;
+                    nameInput.placeholder = 'VD: Nguyễn Văn A';
+                }
+
+                if (ticketMode === 'add' && isUserAction) {
+                    if (codeInput.value.startsWith('BH-')) {
+                        codeInput.value = codeInput.value.replace('BH-', 'SC-');
+                    }
+                }
+            }
+        }
+
+        function handleCustomerPhoneSelect(selectEl) {
+            if (!selectEl) return;
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (opt && opt.value) {
+                // Tự động điền số điện thoại
+                document.getElementById('inpPhoneNumber').value = opt.value;
+
+                // Tự động điền tên khách hàng
+                if (opt.dataset.name) {
+                    document.getElementById('inpCustomerName').value = opt.dataset.name;
+                }
+
+                // Tự động điền email nếu có
+                if (opt.dataset.email) {
+                    document.getElementById('inpEmail').value = opt.dataset.email;
+                }
+
+                // Tự động điền Thiết bị & Serial máy đã mua
+                if (opt.dataset.device) {
+                    document.getElementById('inpDeviceModel').value = opt.dataset.device;
+                }
+                if (opt.dataset.serial) {
+                    document.getElementById('inpSerialNumber').value = opt.dataset.serial;
+                }
+
+                // Bảo hành thì tiền dịch vụ là 0đ
+                document.getElementById('inpFinalCost').value = '0';
+            } else {
+                document.getElementById('inpPhoneNumber').value = '';
+                document.getElementById('inpCustomerName').value = '';
+            }
         }
 
         function clearTicketForm() {
@@ -485,6 +623,11 @@
             document.getElementById('inpAccessories').value = '';
             document.getElementById('inpStatus').value = 'Đã tiếp nhận';
             document.getElementById('inpFinalCost').value = '0';
+
+            const sel = document.getElementById('selCustomerPhone');
+            if (sel) sel.value = '';
+
+            handleTicketTypeChange(false);
         }
 
         function populateTicketForm(row) {
@@ -504,6 +647,22 @@
             document.getElementById('inpStatus').value = row.dataset.status || 'Đã tiếp nhận';
             document.getElementById('inpFinalCost').value = row.dataset.cost || '0';
             document.getElementById('inpAssignedStaff').value = row.dataset.staff || '';
+
+            handleTicketTypeChange(false);
+
+            if (row.dataset.type === 'Bảo hành') {
+                const sel = document.getElementById('selCustomerPhone');
+                if (sel) {
+                    sel.value = row.dataset.phone || '';
+                    if (row.dataset.phone && sel.value !== row.dataset.phone) {
+                        const opt = document.createElement('option');
+                        opt.value = row.dataset.phone;
+                        opt.text = row.dataset.phone + ' - ' + (row.dataset.name || '') + ' (' + (row.dataset.device || '') + ')';
+                        sel.add(opt);
+                        sel.value = row.dataset.phone;
+                    }
+                }
+            }
         }
 
         function handleTicketRowClick(row) {
@@ -557,7 +716,8 @@
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-            document.getElementById('inpTicketCode').value = 'SC-' + yyyy + mm + dd + '-' + randomSuffix;
+            const prefix = document.getElementById('inpTicketType').value === 'Bảo hành' ? 'BH' : 'SC';
+            document.getElementById('inpTicketCode').value = prefix + '-' + yyyy + mm + dd + '-' + randomSuffix;
 
             document.getElementById('btnThemTicket').disabled = true;
             document.getElementById('btnSuaTicket').disabled = true;
@@ -565,11 +725,17 @@
             document.getElementById('btnLuuTicket').disabled = false;
             document.getElementById('btnHuyTicket').disabled = false;
 
+            handleTicketTypeChange(false);
+
             document.getElementById('toolbarTicketHint').innerHTML = 
                 '<span class="badge bg-success-subtle text-success border border-success-subtle me-1">Chế độ Thêm phiếu mới</span> ' +
-                'Nhập thông tin tiếp nhận máy của khách tại quầy rồi nhấn <strong>[Lưu phiếu]</strong>.';
+                'Chọn loại dịch vụ, chọn/nhập thông tin khách hàng rồi nhấn <strong>[Lưu]</strong>.';
 
-            document.getElementById('inpCustomerName').focus();
+            if (document.getElementById('inpTicketType').value === 'Bảo hành') {
+                document.getElementById('selCustomerPhone').focus();
+            } else {
+                document.getElementById('inpCustomerName').focus();
+            }
         }
 
         function onSuaTicketClick() {
@@ -580,6 +746,7 @@
 
             ticketMode = 'edit';
             setTicketInputsDisabled(false);
+            handleTicketTypeChange(false);
 
             document.getElementById('btnThemTicket').disabled = true;
             document.getElementById('btnSuaTicket').disabled = true;
@@ -590,9 +757,13 @@
             const code = selectedTicketRow.dataset.code;
             document.getElementById('toolbarTicketHint').innerHTML = 
                 '<span class="badge bg-warning-subtle text-dark border border-warning me-1">Chế độ Chỉnh sửa</span> ' +
-                'Đang sửa phiếu <strong>#' + code + '</strong>. Sửa các thông tin cần thiết rồi nhấn <strong>[Lưu phiếu]</strong> hoặc <strong>[Hủy]</strong>.';
+                'Đang sửa phiếu <strong>#' + code + '</strong>. Sửa các thông tin cần thiết rồi nhấn <strong>[Lưu]</strong> hoặc <strong>[Hủy]</strong>.';
 
-            document.getElementById('inpCustomerName').focus();
+            if (document.getElementById('inpTicketType').value === 'Bảo hành') {
+                document.getElementById('selCustomerPhone').focus();
+            } else {
+                document.getElementById('inpCustomerName').focus();
+            }
         }
 
         function onXoaTicketClick() {
@@ -625,20 +796,33 @@
         }
 
         function onLuuTicketClick() {
+            const type = document.getElementById('inpTicketType').value;
             const nameInput = document.getElementById('inpCustomerName');
             const phoneInput = document.getElementById('inpPhoneNumber');
+            const selPhone = document.getElementById('selCustomerPhone');
             const faultInput = document.getElementById('inpFaultDescription');
             const deviceInput = document.getElementById('inpDeviceModel');
 
-            if (!nameInput.value.trim()) {
-                alert('Vui lòng nhập Tên khách hàng.');
-                nameInput.focus();
-                return;
+            if (type === 'Bảo hành') {
+                if (!phoneInput.value.trim() && selPhone && selPhone.value) {
+                    phoneInput.value = selPhone.value;
+                }
+                if (!phoneInput.value.trim()) {
+                    alert('Vui lòng chọn Số điện thoại khách hàng bảo hành.');
+                    selPhone.focus();
+                    return;
+                }
+            } else {
+                if (!phoneInput.value.trim()) {
+                    alert('Vui lòng nhập Số điện thoại của khách.');
+                    phoneInput.focus();
+                    return;
+                }
             }
 
-            if (!phoneInput.value.trim()) {
-                alert('Vui lòng nhập Số điện thoại của khách.');
-                phoneInput.focus();
+            if (!nameInput.value.trim()) {
+                alert('Vui lòng nhập hoặc chọn Tên khách hàng.');
+                nameInput.focus();
                 return;
             }
 
@@ -677,7 +861,7 @@
                 document.getElementById('btnSuaTicket').disabled = true;
                 document.getElementById('btnXoaTicket').disabled = true;
                 document.getElementById('toolbarTicketHint').innerHTML = 
-                    '<i class="bi bi-info-circle me-1 text-primary"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm phiếu mới</strong> để tạo phiếu tiếp nhận máy tại quầy.';
+                    '<i class="bi bi-info-circle me-1 text-primary"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm</strong> để tạo phiếu tiếp nhận máy tại quầy.';
             }
         }
 
@@ -688,25 +872,6 @@
                 }
             } else {
                 window.location.href = '/Admin/Orders';
-            }
-        }
-
-        function handleTicketTypeChange() {
-            const type = document.getElementById('inpTicketType').value;
-            const codeInput = document.getElementById('inpTicketCode');
-            const costInput = document.getElementById('inpFinalCost');
-
-            if (ticketMode === 'add') {
-                if (type === 'Bảo hành') {
-                    if (codeInput.value.startsWith('SC-')) {
-                        codeInput.value = codeInput.value.replace('SC-', 'BH-');
-                    }
-                    costInput.value = '0';
-                } else {
-                    if (codeInput.value.startsWith('BH-')) {
-                        codeInput.value = codeInput.value.replace('BH-', 'SC-');
-                    }
-                }
             }
         }
 

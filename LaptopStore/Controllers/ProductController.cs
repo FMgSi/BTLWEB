@@ -210,28 +210,16 @@ public class ProductController : Controller
 
     /// <summary>
     /// 4. Xem chi tiết thông tin sản phẩm laptop (GET: /Product/Details/5)
-    /// Triển khai theo chuẩn mô hình được học trong LapTrinhWeb (TvcLesson08Df)
+    /// Điều hướng thẳng sang trang Chỉnh sửa để thao tác trực tiếp, loại bỏ trang Xem trung gian
     /// </summary>
-    public async Task<IActionResult> Details(int? id)
+    public IActionResult Details(int? id)
     {
         if (id == null)
         {
-            return NotFound();
+            return RedirectToAction(nameof(Index));
         }
 
-        var product = await _db.Products
-            .Include(p => p.Brand)
-            .Include(p => p.Category)
-            .Include(p => p.Specification)
-            .Include(p => p.Images)
-            .FirstOrDefaultAsync(m => m.ProductId == id);
-
-        if (product == null)
-        {
-            return NotFound();
-        }
-
-        return View(product);
+        return RedirectToAction(nameof(Edit), new { id = id.Value });
     }
 
     /// <summary>

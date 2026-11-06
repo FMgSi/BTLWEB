@@ -849,6 +849,54 @@ public class AdminController : Controller
             .ThenBy(s => s.ServiceCode)
             .ToListAsync();
 
+        // Danh sách khách hàng và thiết bị đã mua máy để hỗ trợ tự điền khi tạo/sửa phiếu bảo hành
+        var soldDevices = await _db.SoldDevices
+            .AsNoTracking()
+            .Include(d => d.OrderItem)
+                .ThenInclude(oi => oi!.Order)
+            .Include(d => d.OrderItem)
+                .ThenInclude(oi => oi!.Product)
+            .Where(d => d.OrderItem != null && d.OrderItem.Order != null && !string.IsNullOrEmpty(d.OrderItem.Order.PhoneNumber))
+            .OrderByDescending(d => d.DeviceId)
+            .Select(d => new SoldDeviceDto
+            {
+                DeviceId = d.DeviceId,
+                PhoneNumber = d.OrderItem!.Order!.PhoneNumber.Trim(),
+                CustomerName = d.OrderItem.Order.CustomerName.Trim(),
+                SerialNumber = d.SerialNumber,
+                ProductName = d.OrderItem.ProductName ?? (d.OrderItem.Product != null ? d.OrderItem.Product.ProductName : "Laptop"),
+                IsUnderWarranty = d.WarrantyEndDate >= DateTime.UtcNow,
+                WarrantyEndDate = d.WarrantyEndDate
+            })
+            .ToListAsync();
+
+        var existingPhones = soldDevices.Select(s => s.PhoneNumber).ToHashSet();
+        var additionalOrders = await _db.Orders
+            .AsNoTracking()
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+            .Where(o => !string.IsNullOrEmpty(o.PhoneNumber) && !existingPhones.Contains(o.PhoneNumber.Trim()))
+            .OrderByDescending(o => o.OrderId)
+            .Take(50)
+            .ToListAsync();
+
+        foreach (var ord in additionalOrders)
+        {
+            var firstItem = ord.OrderItems.FirstOrDefault();
+            soldDevices.Add(new SoldDeviceDto
+            {
+                DeviceId = 0,
+                PhoneNumber = ord.PhoneNumber.Trim(),
+                CustomerName = ord.CustomerName.Trim(),
+                ProductName = firstItem?.ProductName ?? firstItem?.Product?.ProductName ?? "Laptop đã mua",
+                SerialNumber = $"SN-{ord.OrderCode}",
+                IsUnderWarranty = true,
+                WarrantyEndDate = ord.CreatedAt.AddMonths(12)
+            });
+        }
+
+        ViewBag.CustomerLookup = soldDevices;
+
         return View(tickets);
     }
 
