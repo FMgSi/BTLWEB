@@ -863,6 +863,7 @@ public class AdminController : Controller
                 DeviceId = d.DeviceId,
                 PhoneNumber = d.OrderItem!.Order!.PhoneNumber.Trim(),
                 CustomerName = d.OrderItem.Order.CustomerName.Trim(),
+                Email = d.OrderItem.Order.Email,
                 SerialNumber = d.SerialNumber,
                 ProductName = d.OrderItem.ProductName ?? (d.OrderItem.Product != null ? d.OrderItem.Product.ProductName : "Laptop"),
                 IsUnderWarranty = d.WarrantyEndDate >= DateTime.UtcNow,
@@ -888,6 +889,7 @@ public class AdminController : Controller
                 DeviceId = 0,
                 PhoneNumber = ord.PhoneNumber.Trim(),
                 CustomerName = ord.CustomerName.Trim(),
+                Email = ord.Email,
                 ProductName = firstItem?.ProductName ?? firstItem?.Product?.ProductName ?? "Laptop đã mua",
                 SerialNumber = $"SN-{ord.OrderCode}",
                 IsUnderWarranty = true,
@@ -896,6 +898,34 @@ public class AdminController : Controller
         }
 
         ViewBag.CustomerLookup = soldDevices;
+
+        // Danh sách khách hàng duy nhất (chỉ gồm SĐT, Tên để hiển thị gọn gàng trong ô chọn SĐT)
+        ViewBag.CustomerPhones = soldDevices
+            .GroupBy(d => d.PhoneNumber)
+            .Select(g => new CustomerPhoneLookupDto
+            {
+                PhoneNumber = g.Key,
+                CustomerName = g.First().CustomerName,
+                Email = g.First().Email ?? "",
+                DeviceCount = g.Count()
+            })
+            .OrderBy(c => c.CustomerName)
+            .ToList();
+
+        // Danh sách tất cả sản phẩm trong kho (hỗ trợ chọn dòng máy ở phần Sửa chữa)
+        var warehouseProducts = await _db.Products
+            .AsNoTracking()
+            .Include(p => p.Brand)
+            .OrderBy(p => p.ProductName)
+            .Select(p => new WarehouseProductLookupDto
+            {
+                ProductId = p.ProductId,
+                ProductName = p.ProductName,
+                StockQuantity = p.StockQuantity,
+                BrandName = p.Brand != null ? p.Brand.BrandName : ""
+            })
+            .ToListAsync();
+        ViewBag.WarehouseProducts = warehouseProducts;
 
         return View(tickets);
     }

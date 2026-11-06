@@ -6,6 +6,8 @@
     var currentSearch = ViewBag.Search as string ?? "";
     var serviceCatalog = ViewBag.Services as IEnumerable<LaptopStore.Models.ServiceCatalogItem> ?? Enumerable.Empty<LaptopStore.Models.ServiceCatalogItem>();
     var customerLookup = ViewBag.CustomerLookup as IEnumerable<LaptopStore.ViewModels.SoldDeviceDto> ?? Enumerable.Empty<LaptopStore.ViewModels.SoldDeviceDto>();
+    var customerPhones = ViewBag.CustomerPhones as IEnumerable<LaptopStore.ViewModels.CustomerPhoneLookupDto> ?? Enumerable.Empty<LaptopStore.ViewModels.CustomerPhoneLookupDto>();
+    var warehouseProducts = ViewBag.WarehouseProducts as IEnumerable<LaptopStore.ViewModels.WarehouseProductLookupDto> ?? Enumerable.Empty<LaptopStore.ViewModels.WarehouseProductLookupDto>();
 }
 
 <div class="page-header">
@@ -160,39 +162,33 @@
                         <input type="text" name="ticketCode" id="inpTicketCode" class="form-control-dark font-monospace fw-bold" placeholder="Tự sinh nếu để trống" disabled />
                     </div>
 
-                    <!-- Ô CHỌN SỐ ĐIỆN THOẠI (Dành riêng cho phần Bảo hành để tự điền tên) -->
-                    <div class="mb-3" id="divSelectPhone" style="display: none;">
+                    <!-- SỐ ĐIỆN THOẠI KHÁCH HÀNG (Chọn SĐT có sẵn hoặc nhập mới) -->
+                    <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1 text-primary">
-                            <i class="bi bi-telephone-inbound me-1"></i>Chọn số điện thoại khách hàng <span class="text-danger">*</span>
+                            <i class="bi bi-telephone-inbound me-1"></i>Số điện thoại khách hàng <span class="text-danger">*</span>
                         </label>
-                        <select id="selCustomerPhone" class="form-select-dark border-primary" disabled onchange="handleCustomerPhoneSelect(this)">
-                            <option value="">-- Chọn SĐT khách đã mua máy --</option>
-                            @if (customerLookup != null)
+                        <select id="selCustomerPhone" class="form-select-dark border-primary mb-1" disabled onchange="handleCustomerPhoneSelect(this)">
+                            <option value="">-- Chọn số điện thoại khách hàng --</option>
+                            @if (customerPhones != null)
                             {
-                                foreach (var c in customerLookup)
+                                foreach (var c in customerPhones)
                                 {
-                                    <option value="@c.PhoneNumber"
-                                            data-name="@c.CustomerName"
-                                            data-device="@c.ProductName"
-                                            data-serial="@c.SerialNumber"
-                                            data-warranty="@(c.IsUnderWarranty ? "Còn BH" : "Hết BH")">
-                                        @c.PhoneNumber - @c.CustomerName (@c.ProductName - @c.SerialNumber)
+                                    <option value="@c.PhoneNumber" data-name="@c.CustomerName" data-email="@c.Email">
+                                        @c.PhoneNumber - @c.CustomerName
                                     </option>
                                 }
                             }
+                            <option value="__manual__">+ Nhập số điện thoại mới (Khách vãng lai)</option>
                         </select>
-                        <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">
-                            <i class="bi bi-magic text-primary"></i> Chọn SĐT để tự động điền Tên, Thiết bị & Serial máy.
+                        <div id="divManualPhone" style="display: none;" class="mt-2">
+                            <input type="text" name="phoneNumber" id="inpPhoneNumber" class="form-control-dark" placeholder="Nhập SĐT khách (VD: 0912345678)" disabled required />
+                        </div>
+                        <small class="text-muted d-block mt-1" id="phoneHelpText" style="font-size: 0.78rem;">
+                            <i class="bi bi-magic text-primary"></i> Chọn SĐT để tự động điền Tên khách & lọc danh sách máy.
                         </small>
                     </div>
 
-                    <!-- Ô NHẬP SỐ ĐIỆN THOẠI THỦ CÔNG (Dành cho Sửa chữa máy ngoài) -->
-                    <div class="mb-3" id="divInputPhone">
-                        <label class="form-label-dark small fw-bold mb-1">Số điện thoại khách hàng <span class="text-danger">*</span></label>
-                        <input type="text" name="phoneNumber" id="inpPhoneNumber" class="form-control-dark" placeholder="VD: 0912345678" disabled required />
-                    </div>
-
-                    <!-- Tên khách hàng (Tự điền khi chọn SĐT ở phần bảo hành) -->
+                    <!-- Tên khách hàng (Tự điền khi chọn SĐT) -->
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">
                             Tên khách hàng <span class="text-danger">*</span>
@@ -221,10 +217,22 @@
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 2</span>
                     </div>
 
-                    <!-- Tên thiết bị / Model máy -->
+                    <!-- Thiết bị / Model máy -->
                     <div class="mb-3">
-                        <label class="form-label-dark small fw-bold mb-1">Thiết bị / Model máy <span class="text-danger">*</span></label>
-                        <input type="text" name="deviceModel" id="inpDeviceModel" class="form-control-dark" placeholder="VD: ASUS TUF Gaming A15..." disabled required />
+                        <label class="form-label-dark small fw-bold mb-1 text-primary">
+                            <i class="bi bi-laptop me-1"></i>Thiết bị / Model máy <span class="text-danger">*</span>
+                            <span id="lblDeviceBadge" class="badge bg-primary-subtle text-primary ms-1 small">Chọn máy</span>
+                        </label>
+                        <!-- Selector chọn máy (Bảo hành: máy khách đã mua / Sửa chữa: tất cả máy trong kho) -->
+                        <select id="selDeviceModel" class="form-select-dark border-primary mb-2" disabled onchange="handleDeviceModelSelect(this)">
+                            <option value="">-- Vui lòng chọn số điện thoại trước --</option>
+                        </select>
+                        <div id="divDeviceInput">
+                            <input type="text" name="deviceModel" id="inpDeviceModel" class="form-control-dark" placeholder="VD: ASUS TUF Gaming A15..." disabled required />
+                            <small class="text-muted mt-1 d-block" id="deviceInputHelp" style="font-size: 0.78rem;">
+                                Được tự động điền khi chọn máy từ danh sách bên trên.
+                            </small>
+                        </div>
                     </div>
 
                     <!-- Số Serial / Service Tag -->
@@ -515,6 +523,29 @@
 
 @section Scripts {
     <script>
+        // Dữ liệu máy đã bán (phục vụ lọc máy theo khách hàng khi Bảo hành hoặc Sửa chữa)
+        const soldDevicesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            customerLookup.Select(d => new {
+                phone = d.PhoneNumber,
+                name = d.CustomerName,
+                email = d.Email ?? "",
+                device = d.ProductName,
+                serial = d.SerialNumber,
+                isWarranty = d.IsUnderWarranty,
+                warrantyEnd = d.WarrantyEndDate.ToString("dd/MM/yyyy")
+            })
+        ));
+
+        // Dữ liệu tất cả các máy trong kho (phục vụ chọn máy khi Sửa chữa dịch vụ)
+        const warehouseProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            warehouseProducts.Select(p => new {
+                id = p.ProductId,
+                name = p.ProductName,
+                stock = p.StockQuantity,
+                brand = p.BrandName
+            })
+        ));
+
         let selectedTicketRow = null;
         let ticketMode = 'view'; // 'view' | 'add' | 'edit'
 
@@ -522,7 +553,7 @@
             'inpTicketType', 'inpTicketCode', 'inpCustomerName', 'inpPhoneNumber', 'inpEmail',
             'inpDeviceModel', 'inpSerialNumber', 'inpServiceId', 'inpFaultDescription',
             'inpPhysicalCondition', 'inpAccessories', 'inpStatus', 'inpFinalCost', 'inpAssignedStaff',
-            'selCustomerPhone'
+            'selCustomerPhone', 'selDeviceModel'
         ];
 
         function setTicketInputsDisabled(disabled) {
@@ -536,15 +567,10 @@
             const type = document.getElementById('inpTicketType').value;
             const codeInput = document.getElementById('inpTicketCode');
             const costInput = document.getElementById('inpFinalCost');
-            const divSelect = document.getElementById('divSelectPhone');
-            const divInput = document.getElementById('divInputPhone');
             const nameInput = document.getElementById('inpCustomerName');
             const nameHint = document.getElementById('lblAutoFillNameHint');
 
             if (type === 'Bảo hành') {
-                // Hiển thị ô chọn số điện thoại, ẩn ô nhập SĐT tự do
-                if (divSelect) divSelect.style.display = 'block';
-                if (divInput) divInput.style.display = 'none';
                 if (nameHint) nameHint.classList.remove('d-none');
                 if (nameInput) {
                     nameInput.readOnly = true;
@@ -558,9 +584,6 @@
                     costInput.value = '0';
                 }
             } else {
-                // Hiển thị ô nhập SĐT tự do cho khách sửa ngoài
-                if (divSelect) divSelect.style.display = 'none';
-                if (divInput) divInput.style.display = 'block';
                 if (nameHint) nameHint.classList.add('d-none');
                 if (nameInput) {
                     nameInput.readOnly = false;
@@ -573,38 +596,195 @@
                     }
                 }
             }
+
+            // Cập nhật lại dropdown thiết bị ở Cột 2 theo loại phiếu (Bảo hành: máy khách đã mua / Sửa chữa: tất cả máy trong kho)
+            updateDeviceModelOptions();
         }
 
         function handleCustomerPhoneSelect(selectEl) {
             if (!selectEl) return;
+            const val = selectEl.value;
             const opt = selectEl.options[selectEl.selectedIndex];
-            if (opt && opt.value) {
-                // Tự động điền số điện thoại
-                document.getElementById('inpPhoneNumber').value = opt.value;
+            const phoneInput = document.getElementById('inpPhoneNumber');
+            const nameInput = document.getElementById('inpCustomerName');
+            const emailInput = document.getElementById('inpEmail');
+            const manualDiv = document.getElementById('divManualPhone');
+            const type = document.getElementById('inpTicketType').value;
 
-                // Tự động điền tên khách hàng
-                if (opt.dataset.name) {
-                    document.getElementById('inpCustomerName').value = opt.dataset.name;
+            if (val === '__manual__') {
+                // Nhập số điện thoại mới cho khách vãng lai
+                manualDiv.style.display = 'block';
+                phoneInput.value = '';
+                nameInput.value = '';
+                emailInput.value = '';
+                nameInput.readOnly = false;
+                document.getElementById('lblAutoFillNameHint').classList.add('d-none');
+                phoneInput.focus();
+                updateDeviceModelOptions();
+            } else if (val) {
+                // Chọn số điện thoại có sẵn
+                manualDiv.style.display = 'none';
+                phoneInput.value = val;
+                if (opt && opt.dataset.name) {
+                    nameInput.value = opt.dataset.name;
+                }
+                if (opt && opt.dataset.email) {
+                    emailInput.value = opt.dataset.email;
                 }
 
-                // Tự động điền email nếu có
-                if (opt.dataset.email) {
-                    document.getElementById('inpEmail').value = opt.dataset.email;
+                if (type === 'Bảo hành') {
+                    nameInput.readOnly = true;
+                    document.getElementById('lblAutoFillNameHint').classList.remove('d-none');
+                } else {
+                    nameInput.readOnly = false;
                 }
 
-                // Tự động điền Thiết bị & Serial máy đã mua
-                if (opt.dataset.device) {
-                    document.getElementById('inpDeviceModel').value = opt.dataset.device;
-                }
-                if (opt.dataset.serial) {
-                    document.getElementById('inpSerialNumber').value = opt.dataset.serial;
-                }
-
-                // Bảo hành thì tiền dịch vụ là 0đ
-                document.getElementById('inpFinalCost').value = '0';
+                // Cập nhật ngay danh sách máy ở Cột 2!
+                updateDeviceModelOptions();
             } else {
-                document.getElementById('inpPhoneNumber').value = '';
-                document.getElementById('inpCustomerName').value = '';
+                manualDiv.style.display = 'none';
+                phoneInput.value = '';
+                nameInput.value = '';
+                emailInput.value = '';
+                updateDeviceModelOptions();
+            }
+        }
+
+        function updateDeviceModelOptions() {
+            const type = document.getElementById('inpTicketType').value;
+            const phone = document.getElementById('inpPhoneNumber').value.trim();
+            const selDevice = document.getElementById('selDeviceModel');
+            const badge = document.getElementById('lblDeviceBadge');
+            const devHelp = document.getElementById('deviceInputHelp');
+            if (!selDevice) return;
+
+            selDevice.innerHTML = '';
+
+            if (type === 'Bảo hành') {
+                if (badge) badge.textContent = 'Máy khách đã mua';
+                if (devHelp) devHelp.textContent = 'Chọn máy khách đã mua tại cửa hàng để tiếp nhận bảo hành.';
+
+                // Lọc danh sách máy mà SĐT này đã mua
+                const customerDevices = soldDevicesData.filter(d => d.phone === phone);
+
+                if (customerDevices.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.text = phone ? '-- Khách hàng này chưa có máy trong hệ thống --' : '-- Vui lòng chọn Số điện thoại khách trước --';
+                    selDevice.add(opt);
+                } else {
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.text = '-- Chọn máy cần bảo hành (' + customerDevices.length + ' máy) --';
+                    selDevice.add(defaultOpt);
+
+                    customerDevices.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.device;
+                        opt.dataset.serial = d.serial;
+                        opt.dataset.warranty = d.isWarranty ? 'Còn BH' : 'Hết BH';
+                        opt.text = d.device + ' [SN: ' + d.serial + ' - ' + (d.isWarranty ? 'Còn BH' : 'Hết BH') + ']';
+                        selDevice.add(opt);
+                    });
+
+                    // Nếu khách chỉ có 1 máy duy nhất và đang thêm mới phiếu, tự động chọn luôn máy đó!
+                    const currentDevice = document.getElementById('inpDeviceModel').value.trim();
+                    const matched = customerDevices.find(d => d.device === currentDevice);
+                    if (matched) {
+                        selDevice.value = matched.device;
+                    } else if (ticketMode === 'add' && customerDevices.length === 1) {
+                        selDevice.selectedIndex = 1;
+                        handleDeviceModelSelect(selDevice);
+                    }
+                }
+            } else {
+                // Chế độ Sửa chữa: Hiển thị TẤT CẢ máy trong kho + máy khách từng mua + máy ngoài
+                if (badge) badge.textContent = 'Tất cả máy trong kho';
+                if (devHelp) devHelp.textContent = 'Có thể chọn bất kỳ máy nào trong kho hoặc chọn dòng máy ngoài.';
+
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.text = '-- Chọn dòng máy trong kho hoặc nhập máy ngoài --';
+                selDevice.add(defaultOpt);
+
+                // 1. Máy khách từng mua tại cửa hàng (nếu có)
+                const customerDevices = soldDevicesData.filter(d => d.phone === phone);
+                if (customerDevices.length > 0) {
+                    const groupBought = document.createElement('optgroup');
+                    groupBought.label = '★ Máy khách từng mua tại shop (' + customerDevices.length + ')';
+                    customerDevices.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.device;
+                        opt.dataset.serial = d.serial;
+                        opt.text = d.device + ' (SN: ' + d.serial + ')';
+                        groupBought.appendChild(opt);
+                    });
+                    selDevice.appendChild(groupBought);
+                }
+
+                // 2. TẤT CẢ các sản phẩm laptop có trong kho
+                if (warehouseProducts && warehouseProducts.length > 0) {
+                    const groupWarehouse = document.createElement('optgroup');
+                    groupWarehouse.label = '📦 Tất cả laptop trong kho (' + warehouseProducts.length + ' model)';
+                    warehouseProducts.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name;
+                        opt.dataset.serial = '';
+                        opt.text = (p.brand ? '[' + p.brand + '] ' : '') + p.name + ' (Kho: ' + p.stock + ')';
+                        groupWarehouse.appendChild(opt);
+                    });
+                    selDevice.appendChild(groupWarehouse);
+                }
+
+                // 3. Tùy chọn nhập máy ngoài
+                const customOpt = document.createElement('option');
+                customOpt.value = '__custom__';
+                customOpt.text = '✎ Dòng máy ngoài danh mục (Nhập tay tên máy)';
+                selDevice.add(customOpt);
+
+                // Đồng bộ lại máy hiện tại nếu có
+                const currentDevice = document.getElementById('inpDeviceModel').value.trim();
+                if (currentDevice) {
+                    let found = false;
+                    for (let i = 0; i < selDevice.options.length; i++) {
+                        if (selDevice.options[i].value === currentDevice) {
+                            selDevice.selectedIndex = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        selDevice.value = '__custom__';
+                    }
+                }
+            }
+        }
+
+        function handleDeviceModelSelect(selectEl) {
+            if (!selectEl) return;
+            const val = selectEl.value;
+            const opt = selectEl.options[selectEl.selectedIndex];
+            const devInput = document.getElementById('inpDeviceModel');
+            const serialInput = document.getElementById('inpSerialNumber');
+            const type = document.getElementById('inpTicketType').value;
+
+            if (val === '__custom__') {
+                devInput.value = '';
+                devInput.placeholder = 'Nhập tên dòng máy khách mang tới sửa...';
+                devInput.readOnly = false;
+                devInput.focus();
+            } else if (val) {
+                devInput.value = val;
+                devInput.readOnly = false;
+
+                // Nếu là bảo hành hoặc máy có Serial gán sẵn, tự điền Serial
+                if (opt && opt.dataset.serial) {
+                    serialInput.value = opt.dataset.serial;
+                }
+
+                if (type === 'Bảo hành') {
+                    document.getElementById('inpFinalCost').value = '0';
+                }
             }
         }
 
@@ -626,6 +806,8 @@
 
             const sel = document.getElementById('selCustomerPhone');
             if (sel) sel.value = '';
+            const divManual = document.getElementById('divManualPhone');
+            if (divManual) divManual.style.display = 'none';
 
             handleTicketTypeChange(false);
         }
@@ -648,21 +830,22 @@
             document.getElementById('inpFinalCost').value = row.dataset.cost || '0';
             document.getElementById('inpAssignedStaff').value = row.dataset.staff || '';
 
-            handleTicketTypeChange(false);
-
-            if (row.dataset.type === 'Bảo hành') {
-                const sel = document.getElementById('selCustomerPhone');
-                if (sel) {
-                    sel.value = row.dataset.phone || '';
-                    if (row.dataset.phone && sel.value !== row.dataset.phone) {
-                        const opt = document.createElement('option');
-                        opt.value = row.dataset.phone;
-                        opt.text = row.dataset.phone + ' - ' + (row.dataset.name || '') + ' (' + (row.dataset.device || '') + ')';
-                        sel.add(opt);
-                        sel.value = row.dataset.phone;
-                    }
+            // Đồng bộ selCustomerPhone
+            const selPhone = document.getElementById('selCustomerPhone');
+            if (selPhone) {
+                selPhone.value = row.dataset.phone || '';
+                if (row.dataset.phone && selPhone.value !== row.dataset.phone) {
+                    const opt = document.createElement('option');
+                    opt.value = row.dataset.phone;
+                    opt.dataset.name = row.dataset.name || '';
+                    opt.dataset.email = row.dataset.email || '';
+                    opt.text = row.dataset.phone + ' - ' + (row.dataset.name || '');
+                    selPhone.add(opt);
+                    selPhone.value = row.dataset.phone;
                 }
             }
+
+            handleTicketTypeChange(false);
         }
 
         function handleTicketRowClick(row) {
@@ -731,11 +914,7 @@
                 '<span class="badge bg-success-subtle text-success border border-success-subtle me-1">Chế độ Thêm phiếu mới</span> ' +
                 'Chọn loại dịch vụ, chọn/nhập thông tin khách hàng rồi nhấn <strong>[Lưu]</strong>.';
 
-            if (document.getElementById('inpTicketType').value === 'Bảo hành') {
-                document.getElementById('selCustomerPhone').focus();
-            } else {
-                document.getElementById('inpCustomerName').focus();
-            }
+            document.getElementById('selCustomerPhone').focus();
         }
 
         function onSuaTicketClick() {
@@ -759,11 +938,7 @@
                 '<span class="badge bg-warning-subtle text-dark border border-warning me-1">Chế độ Chỉnh sửa</span> ' +
                 'Đang sửa phiếu <strong>#' + code + '</strong>. Sửa các thông tin cần thiết rồi nhấn <strong>[Lưu]</strong> hoặc <strong>[Hủy]</strong>.';
 
-            if (document.getElementById('inpTicketType').value === 'Bảo hành') {
-                document.getElementById('selCustomerPhone').focus();
-            } else {
-                document.getElementById('inpCustomerName').focus();
-            }
+            document.getElementById('selCustomerPhone').focus();
         }
 
         function onXoaTicketClick() {
@@ -802,22 +977,26 @@
             const selPhone = document.getElementById('selCustomerPhone');
             const faultInput = document.getElementById('inpFaultDescription');
             const deviceInput = document.getElementById('inpDeviceModel');
+            const selDevice = document.getElementById('selDeviceModel');
 
-            if (type === 'Bảo hành') {
-                if (!phoneInput.value.trim() && selPhone && selPhone.value) {
-                    phoneInput.value = selPhone.value;
-                }
-                if (!phoneInput.value.trim()) {
-                    alert('Vui lòng chọn Số điện thoại khách hàng bảo hành.');
-                    selPhone.focus();
-                    return;
-                }
-            } else {
-                if (!phoneInput.value.trim()) {
-                    alert('Vui lòng nhập Số điện thoại của khách.');
+            // Đồng bộ SĐT nếu chưa có nhưng selPhone có giá trị
+            if (!phoneInput.value.trim() && selPhone && selPhone.value && selPhone.value !== '__manual__') {
+                phoneInput.value = selPhone.value;
+            }
+
+            // Đồng bộ Tên máy nếu chưa có nhưng selDevice có giá trị hợp lệ
+            if (!deviceInput.value.trim() && selDevice && selDevice.value && selDevice.value !== '__custom__') {
+                deviceInput.value = selDevice.value;
+            }
+
+            if (!phoneInput.value.trim()) {
+                alert('Vui lòng chọn hoặc nhập Số điện thoại của khách hàng.');
+                if (selPhone && selPhone.value === '__manual__') {
                     phoneInput.focus();
-                    return;
+                } else if (selPhone) {
+                    selPhone.focus();
                 }
+                return;
             }
 
             if (!nameInput.value.trim()) {
@@ -827,8 +1006,8 @@
             }
 
             if (!deviceInput.value.trim()) {
-                alert('Vui lòng nhập Thiết bị / Model máy.');
-                deviceInput.focus();
+                alert('Vui lòng chọn hoặc nhập Thiết bị / Model máy.');
+                if (selDevice) selDevice.focus();
                 return;
             }
 

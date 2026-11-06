@@ -23,6 +23,7 @@ public class SoldDeviceDto
     public string OrderCode { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string SerialNumber { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public string? ColorName { get; set; }
@@ -38,6 +39,22 @@ public class SoldDeviceDto
     public int DaysRemaining => Math.Max(0, (int)(WarrantyEndDate - System.DateTime.UtcNow).TotalDays);
     public System.DateTime? PurchaseDate => DeliveredAt;
     public string SelectedSpecs => !string.IsNullOrEmpty(SKU) ? $"SKU: {SKU} {(ColorName != null ? "• Màu: " + ColorName : "")}" : (ColorName ?? "Tiêu chuẩn");
+}
+
+public class CustomerPhoneLookupDto
+{
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public int DeviceCount { get; set; }
+}
+
+public class WarehouseProductLookupDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int StockQuantity { get; set; }
+    public string BrandName { get; set; } = string.Empty;
 }
 
 public class CreateWarrantyTicketRequest
