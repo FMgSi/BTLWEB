@@ -429,7 +429,7 @@ public class OrderService : IOrderService
                     PaymentMethod = req.PaymentMethod,
                     PaymentStatus = initialPaymentStatus,
                     OrderStatus = initialOrderStatus,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     OrderItems = orderItems
                 };
 
@@ -450,7 +450,7 @@ public class OrderService : IOrderService
                         Amount = plan.PrepayAmount,
                         PaymentStatus = prepayStatus,
                         PaymentType = "Prepay",
-                        PaymentDate = DateTime.UtcNow,
+                        PaymentDate = DateTime.Now,
                         Note = prepayNote
                     });
 
@@ -465,7 +465,7 @@ public class OrderService : IOrderService
                         InterestRate = 0.00m,
                         MonthlyInstallmentAmount = plan.MonthlyInstallmentAmount,
                         Status = "Chờ trả trước",
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.Now,
                         Notes = req.Notes
                     };
 
@@ -491,7 +491,7 @@ public class OrderService : IOrderService
                         Amount = subTotal,
                         PaymentStatus = initialPaymentStatus,
                         PaymentType = "Full",
-                        PaymentDate = DateTime.UtcNow,
+                        PaymentDate = DateTime.Now,
                         Note = $"Khởi tạo giao dịch {req.PaymentMethod}"
                     });
                 }
@@ -500,7 +500,7 @@ public class OrderService : IOrderService
                 {
                     Status = initialOrderStatus,
                     ChangedBy = "Hệ thống",
-                    ChangedAt = DateTime.UtcNow,
+                    ChangedAt = DateTime.Now,
                     Note = isInstallment 
                         ? $"Khách hàng đặt mua trả góp {termMonths} tháng (trả trước 30%: {plan?.PrepayAmount:N0}đ)"
                         : "Khách hàng tạo đơn đặt hàng trực tuyến"
@@ -566,7 +566,7 @@ public class OrderService : IOrderService
 
         var total = await query.CountAsync();
         var rawOrders = await query
-            .OrderByDescending(o => o.CreatedAt)
+            .OrderByDescending(o => o.OrderId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -604,7 +604,7 @@ public class OrderService : IOrderService
             .Include(o => o.InstallmentContract)
                 .ThenInclude(c => c!.Schedules)
             .Where(o => o.UserId == userId)
-            .OrderByDescending(o => o.CreatedAt)
+            .OrderByDescending(o => o.OrderId)
             .ToListAsync();
 
         return orders.Select(MapToResponseDto).ToList();
@@ -882,7 +882,7 @@ public class OrderService : IOrderService
 
         // 5. Danh sách đơn hàng mới nhất
         var recentOrdersDto = orders
-            .OrderByDescending(o => o.CreatedAt)
+            .OrderByDescending(o => o.OrderId)
             .Take(6)
             .Select(o => new RecentOrderDto
             {

@@ -806,7 +806,7 @@ public class AdminController : Controller
             var pendingOrders = await _db.Orders
                 .AsNoTracking()
                 .Where(o => o.OrderStatus == "Chờ xử lý" || o.PaymentStatus == "Chờ trả trước")
-                .OrderByDescending(o => o.CreatedAt)
+                .OrderByDescending(o => o.OrderId)
                 .Take(5)
                 .Select(o => new
                 {
