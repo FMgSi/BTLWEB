@@ -550,12 +550,12 @@ public class AdminController : Controller
             .ToListAsync();
 
         report.TotalOrders = ordersInRange.Count;
-        report.NewOrders = ordersInRange.Count(o => o.OrderStatus == "Mới" || o.OrderStatus == "Chờ duyệt");
-        report.ProcessingOrders = ordersInRange.Count(o => o.OrderStatus == "Đang xử lý" || o.OrderStatus == "Đang giao" || o.OrderStatus == "Đã xác nhận");
-        report.CompletedOrders = ordersInRange.Count(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao");
+        report.NewOrders = ordersInRange.Count(o => o.OrderStatus == "Mới" || o.OrderStatus == "Chờ duyệt" || o.OrderStatus == "Chờ xác nhận" || o.OrderStatus == "Chờ xử lý");
+        report.ProcessingOrders = ordersInRange.Count(o => o.OrderStatus == "Đang xử lý" || o.OrderStatus == "Đang giao" || o.OrderStatus == "Đã xác nhận" || o.OrderStatus == "Đang giao hàng");
+        report.CompletedOrders = ordersInRange.Count(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.OrderStatus == "Đã giao hàng");
         report.CancelledOrders = ordersInRange.Count(o => o.OrderStatus == "Đã hủy");
 
-        var completedOrders = ordersInRange.Where(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao").ToList();
+        var completedOrders = ordersInRange.Where(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.OrderStatus == "Đã giao hàng").ToList();
         report.TotalCompletedRevenue = completedOrders.Sum(o => o.TotalAmount);
 
         // Dòng tiền thực thu: Đơn thường hoàn tất + Tiền trả trước đơn trả góp + Các kỳ trả góp đã thu
@@ -692,7 +692,7 @@ public class AdminController : Controller
         else
         {
             var daysInMonth = DateTime.DaysInMonth(start.Year, start.Month);
-            for (int day = 1; day <= Math.Min(DateTime.Today.Day, daysInMonth); day += 5)
+            for (int day = 1; day <= daysInMonth; day += 5)
             {
                 var dStart = new DateTime(start.Year, start.Month, day);
                 var dEnd = dStart.AddDays(5).AddTicks(-1);
