@@ -6,12 +6,12 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-9 col-md-11">
-        <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
-            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-info-circle-fill me-2"></i>Thông tin chi tiết Laptop
+        <div class="card shadow-sm border rounded-4 overflow-hidden mb-4 bg-white">
+            <div class="card-header bg-white border-bottom text-dark py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title text-dark fw-bold mb-0">
+                    <i class="bi bi-info-circle-fill me-2 text-dark"></i>Thông tin chi tiết Laptop
                 </h5>
-                <span class="badge bg-light text-primary fw-bold">Mã SP: #@Model.ProductId</span>
+                <span class="badge bg-light text-dark border fw-bold">Mã SP: #@Model.ProductId</span>
             </div>
             <div class="card-body p-4">
                 <div class="row mb-4 g-4">
@@ -34,7 +34,7 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <h4 class="text-primary fw-bold mb-2">@Model.ProductName</h4>
+                        <h4 class="text-dark fw-bold mb-2">@Model.ProductName</h4>
                         <p class="text-muted mb-3">
                             <i class="bi bi-building me-1"></i>Hãng sản xuất: <strong>@(Model.Brand?.BrandName ?? "Chưa rõ")</strong> |
                             <i class="bi bi-tag-fill ms-2 me-1"></i>Danh mục: <strong>@(Model.Category?.CategoryName ?? "Chưa phân loại")</strong>

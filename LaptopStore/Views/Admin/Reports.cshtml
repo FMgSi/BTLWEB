@@ -10,7 +10,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h2 class="page-title text-dark fw-bold mb-1">
-            <i class="bi bi-graph-up-arrow text-primary me-2"></i>Báo cáo & Thống kê Đa chiều
+            <i class="bi bi-graph-up-arrow text-dark me-2"></i>Báo cáo & Thống kê Đa chiều
         </h2>
         <p class="text-muted small mb-0">
             Theo dõi hiệu suất bán hàng, dòng tiền thực thu trả góp, biến thể laptop và quy trình dịch vụ bảo hành
@@ -23,11 +23,12 @@
     </div>
 </div>
 
-<!-- 1. BỘ LỌC THỜI GIAN: HÔM NAY · 7 NGÀY · THÁNG NÀY · TÙY CHỌN (ĐỒNG NHẤT VỚI CÁC TRANG QUẢN TRỊ) -->
+<!-- 1. BỘ LỌC THỜI GIAN: CĂN TRÁI GỌN GÀNG + NÚT LÀM MỚI -->
 <div class="admin-card p-3 shadow-sm border rounded-3 mb-4 bg-white">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-            <span class="small fw-bold text-dark me-1">
+    <div class="d-flex flex-wrap align-items-center gap-3 justify-content-start">
+        <!-- Preset Khoảng thời gian -->
+        <div class="d-flex flex-wrap gap-1 align-items-center">
+            <span class="small fw-semibold text-dark me-1">
                 <i class="bi bi-calendar-event me-1"></i>Khoảng thời gian:
             </span>
             <a href="/Admin/Reports?period=today" class="btn-action-tool @(Model.Period == "today" ? "active" : "")">
@@ -41,16 +42,26 @@
             </a>
         </div>
 
+        <span class="text-muted d-none d-md-inline">|</span>
+
+        <!-- Lọc theo khoảng ngày tùy chọn -->
         <form method="get" action="/Admin/Reports" class="d-flex flex-wrap gap-2 align-items-center m-0">
             <input type="hidden" name="period" value="custom" />
-            <span class="small text-muted">Từ ngày:</span>
+            <span class="small text-dark">Từ ngày:</span>
             <input type="date" name="fromDate" class="form-control form-control-dark" style="width: 145px; height: 36px;" value="@Model.FromDate.ToString("yyyy-MM-dd")" />
-            <span class="small text-muted">Đến ngày:</span>
+            <span class="small text-dark">Đến ngày:</span>
             <input type="date" name="toDate" class="form-control form-control-dark" style="width: 145px; height: 36px;" value="@Model.ToDate.ToString("yyyy-MM-dd")" />
             <button type="submit" class="btn-action-tool">
                 <i class="bi bi-funnel"></i> Lọc tùy chọn
             </button>
         </form>
+
+        <span class="text-muted d-none d-md-inline">|</span>
+
+        <!-- Nút Làm mới (Trở về Hôm nay) -->
+        <a href="/Admin/Reports?period=today" class="btn-action-tool d-inline-flex align-items-center gap-1" title="Làm mới về thống kê ngày hôm nay">
+            <i class="bi bi-arrow-clockwise"></i> Làm mới
+        </a>
     </div>
     <div class="small text-muted mt-2 border-top pt-2">
         Đang hiển thị số liệu từ: <strong>@Model.FromDate.ToString("dd/MM/yyyy HH:mm")</strong> đến <strong>@Model.ToDate.ToString("dd/MM/yyyy HH:mm")</strong>
@@ -110,7 +121,7 @@
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                 <h6 class="fw-bold text-dark mb-0">
-                    <i class="bi bi-bar-chart-fill text-primary me-2"></i>Doanh thu bán hàng theo thời gian (Triệu VNĐ)
+                    <i class="bi bi-bar-chart-fill text-dark me-2"></i>Doanh thu bán hàng theo thời gian (Triệu VNĐ)
                 </h6>
                 <span class="badge bg-light text-secondary border small">Thời gian thực</span>
             </div>
@@ -124,7 +135,7 @@
         <!-- BÁO CÁO DỊCH VỤ SỬA CHỮA & BẢO HÀNH -->
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">
-                <i class="bi bi-tools text-primary me-2"></i>Hiệu suất Dịch vụ & Bảo hành
+                <i class="bi bi-tools text-dark me-2"></i>Hiệu suất Dịch vụ & Bảo hành
             </h6>
             <div class="d-flex flex-column gap-3">
                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border">
@@ -169,7 +180,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm border rounded-3 bg-white p-3 h-100">
             <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">
-                <i class="bi bi-star-fill text-primary me-2"></i>Sản phẩm bán chạy nhất trong kỳ
+                <i class="bi bi-star-fill text-dark me-2"></i>Sản phẩm bán chạy nhất trong kỳ
             </h6>
             @if (Model.TopSellingProducts.Any())
             {
@@ -274,9 +285,9 @@
                 datasets: [{
                     label: 'Doanh thu (Triệu VNĐ)',
                     data: values,
-                    backgroundColor: 'rgba(37, 99, 235, 0.75)',
-                    hoverBackgroundColor: '#2563eb',
-                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                    hoverBackgroundColor: '#0f172a',
+                    borderColor: '#0f172a',
                     borderWidth: 1,
                     borderRadius: 4,
                     maxBarThickness: 38

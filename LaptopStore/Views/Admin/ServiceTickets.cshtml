@@ -43,8 +43,8 @@
 <!-- THỐNG KÊ NHANH -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <div class="admin-card p-3 d-flex align-items-center gap-3">
-            <div class="rounded-3 p-3 bg-warning-subtle text-warning fs-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3 bg-white border rounded-3">
+            <div class="rounded-3 p-2 bg-light text-dark border fs-4 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                 <i class="bi bi-hourglass-split"></i>
             </div>
             <div>
@@ -54,8 +54,8 @@
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="admin-card p-3 d-flex align-items-center gap-3">
-            <div class="rounded-3 p-3 bg-primary-subtle text-primary fs-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3 bg-white border rounded-3">
+            <div class="rounded-3 p-2 bg-light text-dark border fs-4 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                 <i class="bi bi-gear-wide-connected"></i>
             </div>
             <div>
@@ -65,8 +65,8 @@
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="admin-card p-3 d-flex align-items-center gap-3">
-            <div class="rounded-3 p-3 bg-info-subtle text-info fs-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3 bg-white border rounded-3">
+            <div class="rounded-3 p-2 bg-light text-dark border fs-4 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                 <i class="bi bi-box2-heart"></i>
             </div>
             <div>
@@ -76,13 +76,13 @@
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="admin-card p-3 d-flex align-items-center gap-3">
-            <div class="rounded-3 p-3 bg-success-subtle text-success fs-3">
+        <div class="admin-card p-3 d-flex align-items-center gap-3 bg-white border rounded-3">
+            <div class="rounded-3 p-2 bg-light text-dark border fs-4 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                 <i class="bi bi-cash-stack"></i>
             </div>
             <div>
                 <div class="text-muted small">Tiền sửa chữa đã thu</div>
-                <h4 class="fw-bold mb-0 text-success">@string.Format("{0:N0}đ", ViewBag.TotalRevenue ?? 0)</h4>
+                <h4 class="fw-bold mb-0 text-dark">@string.Format("{0:N0}đ", ViewBag.TotalRevenue ?? 0)</h4>
             </div>
         </div>
     </div>
@@ -124,15 +124,13 @@
                 Thoát
             </button>
 
-            <!-- DÒNG TRẠNG THÁI / HƯỚNG DẪN THAO TÁC -->
-            <div class="ms-auto text-muted small" id="toolbarTicketHint">
-                <i class="bi bi-info-circle me-1"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm</strong> để tạo phiếu tiếp nhận máy tại quầy.
-            </div>
+            <!-- DÒNG TRẠNG THÁI / THÔNG TIN PHIẾU ĐANG CHỌN -->
+            <div class="ms-auto text-muted small" id="toolbarTicketHint"></div>
         </div>
     </div>
 
-    <!-- KHUNG NHẬP LIỆU PHIẾU TIẾP NHẬN DỊCH VỤ (SẮP XẾP THEO DẠNG 3 CỘT RÕ RÀNG) -->
-    <form id="ticketForm" method="post" asp-action="SaveServiceTicket" class="p-3 bg-light">
+    <!-- KHUNG NHẬP LIỆU PHIẾU TIẾP NHẬN DỊCH VỤ -->
+    <form id="ticketForm" method="post" asp-action="SaveServiceTicket" class="p-3 bg-white border-top">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ticketId" id="inpTicketId" value="0" />
 
@@ -142,9 +140,8 @@
                 <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
                         <span class="fw-bold text-dark">
-                            <i class="bi bi-person-lines-fill text-primary me-2"></i>1. Khách hàng & Tiếp nhận
+                            <i class="bi bi-person-lines-fill text-dark me-2"></i>1. Khách hàng & Tiếp nhận
                         </span>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 1</span>
                     </div>
 
                     <!-- Loại dịch vụ -->
@@ -164,10 +161,10 @@
 
                     <!-- SỐ ĐIỆN THOẠI KHÁCH HÀNG (Chọn SĐT có sẵn hoặc nhập mới) -->
                     <div class="mb-3">
-                        <label class="form-label-dark small fw-bold mb-1 text-primary">
+                        <label class="form-label-dark small fw-bold mb-1">
                             <i class="bi bi-telephone-inbound me-1"></i>Số điện thoại khách hàng <span class="text-danger">*</span>
                         </label>
-                        <select id="selCustomerPhone" class="form-select-dark border-primary mb-1" disabled onchange="handleCustomerPhoneSelect(this)">
+                        <select id="selCustomerPhone" class="form-select-dark mb-1" disabled onchange="handleCustomerPhoneSelect(this)">
                             <option value="">-- Chọn số điện thoại khách hàng --</option>
                             @if (customerPhones != null)
                             {
@@ -183,18 +180,12 @@
                         <div id="divManualPhone" style="display: none;" class="mt-2">
                             <input type="text" name="phoneNumber" id="inpPhoneNumber" class="form-control-dark" placeholder="Nhập SĐT khách (VD: 0912345678)" disabled required />
                         </div>
-                        <small class="text-muted d-block mt-1" id="phoneHelpText" style="font-size: 0.78rem;">
-                            <i class="bi bi-magic text-primary"></i> Chọn SĐT để tự động điền Tên khách & lọc danh sách máy.
-                        </small>
                     </div>
 
                     <!-- Tên khách hàng (Tự điền khi chọn SĐT) -->
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">
                             Tên khách hàng <span class="text-danger">*</span>
-                            <span id="lblAutoFillNameHint" class="badge bg-success-subtle text-success ms-1 small d-none">
-                                <i class="bi bi-magic"></i> Tự động điền theo SĐT
-                            </span>
                         </label>
                         <input type="text" name="customerName" id="inpCustomerName" class="form-control-dark" placeholder="VD: Nguyễn Văn A" disabled required />
                     </div>
@@ -212,26 +203,21 @@
                 <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
                         <span class="fw-bold text-dark">
-                            <i class="bi bi-laptop text-primary me-2"></i>2. Thông tin máy & Ngoại quan
+                            <i class="bi bi-laptop text-dark me-2"></i>2. Thông tin máy & Ngoại quan
                         </span>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 2</span>
                     </div>
 
                     <!-- Thiết bị / Model máy -->
                     <div class="mb-3">
-                        <label class="form-label-dark small fw-bold mb-1 text-primary">
+                        <label class="form-label-dark small fw-bold mb-1">
                             <i class="bi bi-laptop me-1"></i>Thiết bị / Model máy <span class="text-danger">*</span>
-                            <span id="lblDeviceBadge" class="badge bg-primary-subtle text-primary ms-1 small">Chọn máy</span>
                         </label>
                         <!-- Selector chọn máy (Bảo hành: máy khách đã mua / Sửa chữa: tất cả máy trong kho) -->
-                        <select id="selDeviceModel" class="form-select-dark border-primary mb-2" disabled onchange="handleDeviceModelSelect(this)">
+                        <select id="selDeviceModel" class="form-select-dark mb-2" disabled onchange="handleDeviceModelSelect(this)">
                             <option value="">-- Vui lòng chọn số điện thoại trước --</option>
                         </select>
                         <div id="divDeviceInput">
                             <input type="text" name="deviceModel" id="inpDeviceModel" class="form-control-dark" placeholder="VD: ASUS TUF Gaming A15..." disabled required />
-                            <small class="text-muted mt-1 d-block" id="deviceInputHelp" style="font-size: 0.78rem;">
-                                Được tự động điền khi chọn máy từ danh sách bên trên.
-                            </small>
                         </div>
                     </div>
 
@@ -260,9 +246,8 @@
                 <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
                         <span class="fw-bold text-dark">
-                            <i class="bi bi-tools text-primary me-2"></i>3. Dịch vụ, Chi phí & Trạng thái
+                            <i class="bi bi-tools text-dark me-2"></i>3. Dịch vụ, Chi phí & Trạng thái
                         </span>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Cột 3</span>
                     </div>
 
                     <!-- Hạng mục dịch vụ -->
@@ -612,6 +597,8 @@
             const manualDiv = document.getElementById('divManualPhone');
             const type = document.getElementById('inpTicketType').value;
 
+            const nameHint = document.getElementById('lblAutoFillNameHint');
+
             if (val === '__manual__') {
                 // Nhập số điện thoại mới cho khách vãng lai
                 manualDiv.style.display = 'block';
@@ -619,7 +606,7 @@
                 nameInput.value = '';
                 emailInput.value = '';
                 nameInput.readOnly = false;
-                document.getElementById('lblAutoFillNameHint').classList.add('d-none');
+                if (nameHint) nameHint.classList.add('d-none');
                 phoneInput.focus();
                 updateDeviceModelOptions();
             } else if (val) {
@@ -635,7 +622,7 @@
 
                 if (type === 'Bảo hành') {
                     nameInput.readOnly = true;
-                    document.getElementById('lblAutoFillNameHint').classList.remove('d-none');
+                    if (nameHint) nameHint.classList.remove('d-none');
                 } else {
                     nameInput.readOnly = false;
                 }

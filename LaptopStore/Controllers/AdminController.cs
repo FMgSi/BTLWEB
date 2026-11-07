@@ -523,8 +523,14 @@ public class AdminController : Controller
                 end = DateTime.Today.AddDays(1).AddTicks(-1);
                 break;
             case "custom":
-                start = fromDate ?? DateTime.Today.AddDays(-30);
-                end = (toDate ?? DateTime.Today).AddDays(1).AddTicks(-1);
+                start = (fromDate ?? DateTime.Today.AddDays(-30)).Date;
+                end = (toDate ?? DateTime.Today).Date.AddDays(1).AddTicks(-1);
+                if (start > end)
+                {
+                    var temp = start;
+                    start = end.Date;
+                    end = temp.Date.AddDays(1).AddTicks(-1);
+                }
                 break;
             case "month":
             default:
@@ -687,6 +693,61 @@ public class AdminController : Controller
                 var rev = completedOrders.Where(o => o.CreatedAt.Date == d).Sum(o => o.TotalAmount);
                 report.ChartLabels.Add(d.ToString("dd/MM"));
                 report.ChartValues.Add(rev / 1000000m);
+            }
+        }
+        else if (period == "custom")
+        {
+            var totalDays = (end.Date - start.Date).TotalDays + 1;
+            if (totalDays <= 1)
+            {
+                // Cùng 1 ngày: chia theo khung giờ 2 tiếng
+                for (int h = 8; h <= 20; h += 2)
+                {
+                    var hStart = start.Date.AddHours(h);
+                    var hEnd = start.Date.AddHours(h + 2);
+                    var rev = completedOrders.Where(o => o.CreatedAt >= hStart && o.CreatedAt < hEnd).Sum(o => o.TotalAmount);
+                    report.ChartLabels.Add($"{h}h-{h + 2}h");
+                    report.ChartValues.Add(rev / 1000000m);
+                }
+            }
+            else if (totalDays <= 14)
+            {
+                // Dưới 2 tuần: hiển thị chi tiết từng ngày
+                for (var curr = start.Date; curr <= end.Date; curr = curr.AddDays(1))
+                {
+                    var rev = completedOrders.Where(o => o.CreatedAt.Date == curr).Sum(o => o.TotalAmount);
+                    report.ChartLabels.Add(curr.ToString("dd/MM"));
+                    report.ChartValues.Add(rev / 1000000m);
+                }
+            }
+            else if (totalDays <= 60)
+            {
+                // Từ 15 - 60 ngày: gom nhóm 5 ngày
+                for (var curr = start.Date; curr <= end.Date; curr = curr.AddDays(5))
+                {
+                    var dEnd = curr.AddDays(5).AddTicks(-1);
+                    if (dEnd > end) dEnd = end;
+                    var rev = completedOrders.Where(o => o.CreatedAt >= curr && o.CreatedAt <= dEnd).Sum(o => o.TotalAmount);
+                    report.ChartLabels.Add($"{curr:dd/MM}-{dEnd:dd/MM}");
+                    report.ChartValues.Add(rev / 1000000m);
+                }
+            }
+            else
+            {
+                // Khoảng thời gian dài (> 60 ngày): gom nhóm theo từng tháng
+                var startMonth = new DateTime(start.Year, start.Month, 1);
+                var endMonth = new DateTime(end.Year, end.Month, 1);
+                int totalMonths = ((end.Year - start.Year) * 12) + end.Month - start.Month + 1;
+                int step = totalMonths > 24 ? 3 : (totalMonths > 12 ? 2 : 1);
+
+                for (var m = startMonth; m <= endMonth; m = m.AddMonths(step))
+                {
+                    var mEnd = m.AddMonths(step).AddTicks(-1);
+                    if (mEnd > end) mEnd = end;
+                    var rev = completedOrders.Where(o => o.CreatedAt >= m && o.CreatedAt <= mEnd).Sum(o => o.TotalAmount);
+                    report.ChartLabels.Add(m.ToString("MM/yyyy"));
+                    report.ChartValues.Add(rev / 1000000m);
+                }
             }
         }
         else

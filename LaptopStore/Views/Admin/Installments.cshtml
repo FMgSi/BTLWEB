@@ -38,36 +38,36 @@
 <!-- 3 THẺ CHỈ SỐ NGHIỆP VỤ TRẢ GÓP -->
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="metric-card border-warning">
-            <div class="metric-header">
-                <span class="metric-label text-warning-emphasis">Chờ xác nhận trả trước</span>
-                <span class="badge bg-warning text-dark"><i class="bi bi-clock-history"></i> Cần duyệt</span>
+        <div class="admin-card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-semibold text-secondary">Chờ xác nhận trả trước</span>
+                <span class="badge bg-light text-dark border"><i class="bi bi-clock-history me-1"></i>Cần duyệt</span>
             </div>
-            <div class="metric-value text-warning fs-3 fw-bold">
+            <div class="fs-4 fw-bold text-dark mb-1">
                 @waitingCount hợp đồng
             </div>
             <small class="text-muted">Đơn khách đã đặt, đang chờ tiền về để giao máy</small>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="metric-card border-primary">
-            <div class="metric-header">
-                <span class="metric-label text-primary">Hợp đồng đang trả góp</span>
-                <span class="badge bg-primary"><i class="bi bi-arrow-repeat"></i> Đang theo dõi</span>
+        <div class="admin-card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-semibold text-secondary">Hợp đồng đang trả góp</span>
+                <span class="badge bg-light text-dark border"><i class="bi bi-arrow-repeat me-1"></i>Đang theo dõi</span>
             </div>
-            <div class="metric-value text-primary fs-3 fw-bold">
+            <div class="fs-4 fw-bold text-dark mb-1">
                 @activeCount hợp đồng
             </div>
             <small class="text-muted">Đã giao máy và đang thu tiền các kỳ hàng tháng</small>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="metric-card border-danger">
-            <div class="metric-header">
-                <span class="metric-label text-danger">Tổng dư nợ cần thu</span>
-                <span class="badge bg-danger"><i class="bi bi-cash-stack"></i> Công nợ</span>
+        <div class="admin-card p-3 shadow-sm border rounded-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-semibold text-secondary">Tổng dư nợ cần thu</span>
+                <span class="badge bg-light text-dark border"><i class="bi bi-cash-stack me-1"></i>Công nợ</span>
             </div>
-            <div class="metric-value text-danger fs-3 fw-bold">
+            <div class="fs-4 fw-bold text-dark mb-1">
                 @string.Format("{0:N0}đ", totalDebt)
             </div>
             <small class="text-muted">Khoản tiền chưa thu của các hợp đồng đang thực hiện</small>

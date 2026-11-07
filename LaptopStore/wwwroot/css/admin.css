@@ -574,7 +574,7 @@ a {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    background: #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -958,10 +958,14 @@ a {
 .btn-secondary-custom:active:not(:disabled),
 .admin-main .btn:not(.btn-close):not(.filter-btn-item):active:not(:disabled),
 .admin-main button:not(.btn-close):not(.filter-btn-item):active:not(:disabled),
-.admin-card .btn:not(.btn-close):not(.filter-btn-item):active:not(:disabled) {
+.admin-card .btn:not(.btn-close):not(.filter-btn-item):active:not(:disabled),
+.btn-action-tool.active,
+.btn-primary-custom.active,
+.btn-secondary-custom.active {
     background-color: #e2e8f0 !important;
     border: none !important;
     color: #000000 !important;
+    font-weight: 600 !important;
 }
 
 .btn-action-tool:disabled,
@@ -1253,17 +1257,17 @@ input:checked + .admin-slider:before {
 }
 
 .filter-btn-item:hover {
-    color: var(--primary-blue) !important;
-    background: rgba(255, 255, 255, 0.6) !important;
+    color: #000000 !important;
+    background: #f1f5f9 !important;
     border: none !important;
     box-shadow: none !important;
 }
 
 .filter-btn-item.active {
     background: #ffffff !important;
-    color: var(--primary-blue) !important;
-    font-weight: 600 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
     border: none !important;
 }
 
