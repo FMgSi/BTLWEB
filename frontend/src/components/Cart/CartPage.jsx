@@ -291,7 +291,14 @@ export default function CartPage({
         email: currentUser?.email?.trim() || null,
         shippingAddress: address,
         notes: orderNotes.trim(),
-        paymentMethod: purchaseMode === 'Installment' ? 'Trả góp' : (paymentMethod === 'cod' ? 'COD' : paymentMethod === 'vnpay' ? 'VNPAY' : 'VietQR'),
+        paymentMethod:
+          purchaseMode === 'Installment'
+            ? 'Trả góp'
+            : paymentMethod === 'cod'
+            ? 'Tiền mặt'
+            : paymentMethod === 'card'
+            ? 'Thẻ ngân hàng'
+            : 'Chuyển khoản',
         purchaseMode: purchaseMode,
         termMonths: purchaseMode === 'Installment' ? termMonths : null,
         discountCode: appliedVoucher?.code || null,
@@ -382,12 +389,12 @@ export default function CartPage({
             : [...checkedItems],
         paymentMethod:
           purchaseMode === 'Installment'
-            ? `Trả góp 0% (${termMonths} tháng - Trả trước 30% khi nhận hàng)`
+            ? `Trả góp 0% (${termMonths} tháng)`
             : paymentMethod === 'cod'
-            ? 'Thanh toán tiền mặt khi nhận hàng (COD)'
-            : paymentMethod === 'vnpay'
-            ? 'Thanh toán qua Ví điện tử VNPay'
-            : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
+            ? 'Tiền mặt'
+            : paymentMethod === 'card'
+            ? 'Thẻ ngân hàng'
+            : 'Chuyển khoản',
       };
 
       // Xóa các sản phẩm đã mua khỏi giỏ hàng
@@ -403,14 +410,12 @@ export default function CartPage({
       setIsCheckoutStep(false);
       setFormError('');
 
-      if (purchaseMode !== 'Installment' && paymentMethod === 'banking') {
-        setPendingOrder(orderData);
-        setShowQrModal(true);
-      } else {
-        setOrderSuccess(orderData);
-        if (showToast) {
-          showToast(`🎉 ${purchaseMode === 'Installment' ? 'Đăng ký mua trả góp 0% thành công!' : 'Đặt hàng thành công!'} Mã đơn: #${realOrderCode}`, 5000);
-        }
+      setOrderSuccess(orderData);
+      if (showToast) {
+        showToast(
+          `🎉 ${purchaseMode === 'Installment' ? 'Đăng ký mua trả góp 0% thành công!' : 'Đặt hàng thành công!'} Mã đơn: #${realOrderCode}`,
+          5000
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -1044,7 +1049,7 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* KHỐI 5: PHƯƠNG THỨC THANH TOÁN (COD, VIETQR, VNPAY, TRẢ GÓP 0%) */}
+            {/* KHỐI 5: PHƯƠNG THỨC THANH TOÁN (TIỀN MẶT, CHUYỂN KHOẢN, THẺ NGÂN HÀNG, TRẢ GÓP 0%) */}
             <div className="bg-white rounded-3 border p-4 mb-3 shadow-sm">
               <h6 className="fw-bold text-dark mb-3">Phương thức thanh toán</h6>
 
@@ -1058,33 +1063,33 @@ export default function CartPage({
                     }}
                   >
                     <div className="fs-5 mb-1">💵</div>
-                    <div className="fw-bold small text-dark">Thanh toán khi nhận hàng (COD)</div>
+                    <div className="fw-bold small text-dark">Tiền mặt</div>
                   </div>
                 </div>
 
                 <div className="col-md-3 col-6">
                   <div
-                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'banking' && purchaseMode === 'Full' ? 'active' : ''}`}
+                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'transfer' && purchaseMode === 'Full' ? 'active' : ''}`}
                     onClick={() => {
-                      setPaymentMethod('banking');
+                      setPaymentMethod('transfer');
+                      setPurchaseMode('Full');
+                    }}
+                  >
+                    <div className="fs-5 mb-1">🏦</div>
+                    <div className="fw-bold small text-dark">Chuyển khoản</div>
+                  </div>
+                </div>
+
+                <div className="col-md-3 col-6">
+                  <div
+                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'card' && purchaseMode === 'Full' ? 'active' : ''}`}
+                    onClick={() => {
+                      setPaymentMethod('card');
                       setPurchaseMode('Full');
                     }}
                   >
                     <div className="fs-5 mb-1">💳</div>
-                    <div className="fw-bold small text-dark">Chuyển khoản VietQR (Napas 24/7)</div>
-                  </div>
-                </div>
-
-                <div className="col-md-3 col-6">
-                  <div
-                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'vnpay' && purchaseMode === 'Full' ? 'active' : ''}`}
-                    onClick={() => {
-                      setPaymentMethod('vnpay');
-                      setPurchaseMode('Full');
-                    }}
-                  >
-                    <div className="fs-5 mb-1">📱</div>
-                    <div className="fw-bold small text-dark">Ví điện tử / Thẻ VNPay</div>
+                    <div className="fw-bold small text-dark">Thẻ ngân hàng</div>
                   </div>
                 </div>
 
@@ -1097,7 +1102,7 @@ export default function CartPage({
                     }}
                   >
                     <div className="fs-5 mb-1">📝</div>
-                    <div className="fw-bold small text-danger">Trả góp 0% (Duyệt nhanh)</div>
+                    <div className="fw-bold small text-danger">Trả góp 0%</div>
                   </div>
                 </div>
               </div>

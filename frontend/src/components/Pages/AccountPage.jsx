@@ -9,7 +9,7 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
 
   // Installments state & payment modal
   const [payingModal, setPayingModal] = useState(null); // { type: 'period' | 'prepay', order, contract, period }
-  const [payingMethod, setPayingMethod] = useState('vietqr'); // 'vietqr' | 'cash' | 'vnpay'
+  const [payingMethod, setPayingMethod] = useState('cash'); // 'cash' | 'transfer' | 'card'
   const [payingNote, setPayingNote] = useState('');
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState('');
@@ -56,17 +56,20 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
         ? '/api/orders/pay-installment-prepay'
         : '/api/orders/pay-installment-period';
 
+      const paymentMethodName =
+        payingMethod === 'cash' ? 'Tiền mặt' : payingMethod === 'card' ? 'Thẻ ngân hàng' : 'Chuyển khoản';
+
       const payload = isPrepay
         ? {
             contractId: payingModal.contract?.contractId || payingModal.order?.installmentContract?.contractId,
-            paymentMethod: payingMethod === 'cash' ? 'Tiền mặt' : payingMethod === 'vnpay' ? 'VNPay' : 'VietQR',
-            note: payingNote || `Khách hàng thanh toán trả trước 30% qua ${payingMethod}`,
+            paymentMethod: paymentMethodName,
+            note: payingNote || `Khách hàng thanh toán trả trước 30% bằng ${paymentMethodName}`,
           }
         : {
             contractId: payingModal.contract?.contractId || payingModal.order?.installmentContract?.contractId,
             periodNumber: payingModal.period?.periodNumber,
-            paymentMethod: payingMethod === 'cash' ? 'Tiền mặt' : payingMethod === 'vnpay' ? 'VNPay' : 'VietQR',
-            note: payingNote || `Khách hàng thanh toán kỳ ${payingModal.period?.periodNumber} qua ${payingMethod}`,
+            paymentMethod: paymentMethodName,
+            note: payingNote || `Khách hàng thanh toán kỳ ${payingModal.period?.periodNumber} bằng ${paymentMethodName}`,
           };
 
       const res = await fetch(endpoint, {
@@ -977,61 +980,35 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                 <div className="row g-2 mb-3">
                   <div className="col-4">
                     <div
-                      className={`p-2 rounded border text-center cursor-pointer ${payingMethod === 'vietqr' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setPayingMethod('vietqr')}
-                    >
-                      <i className="bi bi-qr-code d-block fs-5"></i>
-                      <span style={{ fontSize: '12px' }}>Chuyển khoản QR</span>
-                    </div>
-                  </div>
-                  <div className="col-4">
-                    <div
-                      className={`p-2 rounded border text-center cursor-pointer ${payingMethod === 'cash' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
+                      className={`p-3 rounded border text-center cursor-pointer h-100 ${payingMethod === 'cash' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
                       style={{ cursor: 'pointer' }}
                       onClick={() => setPayingMethod('cash')}
                     >
-                      <i className="bi bi-cash d-block fs-5"></i>
-                      <span style={{ fontSize: '12px' }}>Tiền mặt / COD</span>
+                      <i className="bi bi-cash d-block fs-4 mb-1"></i>
+                      <span className="small">Tiền mặt</span>
                     </div>
                   </div>
                   <div className="col-4">
                     <div
-                      className={`p-2 rounded border text-center cursor-pointer ${payingMethod === 'vnpay' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
+                      className={`p-3 rounded border text-center cursor-pointer h-100 ${payingMethod === 'transfer' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
                       style={{ cursor: 'pointer' }}
-                      onClick={() => setPayingMethod('vnpay')}
+                      onClick={() => setPayingMethod('transfer')}
                     >
-                      <i className="bi bi-wallet2 d-block fs-5"></i>
-                      <span style={{ fontSize: '12px' }}>Ví VNPay</span>
+                      <i className="bi bi-bank d-block fs-4 mb-1"></i>
+                      <span className="small">Chuyển khoản</span>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div
+                      className={`p-3 rounded border text-center cursor-pointer h-100 ${payingMethod === 'card' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setPayingMethod('card')}
+                    >
+                      <i className="bi bi-credit-card d-block fs-4 mb-1"></i>
+                      <span className="small">Thẻ ngân hàng</span>
                     </div>
                   </div>
                 </div>
-
-                {/* Nếu chọn VietQR thì hiện mã QR */}
-                {payingMethod === 'vietqr' && (
-                  <div className="text-center bg-white p-3 rounded border mb-3">
-                    <img
-                      src={`https://img.vietqr.io/image/${STORE_BANK_ACCOUNT.bankId}-${STORE_BANK_ACCOUNT.accountNo}-compact2.png?amount=${
-                        payingModal.type === 'prepay'
-                          ? (payingModal.contract?.prepayAmount || Math.round((payingModal.order?.totalAmount || 0) * 0.3))
-                          : (payingModal.period?.amount || 0)
-                      }&addInfo=${encodeURIComponent(
-                        payingModal.type === 'prepay'
-                          ? `TT 30PT ${payingModal.order?.orderCode}`
-                          : `KY ${payingModal.period?.periodNumber} ${payingModal.order?.orderCode}`
-                      )}&accountName=${encodeURIComponent(STORE_BANK_ACCOUNT.accountName)}`}
-                      alt="VietQR Payment"
-                      style={{ width: '180px', height: '180px', objectFit: 'contain' }}
-                      className="rounded border mb-2"
-                    />
-                    <div className="small text-muted">
-                      Ngân hàng: <strong>{STORE_BANK_ACCOUNT.bankId}</strong> • STK: <strong>{STORE_BANK_ACCOUNT.accountNo}</strong>
-                    </div>
-                    <div className="small text-muted">
-                      Chủ TK: <strong>{STORE_BANK_ACCOUNT.accountName}</strong>
-                    </div>
-                  </div>
-                )}
 
                 {/* Ghi chú */}
                 <div className="mb-3">
