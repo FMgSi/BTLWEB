@@ -1,4 +1,4 @@
-# =========================================================================
+﻿# =========================================================================
 # SCRIPT TỰ ĐỘNG KIỂM TRA, KHỞI TẠO VÀ KẾT NỐI CƠ SỞ DỮ LIỆU - LAPTOP STORE
 # Hỗ trợ tự động chạy trên mọi máy tính mới (SQLEXPRESS, LocalDB, localhost, .)
 # =========================================================================
@@ -131,13 +131,7 @@ if ($errorCount -eq 0) {
 Write-Host ""
 Write-Host "--- TỔNG KẾT DỮ LIỆU CSDL LAPTOPSTOREDB VỪA TẠO ---" -ForegroundColor Cyan
 $summaryCmd = $masterConn.CreateCommand()
-$summaryCmd.CommandText = @"
-SELECT t.NAME AS TableName, i.Rows 
-FROM LaptopStoreDb.sys.tables t 
-JOIN LaptopStoreDb.sys.partitions i ON t.object_id = i.object_id 
-WHERE i.index_id IN (0, 1) 
-ORDER BY t.NAME
-"@
+$summaryCmd.CommandText = "SELECT t.NAME AS TableName, i.Rows FROM LaptopStoreDb.sys.tables t JOIN LaptopStoreDb.sys.partitions i ON t.object_id = i.object_id WHERE i.index_id IN (0, 1) ORDER BY t.NAME"
 $reader = $summaryCmd.ExecuteReader()
 while ($reader.Read()) {
     Write-Host ("  + " + $reader[0].ToString().PadRight(25) + " : " + $reader[1].ToString() + " bản ghi") -ForegroundColor White
@@ -191,7 +185,7 @@ Write-Host "====================================================================
 Write-Host ""
 
 # Tự động mở trình duyệt sau 3 giây khi backend khởi động
-Start-Process powershell -ArgumentList "-NoProfile -Command `"Start-Sleep -Seconds 3; Start-Process 'http://localhost:5148/Admin/Login'; Start-Process 'http://localhost:3000'`"" -WindowStyle Hidden
+Start-Process powershell -ArgumentList "-NoProfile", "-Command", "Start-Sleep -Seconds 3; Start-Process 'http://localhost:5148/Admin/Login'; Start-Process 'http://localhost:3000'" -WindowStyle Hidden
 
 dotnet run --project "$PSScriptRoot\LaptopStore" --launch-profile http
 
