@@ -194,3 +194,4 @@ Write-Host ""
 Start-Process powershell -ArgumentList "-NoProfile -Command `"Start-Sleep -Seconds 3; Start-Process 'http://localhost:5148/Admin/Login'; Start-Process 'http://localhost:3000'`"" -WindowStyle Hidden
 
 dotnet run --project "$PSScriptRoot\LaptopStore" --launch-profile http
+
