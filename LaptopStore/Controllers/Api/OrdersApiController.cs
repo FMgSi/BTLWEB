@@ -175,6 +175,62 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, orders });
     }
 
+    /// <summary>
+    /// POST /api/orders/pay-installment-period
+    /// Khách hàng thanh toán một kỳ trả góp trực tuyến
+    /// </summary>
+    [HttpPost("pay-installment-period")]
+    public async Task<IActionResult> PayInstallmentPeriod([FromBody] PayInstallmentPeriodRequest request)
+    {
+        if (request == null || request.ContractId <= 0 || request.PeriodNumber <= 0)
+        {
+            return BadRequest(new { success = false, message = "Thông tin thanh toán kỳ trả góp không hợp lệ." });
+        }
+
+        string customerName = HttpContext.Session.GetString("FullName") ?? "Khách hàng";
+        string method = string.IsNullOrWhiteSpace(request.PaymentMethod) ? "VietQR" : request.PaymentMethod;
+        string txRef = "ONLINE-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+        string note = request.Note ?? $"Khách hàng {customerName} thanh toán kỳ {request.PeriodNumber} trực tuyến qua {method}";
+
+        var (success, message, schedule) = await _installmentService.CollectPeriodPaymentAsync(
+            request.ContractId, request.PeriodNumber, customerName, method, txRef, note);
+
+        if (!success)
+        {
+            return BadRequest(new { success = false, message });
+        }
+
+        return Ok(new { success = true, message, schedule });
+    }
+
+    /// <summary>
+    /// POST /api/orders/pay-installment-prepay
+    /// Khách hàng thanh toán khoản trả trước 30% trực tuyến để kích hoạt hợp đồng trả góp
+    /// </summary>
+    [HttpPost("pay-installment-prepay")]
+    public async Task<IActionResult> PayInstallmentPrepay([FromBody] PayInstallmentPrepayRequest request)
+    {
+        if (request == null || request.ContractId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Thông tin hợp đồng không hợp lệ." });
+        }
+
+        string customerName = HttpContext.Session.GetString("FullName") ?? "Khách hàng";
+        string method = string.IsNullOrWhiteSpace(request.PaymentMethod) ? "VietQR" : request.PaymentMethod;
+        string txRef = "PREPAY-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+        string note = request.Note ?? $"Khách hàng {customerName} thanh toán khoản trả trước 30% trực tuyến qua {method}";
+
+        var (success, message, contract) = await _installmentService.ActivateContractAsync(
+            request.ContractId, customerName, method, txRef, note);
+
+        if (!success)
+        {
+            return BadRequest(new { success = false, message });
+        }
+
+        return Ok(new { success = true, message, contract });
+    }
+
     private static void MaskSensitiveCustomerInfo(OrderResponseDto order)
     {
         // 1. Che số điện thoại triệt để

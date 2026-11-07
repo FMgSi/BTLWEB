@@ -121,3 +121,18 @@ public class UpdateOrderStatusRequest
 
     public string? Note { get; set; }
 }
+
+public class PayInstallmentPeriodRequest
+{
+    public int ContractId { get; set; }
+    public int PeriodNumber { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? Note { get; set; }
+}
+
+public class PayInstallmentPrepayRequest
+{
+    public int ContractId { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? Note { get; set; }
+}

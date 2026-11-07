@@ -2,10 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { formatVND } from '../../utils/formatters';
 
 export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavigateToService }) {
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'devices' | 'membership'
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'installments' | 'membership'
   const [orders, setOrders] = useState([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [orderError, setOrderError] = useState('');
+
+  // Installments state & payment modal
+  const [payingModal, setPayingModal] = useState(null); // { type: 'period' | 'prepay', order, contract, period }
+  const [payingMethod, setPayingMethod] = useState('vietqr'); // 'vietqr' | 'cash' | 'vnpay'
+  const [payingNote, setPayingNote] = useState('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [paymentSuccessMsg, setPaymentSuccessMsg] = useState('');
+  const [paymentErrorMsg, setPaymentErrorMsg] = useState('');
+
+  const STORE_BANK_ACCOUNT = {
+    bankId: 'MB',
+    accountNo: '0354120145',
+    accountName: 'HOANG BA TRUNG',
+  };
 
   // Guest lookup
   const [guestCode, setGuestCode] = useState('');
@@ -27,12 +41,58 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     }
   }, [currentUser]);
 
-  // 2. Tải thiết bị đã mua
-  useEffect(() => {
-    if (activeTab === 'devices') {
-      loadDevices(devicePhone || currentUser?.phoneNumber);
+  const installmentOrders = orders.filter(
+    (o) => o.purchaseMode === 'Installment' || o.installmentContract != null
+  );
+
+  const handleConfirmInstallmentPayment = async () => {
+    if (!payingModal) return;
+    setIsSubmittingPayment(true);
+    setPaymentErrorMsg('');
+    setPaymentSuccessMsg('');
+    try {
+      const isPrepay = payingModal.type === 'prepay';
+      const endpoint = isPrepay
+        ? '/api/orders/pay-installment-prepay'
+        : '/api/orders/pay-installment-period';
+
+      const payload = isPrepay
+        ? {
+            contractId: payingModal.contract?.contractId || payingModal.order?.installmentContract?.contractId,
+            paymentMethod: payingMethod === 'cash' ? 'Tiền mặt' : payingMethod === 'vnpay' ? 'VNPay' : 'VietQR',
+            note: payingNote || `Khách hàng thanh toán trả trước 30% qua ${payingMethod}`,
+          }
+        : {
+            contractId: payingModal.contract?.contractId || payingModal.order?.installmentContract?.contractId,
+            periodNumber: payingModal.period?.periodNumber,
+            paymentMethod: payingMethod === 'cash' ? 'Tiền mặt' : payingMethod === 'vnpay' ? 'VNPay' : 'VietQR',
+            note: payingNote || `Khách hàng thanh toán kỳ ${payingModal.period?.periodNumber} qua ${payingMethod}`,
+          };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPaymentSuccessMsg(data.message || 'Thanh toán thành công!');
+        setTimeout(() => {
+          setPayingModal(null);
+          setPaymentSuccessMsg('');
+          loadUserOrders();
+        }, 1200);
+      } else {
+        setPaymentErrorMsg(data.message || 'Thanh toán không thành công. Vui lòng thử lại!');
+      }
+    } catch {
+      setPaymentErrorMsg('Lỗi kết nối máy chủ khi xử lý thanh toán.');
+    } finally {
+      setIsSubmittingPayment(false);
     }
-  }, [activeTab, currentUser]);
+  };
 
   const loadUserOrders = async () => {
     setIsLoadingOrders(true);
@@ -266,11 +326,11 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           <button
             type="button"
             className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${
-              activeTab === 'devices' ? 'btn-danger text-white' : 'btn-light text-secondary'
+              activeTab === 'installments' ? 'btn-danger text-white' : 'btn-light text-secondary'
             }`}
-            onClick={() => setActiveTab('devices')}
+            onClick={() => setActiveTab('installments')}
           >
-            <i className="bi bi-laptop me-1"></i> 2. Sản phẩm đã mua & Bảo hành ({devices.length})
+            <i className="bi bi-credit-card-2-front me-1"></i> 2. Trả góp sản phẩm đã mua ({installmentOrders.length})
           </button>
           <button
             type="button"
@@ -507,116 +567,258 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           </div>
         )}
 
-        {/* TAB 2: SẢN PHẨM ĐÃ MUA & BẢO HÀNH */}
-        {activeTab === 'devices' && (
+        {/* TAB 2: TRẢ GÓP SẢN PHẨM ĐÃ MUA */}
+        {activeTab === 'installments' && (
           <div>
             <div className="bg-white rounded-3 p-4 mb-3 border shadow-sm d-flex flex-wrap justify-content-between align-items-center gap-3">
               <div>
                 <h5 className="fw-bold text-dark mb-1">
-                  <i className="bi bi-shield-check text-success me-2"></i>Thiết bị đã bàn giao & Thời hạn bảo hành
+                  <i className="bi bi-credit-card-2-front text-danger me-2"></i>Quản lý hợp đồng & Thanh toán trả góp 0%
                 </h5>
                 <p className="text-muted small mb-0">
-                  Mỗi chiếc laptop khi bàn giao đều được liên kết số Serial định danh duy nhất và theo dõi thời hạn bảo hành chính xác theo ngày.
+                  Theo dõi chi tiết các sản phẩm mua trả góp 0%, khoản trả trước 30%, số dư nợ còn lại và thanh toán trực tuyến các kỳ đến hạn.
                 </p>
               </div>
-              <div className="d-flex gap-2 align-items-center">
-                <input
-                  type="tel"
-                  className="form-control form-control-sm"
-                  placeholder="Lọc theo Số điện thoại..."
-                  value={devicePhone}
-                  onChange={(e) => setDevicePhone(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary"
-                  onClick={() => loadDevices(devicePhone)}
-                >
-                  Tải lại
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-danger fw-semibold"
+                onClick={loadUserOrders}
+                disabled={isLoadingOrders}
+              >
+                <i className="bi bi-arrow-clockwise me-1"></i> Làm mới dữ liệu
+              </button>
             </div>
 
-            {isLoadingDevices ? (
+            {isLoadingOrders ? (
               <div className="text-center py-5 bg-white rounded-3 shadow-sm border">
                 <div className="spinner-border text-danger" role="status"></div>
-                <div className="small text-muted mt-2">Đang tải danh sách thiết bị...</div>
+                <div className="small text-muted mt-2">Đang tải danh sách hợp đồng trả góp...</div>
               </div>
-            ) : deviceError ? (
-              <div className="alert alert-danger py-3 px-4 rounded-3 shadow-sm">
-                <i className="bi bi-exclamation-triangle-fill me-2"></i> {deviceError}
-              </div>
-            ) : devices.length === 0 ? (
+            ) : installmentOrders.length === 0 ? (
               <div className="text-center py-5 bg-white rounded-3 shadow-sm border">
-                <i className="bi bi-laptop text-muted fs-1 d-block mb-2"></i>
-                <h6 className="fw-bold text-dark">Chưa có thiết bị nào được ghi nhận</h6>
+                <i className="bi bi-credit-card text-muted fs-1 d-block mb-2"></i>
+                <h6 className="fw-bold text-dark">Bạn chưa có sản phẩm nào mua theo hình thức trả góp</h6>
                 <p className="text-muted small mb-3">
-                  Khi đơn hàng của bạn được giao thành công và nhân viên cấp số Serial cho máy, thiết bị sẽ xuất hiện tại đây.
+                  Laptop World hỗ trợ mua trả góp 0% lãi suất với thủ tục nhanh chóng, chỉ cần trả trước 30%.
                 </p>
+                <a href="/products" className="btn btn-danger btn-sm px-4 fw-semibold">
+                  Khám phá Laptop trả góp 0%
+                </a>
               </div>
             ) : (
-              <div className="row g-3">
-                {devices.map((device) => {
-                  const isUnderWarranty = device.isUnderWarranty;
-                  const daysRemaining = device.daysRemaining || 0;
+              <div className="d-flex flex-column gap-4">
+                {installmentOrders.map((order) => {
+                  const contract = order.installmentContract;
+                  const termMonths = contract?.termMonths || 6;
+                  const totalAmount = order.totalAmount || 0;
+                  const prepayAmount = contract?.prepayAmount || Math.round(totalAmount * 0.3);
+                  const isPrepayPaid = contract?.prepayStatus === 'Đã thanh toán' || order.paymentStatus === 'Đang trả góp' || order.paymentStatus === 'Đã tất toán';
+                  const totalPaid = contract?.totalPaid || (isPrepayPaid ? prepayAmount : 0);
+                  const remainingDebt = contract?.remainingDebt ?? Math.max(0, totalAmount - totalPaid);
+                  const schedules = contract?.schedules || [];
+                  const contractStatus = contract?.status || (isPrepayPaid ? 'Đang trả góp' : 'Chờ trả trước');
+
                   return (
-                    <div key={device.deviceId} className="col-md-6 col-lg-4">
-                      <div className="card h-100 shadow-sm border rounded-3 p-3 d-flex flex-column justify-content-between">
+                    <div key={order.orderId || order.orderCode} className="card shadow-sm border rounded-3 overflow-hidden">
+                      {/* HEADER HỢP ĐỒNG */}
+                      <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <div>
-                          <div className="d-flex justify-content-between align-items-start mb-2">
-                            <span className="badge bg-light text-dark border font-monospace">
-                              Mã đơn: #{device.orderCode}
+                          <span className="badge bg-danger text-white me-2">Trả góp 0%</span>
+                          <span className="fw-bold text-dark me-2">
+                            Mã HĐ: <span className="text-danger font-monospace">#{contract?.contractCode || ('HDTG-' + order.orderCode)}</span>
+                          </span>
+                          <span className="text-muted small">
+                            (Đơn hàng: #{order.orderCode} • {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'Mới'})
+                          </span>
+                        </div>
+                        <div>
+                          {contractStatus === 'Đã tất toán' ? (
+                            <span className="badge bg-success text-white px-3 py-2 fw-semibold">
+                              <i className="bi bi-check-circle me-1"></i> Đã tất toán hợp đồng
                             </span>
-                            {isUnderWarranty ? (
-                              <span className="badge bg-success-subtle text-success border border-success-subtle fw-semibold">
-                                <i className="bi bi-shield-fill-check me-1"></i> Còn BH ({daysRemaining} ngày)
-                              </span>
-                            ) : (
-                              <span className="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold">
-                                <i className="bi bi-shield-slash me-1"></i> Hết hạn BH
-                              </span>
-                            )}
-                          </div>
+                          ) : contractStatus === 'Đang trả góp' ? (
+                            <span className="badge bg-primary text-white px-3 py-2 fw-semibold">
+                              <i className="bi bi-clock-history me-1"></i> Đang thực hiện trả góp ({contract?.paidPeriodsCount || 0}/{termMonths} kỳ)
+                            </span>
+                          ) : (
+                            <span className="badge bg-warning text-dark px-3 py-2 fw-semibold">
+                              <i className="bi bi-hourglass-split me-1"></i> Chờ thanh toán trả trước 30%
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                          <h6 className="fw-bold text-dark mb-1">{device.productName}</h6>
-                          <div className="text-muted small mb-2">
-                            {device.colorName && <span className="me-2">Màu: <strong>{device.colorName}</strong></span>}
-                            {device.selectedSpecs && <span>Cấu hình: {device.selectedSpecs}</span>}
-                          </div>
+                      {/* NỘI DUNG SẢN PHẨM & TÀI CHÍNH */}
+                      <div className="card-body p-4">
+                        {/* THÔNG TIN SẢN PHẨM */}
+                        <div className="mb-3 pb-3 border-bottom">
+                          <h6 className="fw-bold text-dark small text-uppercase mb-2 text-muted">Sản phẩm trả góp:</h6>
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="d-flex align-items-center gap-3">
+                              {item.thumbnailUrl && (
+                                <img
+                                  src={item.thumbnailUrl}
+                                  alt={item.productName}
+                                  style={{ width: '56px', height: '56px', objectFit: 'cover' }}
+                                  className="rounded border"
+                                />
+                              )}
+                              <div className="flex-grow-1">
+                                <div className="fw-bold text-dark">{item.productName}</div>
+                                <div className="text-muted small">
+                                  {item.colorName && <span className="badge bg-light text-dark border me-2">Màu: {item.colorName}</span>}
+                                  <span>{item.selectedSpecs || 'Cấu hình tiêu chuẩn'}</span>
+                                  <span className="ms-2">• SL: <strong>{item.quantity}</strong></span>
+                                </div>
+                              </div>
+                              <div className="text-end">
+                                <div className="text-muted small">Đơn giá</div>
+                                <div className="fw-bold text-dark">{formatVND(item.unitPrice)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
-                          <div className="bg-light p-2 rounded-2 border mb-3 small">
-                            <div className="d-flex justify-content-between mb-1">
-                              <span className="text-muted">Số Serial:</span>
-                              <strong className="font-monospace text-primary">{device.serialNumber}</strong>
+                        {/* CHỈ SỐ TÀI CHÍNH */}
+                        <div className="row g-2 mb-3">
+                          <div className="col-6 col-md-3">
+                            <div className="bg-light p-3 rounded-3 border text-center h-100">
+                              <div className="text-muted small mb-1">Tổng giá trị đơn hàng</div>
+                              <div className="fw-bold text-dark fs-6">{formatVND(totalAmount)}</div>
                             </div>
-                            <div className="d-flex justify-content-between mb-1">
-                              <span className="text-muted">Ngày nhận máy:</span>
-                              <span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString('vi-VN') : '---'}</span>
+                          </div>
+                          <div className="col-6 col-md-3">
+                            <div className="bg-light p-3 rounded-3 border text-center h-100">
+                              <div className="text-muted small mb-1">Khoản trả trước 30%</div>
+                              <div className="fw-bold text-success fs-6">{formatVND(prepayAmount)}</div>
+                              <div className="small mt-1">
+                                {isPrepayPaid ? (
+                                  <span className="badge bg-success-subtle text-success">✓ Đã thanh toán</span>
+                                ) : (
+                                  <span className="badge bg-warning-subtle text-warning-emphasis">Chờ thanh toán</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="d-flex justify-content-between">
-                              <span className="text-muted">Hạn bảo hành:</span>
-                              <strong>{device.warrantyEndDate ? new Date(device.warrantyEndDate).toLocaleDateString('vi-VN') : '---'}</strong>
+                          </div>
+                          <div className="col-6 col-md-3">
+                            <div className="bg-light p-3 rounded-3 border text-center h-100">
+                              <div className="text-muted small mb-1">Góp mỗi tháng ({termMonths} kỳ)</div>
+                              <div className="fw-bold text-danger fs-6">
+                                {formatVND(contract?.monthlyInstallmentAmount || Math.round((totalAmount - prepayAmount) / termMonths))}/tháng
+                              </div>
+                              <div className="small text-muted mt-1">Lãi suất: <strong>0%</strong></div>
+                            </div>
+                          </div>
+                          <div className="col-6 col-md-3">
+                            <div className="bg-light p-3 rounded-3 border text-center h-100">
+                              <div className="text-muted small mb-1">Dư nợ còn lại</div>
+                              <div className="fw-bold text-danger fs-6">{formatVND(remainingDebt)}</div>
+                              <div className="small text-muted mt-1">Đã đóng: <strong>{formatVND(totalPaid)}</strong></div>
                             </div>
                           </div>
                         </div>
 
-                        <div>
-                          <button
-                            type="button"
-                            className={`btn w-100 fw-bold btn-sm ${
-                              isUnderWarranty ? 'btn-danger' : 'btn-outline-danger'
-                            }`}
-                            onClick={() => {
-                              if (onNavigateToService) {
-                                onNavigateToService({ deviceId: device.deviceId, isWarranty: isUnderWarranty });
-                              } else {
-                                window.location.href = `/service?deviceId=${device.deviceId}`;
-                              }
-                            }}
-                          >
-                            <i className="bi bi-tools me-1"></i>
-                            {isUnderWarranty ? 'Yêu cầu Bảo hành (0 ₫)' : 'Yêu cầu Sửa chữa có phí'}
-                          </button>
+                        {/* NẾU ĐANG CHỜ TRẢ TRƯỚC 30% THÌ HIỆN NÚT THANH TOÁN TRẢ TRƯỚC */}
+                        {!isPrepayPaid && (
+                          <div className="alert alert-warning py-3 px-3 rounded-3 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                              <i className="bi bi-info-circle-fill me-2 fs-5 text-warning"></i>
+                              <strong>Chưa thanh toán khoản trả trước 30% ({formatVND(prepayAmount)}).</strong>
+                              <span className="text-muted small d-block">
+                                Bạn có thể thanh toán trực tuyến ngay để kích hoạt hợp đồng và nhận máy, hoặc thanh toán tiền mặt khi nhân viên giao máy tận nơi.
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-warning fw-bold btn-sm px-3 shadow-sm text-dark"
+                              onClick={() => setPayingModal({ type: 'prepay', order, contract })}
+                            >
+                              <i className="bi bi-credit-card me-1"></i> Thanh toán 30% ngay ({formatVND(prepayAmount)})
+                            </button>
+                          </div>
+                        )}
+
+                        {/* BẢNG LỊCH CÁC KỲ TRẢ GÓP */}
+                        <div className="mt-3">
+                          <h6 className="fw-bold text-dark small text-uppercase mb-2">Lịch chi tiết các kỳ trả góp ({schedules.length} kỳ):</h6>
+                          <div className="table-responsive border rounded-3">
+                            <table className="table table-sm align-middle table-hover mb-0">
+                              <thead className="table-light small">
+                                <tr>
+                                  <th className="text-center" style={{ width: '80px' }}>Kỳ</th>
+                                  <th>Ngày đến hạn</th>
+                                  <th className="text-end">Số tiền kỳ</th>
+                                  <th className="text-center">Trạng thái</th>
+                                  <th>Ngày nộp</th>
+                                  <th className="text-end" style={{ width: '160px' }}>Thao tác</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {schedules.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={6} className="text-center py-3 text-muted small">
+                                      Lịch trả góp sẽ được chốt tự động sau khi thanh toán khoản trả trước 30%.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  schedules.map((schedule) => {
+                                    const isPaid = schedule.status === 'Đã thanh toán';
+                                    const isOverdue = schedule.status === 'Quá hạn';
+                                    const canPay = !isPaid && contractStatus !== 'Đã hủy';
+
+                                    return (
+                                      <tr key={schedule.scheduleId || schedule.periodNumber} className={isPaid ? 'table-light' : ''}>
+                                        <td className="text-center fw-bold">
+                                          Kỳ {schedule.periodNumber}
+                                        </td>
+                                        <td className="small">
+                                          {schedule.dueDate ? new Date(schedule.dueDate).toLocaleDateString('vi-VN') : '---'}
+                                        </td>
+                                        <td className="text-end fw-bold text-dark small">
+                                          {formatVND(schedule.amount)}
+                                        </td>
+                                        <td className="text-center">
+                                          {isPaid ? (
+                                            <span className="badge bg-success-subtle text-success border border-success-subtle">
+                                              ✓ Đã thanh toán
+                                            </span>
+                                          ) : isOverdue ? (
+                                            <span className="badge bg-danger text-white">
+                                              Quá hạn
+                                            </span>
+                                          ) : (
+                                            <span className="badge bg-warning-subtle text-dark border border-warning-subtle">
+                                              Chưa thanh toán
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="small text-muted">
+                                          {schedule.paidAt ? new Date(schedule.paidAt).toLocaleDateString('vi-VN') : '---'}
+                                        </td>
+                                        <td className="text-end">
+                                          {isPaid ? (
+                                            <span className="text-success small fw-semibold">
+                                              <i className="bi bi-check-circle-fill me-1"></i> Đã xong
+                                            </span>
+                                          ) : canPay ? (
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-danger fw-bold py-1 px-3"
+                                              onClick={() => setPayingModal({ type: 'period', order, contract, period: schedule })}
+                                            >
+                                              <i className="bi bi-wallet2 me-1"></i> Thanh toán
+                                            </button>
+                                          ) : (
+                                            <span className="text-muted small">Chờ kỳ trước</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -728,6 +930,168 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           </div>
         )}
       </div>
+
+      {/* MODAL THANH TOÁN TRẢ GÓP TRỰC TUYẾN */}
+      {payingModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1080 }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '520px' }}>
+            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+              <div className="modal-header bg-dark text-white border-0 py-3">
+                <h5 className="modal-title fs-6 fw-bold">
+                  <i className="bi bi-credit-card-2-front text-danger me-2"></i>
+                  {payingModal.type === 'prepay'
+                    ? 'Thanh toán trả trước 30% hợp đồng trả góp'
+                    : `Thanh toán kỳ trả góp số ${payingModal.period?.periodNumber}`}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => {
+                    setPayingModal(null);
+                    setPaymentErrorMsg('');
+                    setPaymentSuccessMsg('');
+                    setPayingNote('');
+                  }}
+                  disabled={isSubmittingPayment}
+                ></button>
+              </div>
+
+              <div className="modal-body p-4 text-start">
+                <div className="bg-light p-3 rounded-3 mb-3 border text-center">
+                  <div className="text-muted small mb-1">
+                    Đơn hàng: <strong>#{payingModal.order?.orderCode}</strong>
+                    {payingModal.contract?.contractCode && ` • HĐ: #${payingModal.contract.contractCode}`}
+                  </div>
+                  <div className="text-muted small mb-1">Số tiền thanh toán:</div>
+                  <div className="fs-3 fw-bold text-danger">
+                    {formatVND(
+                      payingModal.type === 'prepay'
+                        ? (payingModal.contract?.prepayAmount || Math.round((payingModal.order?.totalAmount || 0) * 0.3))
+                        : (payingModal.period?.amount || 0)
+                    )}
+                  </div>
+                </div>
+
+                {/* Chọn phương thức */}
+                <label className="form-label small fw-bold text-dark mb-2">Chọn phương thức thanh toán:</label>
+                <div className="row g-2 mb-3">
+                  <div className="col-4">
+                    <div
+                      className={`p-2 rounded border text-center cursor-pointer ${payingMethod === 'vietqr' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setPayingMethod('vietqr')}
+                    >
+                      <i className="bi bi-qr-code d-block fs-5"></i>
+                      <span style={{ fontSize: '12px' }}>Chuyển khoản QR</span>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div
+                      className={`p-2 rounded border text-center cursor-pointer ${payingMethod === 'cash' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setPayingMethod('cash')}
+                    >
+                      <i className="bi bi-cash d-block fs-5"></i>
+                      <span style={{ fontSize: '12px' }}>Tiền mặt / COD</span>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div
+                      className={`p-2 rounded border text-center cursor-pointer ${payingMethod === 'vnpay' ? 'border-danger bg-danger-subtle fw-bold text-danger' : 'bg-white text-dark'}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setPayingMethod('vnpay')}
+                    >
+                      <i className="bi bi-wallet2 d-block fs-5"></i>
+                      <span style={{ fontSize: '12px' }}>Ví VNPay</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nếu chọn VietQR thì hiện mã QR */}
+                {payingMethod === 'vietqr' && (
+                  <div className="text-center bg-white p-3 rounded border mb-3">
+                    <img
+                      src={`https://img.vietqr.io/image/${STORE_BANK_ACCOUNT.bankId}-${STORE_BANK_ACCOUNT.accountNo}-compact2.png?amount=${
+                        payingModal.type === 'prepay'
+                          ? (payingModal.contract?.prepayAmount || Math.round((payingModal.order?.totalAmount || 0) * 0.3))
+                          : (payingModal.period?.amount || 0)
+                      }&addInfo=${encodeURIComponent(
+                        payingModal.type === 'prepay'
+                          ? `TT 30PT ${payingModal.order?.orderCode}`
+                          : `KY ${payingModal.period?.periodNumber} ${payingModal.order?.orderCode}`
+                      )}&accountName=${encodeURIComponent(STORE_BANK_ACCOUNT.accountName)}`}
+                      alt="VietQR Payment"
+                      style={{ width: '180px', height: '180px', objectFit: 'contain' }}
+                      className="rounded border mb-2"
+                    />
+                    <div className="small text-muted">
+                      Ngân hàng: <strong>{STORE_BANK_ACCOUNT.bankId}</strong> • STK: <strong>{STORE_BANK_ACCOUNT.accountNo}</strong>
+                    </div>
+                    <div className="small text-muted">
+                      Chủ TK: <strong>{STORE_BANK_ACCOUNT.accountName}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ghi chú */}
+                <div className="mb-3">
+                  <label className="form-label small text-muted mb-1">Ghi chú thanh toán (tùy chọn):</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    placeholder="Mã giao dịch ngân hàng / Lời nhắn..."
+                    value={payingNote}
+                    onChange={(e) => setPayingNote(e.target.value)}
+                  />
+                </div>
+
+                {paymentErrorMsg && (
+                  <div className="alert alert-danger py-2 px-3 small mb-3">
+                    <i className="bi bi-exclamation-triangle-fill me-1"></i> {paymentErrorMsg}
+                  </div>
+                )}
+
+                {paymentSuccessMsg && (
+                  <div className="alert alert-success py-2 px-3 small mb-3">
+                    <i className="bi bi-check-circle-fill me-1"></i> {paymentSuccessMsg}
+                  </div>
+                )}
+
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm px-3"
+                    onClick={() => {
+                      setPayingModal(null);
+                      setPaymentErrorMsg('');
+                      setPaymentSuccessMsg('');
+                      setPayingNote('');
+                    }}
+                    disabled={isSubmittingPayment}
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm px-4 fw-bold"
+                    onClick={handleConfirmInstallmentPayment}
+                    disabled={isSubmittingPayment}
+                  >
+                    {isSubmittingPayment ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Đang ghi nhận...
+                      </>
+                    ) : (
+                      'Xác nhận đã thanh toán'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
