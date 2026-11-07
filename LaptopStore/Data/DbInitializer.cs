@@ -373,10 +373,17 @@ public static class DbInitializer
                     if (string.IsNullOrWhiteSpace(cleanBatch))
                         continue;
 
-                    // BẢO VỆ DỮ LIỆU: Bỏ qua hoàn toàn các câu lệnh DELETE / TRUNCATE / DROP
+                    // BẢO VỆ DỮ LIỆU: Bỏ qua hoàn toàn các câu lệnh DELETE / TRUNCATE / DROP / DATABASE LEVEL
                     if (cleanBatch.StartsWith("DELETE FROM", StringComparison.OrdinalIgnoreCase) ||
                         cleanBatch.StartsWith("TRUNCATE TABLE", StringComparison.OrdinalIgnoreCase) ||
-                        cleanBatch.StartsWith("DROP TABLE", StringComparison.OrdinalIgnoreCase))
+                        cleanBatch.StartsWith("DROP TABLE", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("USE ", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("CREATE DATABASE", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("ALTER DATABASE", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("IF EXISTS (SELECT name FROM sys.databases", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("IF EXISTS (SELECT * FROM sys.databases", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("SELECT t.NAME AS TableName", StringComparison.OrdinalIgnoreCase) ||
+                        cleanBatch.StartsWith("PRINT N'===", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -397,6 +404,10 @@ public static class DbInitializer
                     SeedColorsIfEmpty(context);
                     SeedVariantsIfEmpty(context);
                     SeedOrdersIfEmpty(context);
+                    SeedServiceCatalogIfEmpty(context);
+                    SeedSampleSoldDevicesIfEmpty(context);
+                    SeedDiscountsIfEmpty(context);
+                    SyncUserPhoneAndLinkOrders(context);
                     return;
                 }
             }

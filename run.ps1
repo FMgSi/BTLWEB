@@ -21,6 +21,7 @@ Write-Host "  👉 Cửa hàng Khách (Razor): http://localhost:5148/Catalog" -F
 Write-Host "  👉 Quản trị Sản phẩm     : http://localhost:5148/Product" -ForegroundColor Green
 Write-Host "  👉 Trang Quản trị Admin  : http://localhost:5148/Admin/Login" -ForegroundColor Yellow
 Write-Host "  👉 Tài khoản quản trị    : admin / Admin@123" -ForegroundColor Yellow
+Write-Host "  💡 Mẹo: Chạy setup_db.bat nếu muốn Reset & Tạo mới CSDL trên máy mới!" -ForegroundColor Magenta
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 

@@ -152,6 +152,33 @@ var app = builder.Build();
 // =========================================================================
 // 2. KHỞI TẠO CƠ SỞ DỮ LIỆU & DỮ LIỆU MẪU BAN ĐẦU (DATABASE SEEDING)
 // =========================================================================
+if (args.Contains("--reset-db", StringComparer.OrdinalIgnoreCase) || args.Contains("--recreate-db", StringComparer.OrdinalIgnoreCase))
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<AppDbContext>();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("[*] Phát hiện cờ lệnh --reset-db: Đang tiến hành xóa sạch và tạo mới lại toàn bộ CSDL...");
+            Console.ResetColor();
+            context.Database.EnsureDeleted();
+            context.Database.EnsureCreated();
+            DbInitializer.Initialize(context);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[✓] Đã xóa và tái tạo mới CSDL LaptopStoreDb thành công cùng toàn bộ dữ liệu mẫu!");
+            Console.ResetColor();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("[LỖI --reset-db]: " + ex.Message);
+            Console.ResetColor();
+        }
+    }
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

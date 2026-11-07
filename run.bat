@@ -28,6 +28,7 @@ echo   👉 Cửa hàng Khách (Razor): http://localhost:5148/Catalog
 echo   👉 Quản trị Sản phẩm     : http://localhost:5148/Product
 echo   👉 Trang Quản trị Admin  : http://localhost:5148/Admin/Login
 echo   👉 Tài khoản quản trị    : admin / Admin@123
+echo   💡 Mẹo: Chạy setup_db.bat nếu muốn Reset & Tạo mới CSDL trên máy mới!
 echo ========================================================
 echo.
 
