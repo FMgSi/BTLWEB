@@ -181,7 +181,7 @@ public class AdminController : Controller
     /// </summary>
     public async Task<IActionResult> Orders(string? search, string? status, int page = 1)
     {
-        int pageSize = 15;
+        int pageSize = 25;
         var pagedResult = await _orderService.GetOrdersAsync(search, status, page, pageSize);
 
         ViewBag.Search = search;

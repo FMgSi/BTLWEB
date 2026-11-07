@@ -291,7 +291,7 @@ export default function CartPage({
         email: currentUser?.email?.trim() || null,
         shippingAddress: address,
         notes: orderNotes.trim(),
-        paymentMethod: paymentMethod === 'cod' ? 'COD' : paymentMethod === 'vnpay' ? 'VNPAY' : 'VietQR',
+        paymentMethod: purchaseMode === 'Installment' ? 'Trả góp' : (paymentMethod === 'cod' ? 'COD' : paymentMethod === 'vnpay' ? 'VNPAY' : 'VietQR'),
         purchaseMode: purchaseMode,
         termMonths: purchaseMode === 'Installment' ? termMonths : null,
         discountCode: appliedVoucher?.code || null,
@@ -381,10 +381,10 @@ export default function CartPage({
               }))
             : [...checkedItems],
         paymentMethod:
-          paymentMethod === 'cod'
-            ? purchaseMode === 'Installment'
-              ? 'Trả góp - Tiền mặt 30% khi giao máy (COD)'
-              : 'Thanh toán tiền mặt khi nhận hàng (COD)'
+          purchaseMode === 'Installment'
+            ? `Trả góp 0% (${termMonths} tháng - Trả trước 30% khi nhận hàng)`
+            : paymentMethod === 'cod'
+            ? 'Thanh toán tiền mặt khi nhận hàng (COD)'
             : paymentMethod === 'vnpay'
             ? 'Thanh toán qua Ví điện tử VNPay'
             : `Chuyển khoản VietQR (${STORE_BANK_ACCOUNT.bankId})`,
@@ -403,13 +403,13 @@ export default function CartPage({
       setIsCheckoutStep(false);
       setFormError('');
 
-      if (paymentMethod === 'banking') {
+      if (purchaseMode !== 'Installment' && paymentMethod === 'banking') {
         setPendingOrder(orderData);
         setShowQrModal(true);
       } else {
         setOrderSuccess(orderData);
         if (showToast) {
-          showToast(`🎉 Đặt hàng thành công! Mã đơn: #${realOrderCode}`, 5000);
+          showToast(`🎉 ${purchaseMode === 'Installment' ? 'Đăng ký mua trả góp 0% thành công!' : 'Đặt hàng thành công!'} Mã đơn: #${realOrderCode}`, 5000);
         }
       }
     } finally {
@@ -506,12 +506,16 @@ export default function CartPage({
                     <strong>{formatVND(orderSuccess.total)}</strong>
                   </div>
                   <div className="d-flex justify-content-between text-success fw-bold">
-                    <span>Khoản trả trước 30%:</span>
+                    <span>Khoản trả trước 30% (Thanh toán khi nhận máy):</span>
                     <span>{formatVND(orderSuccess.prepayAmount)}</span>
                   </div>
                   <div className="d-flex justify-content-between text-muted">
                     <span>Còn lại ({orderSuccess.termMonths} kỳ):</span>
                     <span>{formatVND(orderSuccess.remainingDebt)}</span>
+                  </div>
+                  <div className="alert alert-info py-2 px-3 small mt-2 mb-0">
+                    <i className="bi bi-info-circle me-1"></i>
+                    Đơn hàng trả góp 0% đã được tạo thành công không cần mã QR. Cửa hàng sẽ liên hệ xác nhận hồ sơ và quý khách chỉ thanh toán 30% khi nhận máy.
                   </div>
                 </div>
               ) : (
@@ -1089,7 +1093,7 @@ export default function CartPage({
                     className={`shopee-payment-option p-3 text-center h-100 ${purchaseMode === 'Installment' ? 'active' : ''}`}
                     onClick={() => {
                       setPurchaseMode('Installment');
-                      setPaymentMethod('banking');
+                      setPaymentMethod('installment');
                     }}
                   >
                     <div className="fs-5 mb-1">📝</div>

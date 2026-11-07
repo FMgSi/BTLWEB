@@ -39,14 +39,16 @@
             <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
             <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" placeholder="Tìm theo mã đơn, tên khách, SĐT..." />
         </div>
-        <div style="width: 210px; max-width: 100%;">
+        <div style="width: 230px; max-width: 100%;">
             <select name="status" class="form-select-dark" onchange="this.form.submit()">
                 <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả trạng thái</option>
+                <option value="Chờ xác nhận" selected="@(currentStatus == "Chờ xác nhận" ? "selected" : null)">Chờ xác nhận</option>
                 <option value="Đang xử lý" selected="@(currentStatus == "Đang xử lý" ? "selected" : null)">Đang xử lý</option>
                 <option value="Đã xác nhận" selected="@(currentStatus == "Đã xác nhận" ? "selected" : null)">Đã xác nhận</option>
-                <option value="Đang giao" selected="@(currentStatus == "Đang giao" ? "selected" : null)">Đang giao</option>
+                <option value="Đang giao" selected="@(currentStatus == "Đang giao" ? "selected" : null)">Đang giao hàng</option>
                 <option value="Hoàn thành" selected="@(currentStatus == "Hoàn thành" ? "selected" : null)">Hoàn thành</option>
                 <option value="Đã hủy" selected="@(currentStatus == "Đã hủy" ? "selected" : null)">Đã hủy</option>
+                <option value="Installment" selected="@(currentStatus == "Installment" ? "selected" : null)">Đơn hàng trả góp (0%)</option>
             </select>
         </div>
         <button type="submit" class="btn-action-tool">
@@ -286,9 +288,10 @@
                                             <div class="mb-3">
                                                 <label class="form-label-dark">Chuyển sang trạng thái mới *</label>
                                                 <select name="status" class="form-select-dark">
+                                                    <option value="Chờ xác nhận" selected="@(o.OrderStatus == "Chờ xác nhận" ? "selected" : null)">0. Chờ xác nhận (Chờ khách thanh toán/duyệt)</option>
                                                     <option value="Đang xử lý" selected="@(o.OrderStatus == "Đang xử lý" ? "selected" : null)">1. Đang xử lý (Mới nhận đơn)</option>
                                                     <option value="Đã xác nhận" selected="@(o.OrderStatus == "Đã xác nhận" ? "selected" : null)">2. Đã xác nhận (Đã duyệt thông tin / tiền đã về)</option>
-                                                    <option value="Đang giao" selected="@(o.OrderStatus == "Đang giao" ? "selected" : null)">3. Đang giao hàng (Đã gửi shipper)</option>
+                                                    <option value="Đang giao" selected="@(o.OrderStatus == "Đang giao" || o.OrderStatus == "Đang giao hàng" ? "selected" : null)">3. Đang giao hàng (Đã gửi shipper)</option>
                                                     <option value="Hoàn thành" selected="@(o.OrderStatus == "Hoàn thành" ? "selected" : null)">4. Hoàn thành (Khách đã nhận máy & thanh toán)</option>
                                                     <option value="Đã hủy" selected="@(o.OrderStatus == "Đã hủy" ? "selected" : null)">5. Hủy đơn hàng (Hoàn lại kho)</option>
                                                 </select>
@@ -323,4 +326,37 @@
             </tbody>
         </table>
     </div>
+
+    <!-- PHÂN TRANG ĐƠN HÀNG -->
+    @if ((ViewBag.TotalPages ?? 1) > 1)
+    {
+        int curPage = ViewBag.CurrentPage ?? 1;
+        int totPages = ViewBag.TotalPages ?? 1;
+        int totCount = ViewBag.TotalCount ?? (Model != null ? Model.Count() : 0);
+        <div class="admin-pagination-wrap p-3 d-flex flex-wrap justify-content-between align-items-center border-top bg-white">
+            <div class="pagination-info small text-muted">
+                Trang <strong>@curPage</strong> / <strong>@totPages</strong> (Tổng số <strong>@totCount</strong> đơn hàng)
+            </div>
+            <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
+                <li class="admin-page-item @(curPage <= 1 ? "disabled" : "")">
+                    <a href="/Admin/Orders?page=@(curPage - 1)&search=@ViewBag.Search&status=@ViewBag.Status" class="btn btn-sm btn-light border @(curPage <= 1 ? "disabled" : "")">
+                        <i class="bi bi-chevron-left"></i> Trước
+                    </a>
+                </li>
+                @for (int p = 1; p <= totPages; p++)
+                {
+                    <li class="admin-page-item">
+                        <a href="/Admin/Orders?page=@p&search=@ViewBag.Search&status=@ViewBag.Status" class="btn btn-sm @(p == curPage ? "btn-dark text-white fw-bold" : "btn-light border text-dark")">
+                            @p
+                        </a>
+                    </li>
+                }
+                <li class="admin-page-item @(curPage >= totPages ? "disabled" : "")">
+                    <a href="/Admin/Orders?page=@(curPage + 1)&search=@ViewBag.Search&status=@ViewBag.Status" class="btn btn-sm btn-light border @(curPage >= totPages ? "disabled" : "")">
+                        Sau <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    }
 </div>

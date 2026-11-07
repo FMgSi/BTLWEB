@@ -557,7 +557,11 @@ public class OrderService : IOrderService
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
-            query = query.Where(o => o.OrderStatus.ToLower() == status.ToLower() || o.PaymentStatus.ToLower() == status.ToLower());
+            var stLower = status.Trim().ToLower();
+            query = query.Where(o => 
+                o.OrderStatus.ToLower() == stLower || 
+                o.PaymentStatus.ToLower() == stLower || 
+                o.PurchaseMode.ToLower() == stLower);
         }
 
         var total = await query.CountAsync();
@@ -632,15 +636,23 @@ public class OrderService : IOrderService
                     return (true, $"Đơn hàng hiện tại đã ở trạng thái '{newStatus}'.");
                 }
 
-                // 1. Kiểm tra máy trạng thái hữu hạn (Finite State Machine) - Chặn chuyển lùi hoặc trạng thái bất hợp lệ
+                // 1. Kiểm tra trạng thái đơn hàng (Cho phép Quản trị viên linh hoạt cập nhật luồng xử lý)
+                var allStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Chờ xác nhận", "Mới", "Chờ duyệt", "Đang xử lý", "Đã xác nhận", "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã hủy"
+                };
+
                 var allowedTransitions = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "Chờ xác nhận", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Đang xử lý", "Đang giao", "Đang giao hàng", "Đã hủy" } },
-                    { "Đang xử lý",   new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã hủy" } },
-                    { "Đang giao",    new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Hoàn thành", "Đã hủy" } },
-                    { "Đang giao hàng", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Hoàn thành", "Đã hủy" } },
-                    { "Hoàn thành",   new HashSet<string>(StringComparer.OrdinalIgnoreCase) { } }, // Terminal: Đã giao khách, không thể đổi
-                    { "Đã hủy",       new HashSet<string>(StringComparer.OrdinalIgnoreCase) { } }  // Terminal: Đã hủy, không thể mở lại
+                    { "Chờ xác nhận", allStatuses },
+                    { "Mới", allStatuses },
+                    { "Chờ duyệt", allStatuses },
+                    { "Đang xử lý", allStatuses },
+                    { "Đã xác nhận", allStatuses },
+                    { "Đang giao", allStatuses },
+                    { "Đang giao hàng", allStatuses },
+                    { "Hoàn thành", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Đang xử lý", "Đang giao", "Đã xác nhận", "Đã hủy" } },
+                    { "Đã hủy", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Chờ xác nhận", "Đang xử lý" } }
                 };
 
                 if (allowedTransitions.TryGetValue(oldStatus, out var nextAllowed) && !nextAllowed.Contains(newStatus))
@@ -652,8 +664,12 @@ public class OrderService : IOrderService
                 // Cập nhật trạng thái có điều kiện trực tiếp tại CSDL để ngăn chặn hai request hủy đồng thời cùng hoàn kho
                 if (_db.Database.IsRelational())
                 {
-                    var updatedRows = await _db.Orders
-                        .Where(o => o.OrderId == orderId && o.OrderStatus == oldStatus && o.OrderStatus != "Đã hủy")
+                    var queryToUpdate = _db.Orders.Where(o => o.OrderId == orderId && o.OrderStatus == oldStatus);
+                    if (newStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
+                    {
+                        queryToUpdate = queryToUpdate.Where(o => o.OrderStatus != "Đã hủy");
+                    }
+                    var updatedRows = await queryToUpdate
                         .ExecuteUpdateAsync(s => s
                             .SetProperty(o => o.OrderStatus, newStatus)
                             .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
