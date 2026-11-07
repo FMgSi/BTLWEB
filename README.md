@@ -29,8 +29,9 @@ Trước khi chạy, máy tính của bạn cần có sẵn:
 ## 🚀 2. Hướng Dẫn Khởi Chạy
 
 ### Cách 1: Chạy tự động 1-Click (Khuyên dùng)
-- Nhấp đúp chuột vào file **`run.bat`** (hoặc chạy **`run.ps1`** trong PowerShell).
-- Script sẽ tự động nhận diện SQL Server, tự khởi tạo CSDL và mở hệ thống.
+- Khi chạy lần đầu hoặc trên máy mới: Nhấp đúp vào **`setup_db.bat`** để tự động thiết lập và làm mới CSDL sạch sẽ.
+- Khi chạy hàng ngày: Nhấp đúp chuột vào file **`run.bat`**.
+- Script sẽ tự động nhận diện SQL Server, kết nối CSDL và mở hệ thống.
 
 ### Cách 2: Chạy bằng Visual Studio
 1. Mở `LaptopStore.sln` bằng Visual Studio 2022 / 2025.
