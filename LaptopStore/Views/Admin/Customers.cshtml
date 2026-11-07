@@ -25,12 +25,17 @@
 <div class="admin-card mb-3">
     <form method="get" action="/Admin/Customers" id="filterForm">
         <div class="row g-3 align-items-center">
-            <!-- Search Input -->
+            <!-- Search Input & Nút Làm Mới -->
             <div class="col-lg-4 col-md-12">
-                <div class="position-relative">
-                    <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
-                    <input type="text" name="search" value="@currentSearch" class="form-control-dark ps-5" 
-                           placeholder="Tìm kiếm khách hàng (Tên, SĐT, Email...)" onchange="this.form.submit()" />
+                <div class="d-flex align-items-center gap-2">
+                    <div class="position-relative flex-grow-1">
+                        <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                        <input type="text" name="search" id="searchInput" value="@currentSearch" class="form-control-dark ps-5" 
+                               placeholder="Tìm kiếm khách hàng (Tên, SĐT, Email...)" onchange="this.form.submit()" />
+                    </div>
+                    <a href="/Admin/Customers" class="btn-secondary-custom d-inline-flex align-items-center gap-1 text-nowrap" title="Làm mới bộ lọc và danh sách">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </a>
                 </div>
             </div>
 
@@ -54,10 +59,10 @@
                     <input type="hidden" name="tier" id="tierInput" value="@currentTier" />
                     <div class="filter-btn-group">
                         <button type="button" class="filter-btn-item @(currentTier == "all" ? "active" : "")" onclick="setTier('all')">Tất cả</button>
-                        <button type="button" class="filter-btn-item @(currentTier == "dong" ? "active" : "")" onclick="setTier('dong')">Đồng</button>
-                        <button type="button" class="filter-btn-item @(currentTier == "bac" ? "active" : "")" onclick="setTier('bac')">Bạc</button>
-                        <button type="button" class="filter-btn-item @(currentTier == "vang" ? "active" : "")" onclick="setTier('vang')">Vàng</button>
-                        <button type="button" class="filter-btn-item @(currentTier == "kimcuong" ? "active" : "")" onclick="setTier('kimcuong')">Kim cương</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "dong" || currentTier == "Đồng" ? "active" : "")" onclick="setTier('dong')">Đồng</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "bac" || currentTier == "Bạc" ? "active" : "")" onclick="setTier('bac')">Bạc</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "vang" || currentTier == "Vàng" ? "active" : "")" onclick="setTier('vang')">Vàng</button>
+                        <button type="button" class="filter-btn-item @(currentTier == "kimcuong" || currentTier == "Kim cương" ? "active" : "")" onclick="setTier('kimcuong')">Kim cương</button>
                     </div>
                 </div>
             </div>
@@ -134,17 +139,20 @@
     <!-- PAGINATION -->
     <div class="admin-pagination-wrap">
         <div class="pagination-info">
-            Hiển thị 1-5 trong tổng số @ViewBag.TotalCount khách hàng
+            Hiển thị @(Model.Any() ? 1 : 0)-@Model.Count() trong tổng số @ViewBag.TotalCount khách hàng
         </div>
         <ul class="admin-pagination">
             <li class="admin-page-item disabled"><a href="javascript:void(0)"><i class="bi bi-chevron-left"></i> Trước</a></li>
             <li class="admin-page-item active"><a href="javascript:void(0)">1</a></li>
-            <li class="admin-page-item"><a href="javascript:void(0)">2</a></li>
-            <li class="admin-page-item"><a href="javascript:void(0)">3</a></li>
-            <li class="admin-page-item"><a href="javascript:void(0)">Sau <i class="bi bi-chevron-right"></i></a></li>
+            <li class="admin-page-item disabled"><a href="javascript:void(0)">Sau <i class="bi bi-chevron-right"></i></a></li>
         </ul>
     </div>
 </div>
+
+<!-- FORM CHỨA CSRF TOKEN -->
+<form id="antiForgeryForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
 
 <!-- MODAL THÊM KHÁCH HÀNG -->
 <div class="modal fade" id="addCustomerModal" tabindex="-1">
@@ -198,30 +206,61 @@
         }
 
         function toggleLock(code) {
+            const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value 
+                       || document.querySelector('input[name="__RequestVerificationToken"]')?.value 
+                       || '';
+
+            const formData = new URLSearchParams();
+            formData.append('customerCode', code);
+            if (token) {
+                formData.append('__RequestVerificationToken', token);
+            }
+
             fetch('/Admin/ToggleCustomerLock', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `customerCode=${encodeURIComponent(code)}`
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: formData.toString()
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Mã lỗi HTTP: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
                     const badge = document.getElementById(`status-badge-${code}`);
                     const btn = document.getElementById(`btn-lock-${code}`);
-                    const btnText = document.getElementById(`btn-text-${code}`);
 
                     if (data.isActive) {
-                        badge.className = 'badge-status badge-in-stock';
-                        badge.innerText = 'Hoạt động';
-                        btn.className = 'btn btn-sm btn-action-delete';
-                        btn.innerHTML = `<i class="bi bi-lock"></i> <span id="btn-text-${code}">Khóa</span>`;
+                        if (badge) {
+                            badge.className = 'badge-status badge-in-stock';
+                            badge.innerText = 'Hoạt động';
+                        }
+                        if (btn) {
+                            btn.className = 'btn btn-sm btn-action-delete';
+                            btn.innerHTML = `<i class="bi bi-lock"></i> <span id="btn-text-${code}">Khóa</span>`;
+                        }
                     } else {
-                        badge.className = 'badge-status badge-out-of-stock';
-                        badge.innerText = 'Bị khóa';
-                        btn.className = 'btn btn-sm btn-action-edit';
-                        btn.innerHTML = `<i class="bi bi-unlock"></i> <span id="btn-text-${code}">Mở khóa</span>`;
+                        if (badge) {
+                            badge.className = 'badge-status badge-out-of-stock';
+                            badge.innerText = 'Bị khóa';
+                        }
+                        if (btn) {
+                            btn.className = 'btn btn-sm btn-action-edit';
+                            btn.innerHTML = `<i class="bi bi-unlock"></i> <span id="btn-text-${code}">Mở khóa</span>`;
+                        }
                     }
+                } else {
+                    alert(data.message || 'Thao tác không thành công');
                 }
+            })
+            .catch(err => {
+                console.error('Lỗi khi khóa/mở khóa tài khoản:', err);
+                alert('Không thể thực hiện thao tác: ' + err.message);
             });
         }
     </script>

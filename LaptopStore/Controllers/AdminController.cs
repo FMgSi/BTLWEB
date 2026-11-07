@@ -394,11 +394,20 @@ public class AdminController : Controller
 
         if (!string.IsNullOrWhiteSpace(tier) && tier != "all")
         {
-            query = query.Where(c => c.MembershipTier.Equals(tier, StringComparison.OrdinalIgnoreCase));
+            string tierParam = tier.Trim().ToLowerInvariant();
+            string expectedTier = tierParam switch
+            {
+                "dong" or "đồng" => "Đồng",
+                "bac" or "bạc" => "Bạc",
+                "vang" or "vàng" => "Vàng",
+                "kimcuong" or "kim cương" => "Kim cương",
+                _ => tier.Trim()
+            };
+            query = query.Where(c => c.MembershipTier.Equals(expectedTier, StringComparison.OrdinalIgnoreCase));
         }
 
         var list = query.ToList();
-        ViewBag.Search = search;
+        ViewBag.Search = search ?? "";
         ViewBag.Status = status ?? "all";
         ViewBag.Tier = tier ?? "all";
         ViewBag.TotalCount = list.Count;
@@ -413,16 +422,20 @@ public class AdminController : Controller
     /// Khóa / Mở khóa tài khoản khách hàng thật trong cơ sở dữ liệu
     /// </summary>
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleCustomerLock(string customerCode)
     {
+        if (string.IsNullOrWhiteSpace(customerCode))
+        {
+            return Json(new { success = false, message = "Mã khách hàng không được để trống" });
+        }
+
         int userId = 0;
         if (customerCode.StartsWith("KH", StringComparison.OrdinalIgnoreCase) && int.TryParse(customerCode[2..], out int parsed))
         {
             userId = parsed;
         }
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId || u.Username == customerCode || u.Email == customerCode);
+        var user = await _db.Users.FirstOrDefaultAsync(u => (userId > 0 && u.UserId == userId) || u.Username == customerCode || u.Email == customerCode);
         if (user != null)
         {
             user.IsActive = !user.IsActive;

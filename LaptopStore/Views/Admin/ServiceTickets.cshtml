@@ -272,7 +272,7 @@
                             <option value="">-- Chọn hạng mục bảng giá --</option>
                             @foreach (var s in serviceCatalog)
                             {
-                                <option value="@s.ServiceId" data-type="@s.ServiceType" data-cost="@s.EstimatedCost">
+                                <option value="@s.ServiceId" data-type="@s.ServiceType" data-cost="@Convert.ToInt64(s.EstimatedCost)">
                                     [@s.ServiceCode] @s.ServiceName (@(s.ServiceType == "Bảo hành" ? "0đ" : string.Format("{0:N0}đ", s.EstimatedCost)))
                                 </option>
                             }
@@ -594,6 +594,7 @@
                     if (codeInput.value.startsWith('BH-')) {
                         codeInput.value = codeInput.value.replace('BH-', 'SC-');
                     }
+                    handleCatalogServiceChange();
                 }
             }
 
@@ -1061,8 +1062,8 @@
 
             const cost = selectedOpt.dataset.cost;
             const costInput = document.getElementById('inpFinalCost');
-            if (cost && (!costInput.value || costInput.value === '0')) {
-                costInput.value = cost;
+            if (cost !== undefined && cost !== null && cost !== '') {
+                costInput.value = parseInt(cost) || 0;
             }
         }
     </script>

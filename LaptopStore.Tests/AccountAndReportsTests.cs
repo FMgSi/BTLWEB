@@ -128,4 +128,113 @@ public class AccountAndReportsTests
         Assert.Equal(expectedNextTier, nextTier);
         Assert.Equal(expectedRemaining, remaining);
     }
+
+    [Fact]
+    public async Task ToggleCustomerLock_TogglesActiveStateSuccessfully()
+    {
+        // Arrange
+        using var db = GetInMemoryDbContext();
+        var user = new User
+        {
+            UserId = 2,
+            Username = "khachhang02",
+            FullName = "Nguyễn Văn A",
+            Email = "khachhang@gmail.com",
+            PhoneNumber = "0912345678",
+            PasswordHash = "hash",
+            Role = "Customer",
+            IsActive = true
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var controller = new AdminController(db, null!, null!, null!, null!, null!, null!);
+
+        // Act 1: Khóa tài khoản
+        var res1 = await controller.ToggleCustomerLock("KH002");
+        var json1 = Assert.IsType<JsonResult>(res1);
+        var jsonDoc1 = System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(json1.Value));
+        Assert.True(jsonDoc1.RootElement.GetProperty("success").GetBoolean());
+        Assert.False(jsonDoc1.RootElement.GetProperty("isActive").GetBoolean());
+
+        var updatedUser1 = await db.Users.FindAsync(2);
+        Assert.False(updatedUser1!.IsActive);
+
+        // Act 2: Mở khóa lại
+        var res2 = await controller.ToggleCustomerLock("KH002");
+        var json2 = Assert.IsType<JsonResult>(res2);
+        var jsonDoc2 = System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(json2.Value));
+        Assert.True(jsonDoc2.RootElement.GetProperty("success").GetBoolean());
+        Assert.True(jsonDoc2.RootElement.GetProperty("isActive").GetBoolean());
+
+        var updatedUser2 = await db.Users.FindAsync(2);
+        Assert.True(updatedUser2!.IsActive);
+    }
+
+    [Fact]
+    public async Task Customers_FiltersByTier_Correctly_WithUnaccentedInput()
+    {
+        // Arrange
+        using var db = GetInMemoryDbContext();
+        var user1 = new User
+        {
+            UserId = 1,
+            Username = "user1",
+            FullName = "Khách Hàng Đồng",
+            Email = "dong@gmail.com",
+            PhoneNumber = "0900000001",
+            PasswordHash = "h",
+            Role = "Customer",
+            IsActive = true
+        };
+        var user2 = new User
+        {
+            UserId = 2,
+            Username = "user2",
+            FullName = "Khách Hàng Kim Cương",
+            Email = "diamond@gmail.com",
+            PhoneNumber = "0900000002",
+            PasswordHash = "h",
+            Role = "Customer",
+            IsActive = true
+        };
+        db.Users.AddRange(user1, user2);
+
+        // Order > 100M cho user2
+        var order = new Order
+        {
+            OrderId = 1,
+            UserId = 2,
+            OrderCode = "DH-100",
+            CustomerName = "Khách Hàng Kim Cương",
+            PhoneNumber = "0900000002",
+            ShippingAddress = "Hà Nội",
+            TotalAmount = 120_000_000m,
+            PaymentStatus = "Đã thanh toán",
+            OrderStatus = "Đã giao hàng"
+        };
+        db.Orders.Add(order);
+        await db.SaveChangesAsync();
+
+        var controller = new AdminController(db, null!, null!, null!, null!, null!, null!);
+
+        // Act & Assert 1: Lọc tier="dong" -> user1
+        var viewResult1 = Assert.IsType<ViewResult>(await controller.Customers(null, null, "dong"));
+        var list1 = Assert.IsAssignableFrom<List<CustomerDto>>(viewResult1.Model);
+        Assert.Single(list1);
+        Assert.Equal("KH001", list1[0].CustomerCode);
+        Assert.Equal("Đồng", list1[0].MembershipTier);
+
+        // Act & Assert 2: Lọc tier="kimcuong" -> user2
+        var viewResult2 = Assert.IsType<ViewResult>(await controller.Customers(null, null, "kimcuong"));
+        var list2 = Assert.IsAssignableFrom<List<CustomerDto>>(viewResult2.Model);
+        Assert.Single(list2);
+        Assert.Equal("KH002", list2[0].CustomerCode);
+        Assert.Equal("Kim cương", list2[0].MembershipTier);
+
+        // Act & Assert 3: Lọc tier="all" -> cả 2 user
+        var viewResult3 = Assert.IsType<ViewResult>(await controller.Customers(null, null, "all"));
+        var list3 = Assert.IsAssignableFrom<List<CustomerDto>>(viewResult3.Model);
+        Assert.Equal(2, list3.Count);
+    }
 }
