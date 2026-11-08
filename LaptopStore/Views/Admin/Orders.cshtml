@@ -54,12 +54,9 @@
         <button type="submit" class="btn-action-tool">
             <i class="bi bi-funnel"></i> Lọc đơn
         </button>
-        @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all")
-        {
-            <a href="/Admin/Orders" class="btn-action-tool" title="Đặt lại bộ lọc">
-                <i class="bi bi-x-circle"></i> Xóa lọc
-            </a>
-        }
+        <a href="/Admin/Orders" class="btn-action-tool d-inline-flex align-items-center gap-1" title="Làm mới bộ lọc và danh sách">
+            <i class="bi bi-arrow-clockwise"></i> Làm mới
+        </a>
     </form>
 </div>
 
