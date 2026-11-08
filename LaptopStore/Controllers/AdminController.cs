@@ -181,7 +181,7 @@ public class AdminController : Controller
     /// </summary>
     public async Task<IActionResult> Orders(string? search, string? status, int page = 1)
     {
-        int pageSize = 25;
+        int pageSize = 5; // Giới hạn bảng hiển thị 5 đơn hàng mỗi trang để trang không bị dài
         var pagedResult = await _orderService.GetOrdersAsync(search, status, page, pageSize);
 
         ViewBag.Search = search;
@@ -223,7 +223,7 @@ public class AdminController : Controller
     /// </summary>
     public async Task<IActionResult> Installments(string? search, string? status, int page = 1)
     {
-        int pageSize = 15;
+        int pageSize = 5; // Giới hạn bảng hiển thị 5 hợp đồng mỗi trang
         var pagedResult = await _installmentService.GetContractsAsync(search, status, page, pageSize);
         var (waitingPrepay, activeContracts, totalDebt) = await _installmentService.GetInstallmentDashboardMetricsAsync();
 
@@ -407,14 +407,18 @@ public class AdminController : Controller
         }
 
         var list = query.ToList();
+        int pageSize = 5; // Giới hạn bảng hiển thị 5 khách hàng mỗi trang
+        var total = list.Count;
+        var pagedList = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         ViewBag.Search = search ?? "";
         ViewBag.Status = status ?? "all";
         ViewBag.Tier = tier ?? "all";
-        ViewBag.TotalCount = list.Count;
+        ViewBag.TotalCount = total;
         ViewBag.CurrentPage = page;
-        ViewBag.TotalPages = 1;
+        ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
+        if (ViewBag.TotalPages == 0) ViewBag.TotalPages = 1;
 
-        return View(list);
+        return View(pagedList);
     }
 
     /// <summary>

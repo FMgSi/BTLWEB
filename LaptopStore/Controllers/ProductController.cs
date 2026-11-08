@@ -38,7 +38,7 @@ public class ProductController : Controller
         string? status,
         string? priceRange,
         int page = 1,
-        int pageSize = 10)
+        int pageSize = 5) // Giới hạn bảng hiển thị 5 sản phẩm mỗi trang theo yêu cầu
     {
         // Ghi nhận lượt truy cập qua Cookie
         var visits = int.Parse(Request.Cookies["AdminVisits"] ?? "0") + 1;

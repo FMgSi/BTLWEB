@@ -137,16 +137,45 @@
     </div>
 
     <!-- PAGINATION -->
-    <div class="admin-pagination-wrap">
-        <div class="pagination-info">
-            Hiển thị @(Model.Any() ? 1 : 0)-@Model.Count() trong tổng số @ViewBag.TotalCount khách hàng
+    @if ((ViewBag.TotalPages ?? 1) > 1)
+    {
+        int curPage = ViewBag.CurrentPage ?? 1;
+        int totPages = ViewBag.TotalPages ?? 1;
+        int totCount = ViewBag.TotalCount ?? (Model != null ? Model.Count() : 0);
+        <div class="admin-pagination-wrap p-3 d-flex flex-wrap justify-content-between align-items-center border-top bg-white">
+            <div class="pagination-info small text-muted">
+                Trang <strong>@curPage</strong> / <strong>@totPages</strong> (Tổng số <strong>@totCount</strong> khách hàng)
+            </div>
+            <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
+                <li class="admin-page-item @(curPage <= 1 ? "disabled" : "")">
+                    <a href="/Admin/Customers?page=@(curPage - 1)&search=@ViewBag.Search&status=@ViewBag.Status&tier=@ViewBag.Tier" class="btn btn-sm btn-light border @(curPage <= 1 ? "disabled" : "")">
+                        <i class="bi bi-chevron-left"></i> Trước
+                    </a>
+                </li>
+                @for (int p = 1; p <= totPages; p++)
+                {
+                    <li class="admin-page-item">
+                        <a href="/Admin/Customers?page=@p&search=@ViewBag.Search&status=@ViewBag.Status&tier=@ViewBag.Tier" class="btn btn-sm @(p == curPage ? "btn-dark text-white fw-bold" : "btn-light border text-dark")">
+                            @p
+                        </a>
+                    </li>
+                }
+                <li class="admin-page-item @(curPage >= totPages ? "disabled" : "")">
+                    <a href="/Admin/Customers?page=@(curPage + 1)&search=@ViewBag.Search&status=@ViewBag.Status&tier=@ViewBag.Tier" class="btn btn-sm btn-light border @(curPage >= totPages ? "disabled" : "")">
+                        Sau <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
         </div>
-        <ul class="admin-pagination">
-            <li class="admin-page-item disabled"><a href="javascript:void(0)"><i class="bi bi-chevron-left"></i> Trước</a></li>
-            <li class="admin-page-item active"><a href="javascript:void(0)">1</a></li>
-            <li class="admin-page-item disabled"><a href="javascript:void(0)">Sau <i class="bi bi-chevron-right"></i></a></li>
-        </ul>
-    </div>
+    }
+    else
+    {
+        <div class="admin-pagination-wrap p-3 border-top bg-white">
+            <div class="pagination-info small text-muted">
+                Hiển thị @(Model.Any() ? 1 : 0)-@Model.Count() trong tổng số @ViewBag.TotalCount khách hàng
+            </div>
+        </div>
+    }
 </div>
 
 <!-- FORM CHỨA CSRF TOKEN -->

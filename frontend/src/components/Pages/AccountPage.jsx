@@ -4,6 +4,8 @@ import { formatVND } from '../../utils/formatters';
 export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavigateToService }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'installments' | 'membership'
   const [orders, setOrders] = useState([]);
+  const [orderPage, setOrderPage] = useState(1);
+  const [installmentPage, setInstallmentPage] = useState(1);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [orderError, setOrderError] = useState('');
 
@@ -565,7 +567,7 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                   </div>
                 ) : (
                   <div className="d-flex flex-column gap-3">
-                    {orders.map((order) => (
+                    {orders.slice((orderPage - 1) * 5, orderPage * 5).map((order) => (
                       <div key={order.orderId || order.orderCode} className="card shadow-sm border rounded-3 overflow-hidden">
                         <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                           <div>
@@ -654,6 +656,43 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                         </div>
                       </div>
                     ))}
+
+                    {/* Phân trang 5 đơn hàng mỗi trang */}
+                    {Math.ceil(orders.length / 5) > 1 && (
+                      <div className="d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded-3 border shadow-sm mt-2">
+                        <div className="small text-muted">
+                          Trang <strong>{orderPage}</strong> / <strong>{Math.ceil(orders.length / 5)}</strong> (Tổng <strong>{orders.length}</strong> đơn)
+                        </div>
+                        <div className="d-flex gap-1 align-items-center">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            disabled={orderPage <= 1}
+                            onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
+                          >
+                            <i className="bi bi-chevron-left"></i> Trước
+                          </button>
+                          {Array.from({ length: Math.ceil(orders.length / 5) }, (_, i) => i + 1).map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              className={`btn btn-sm ${p === orderPage ? 'btn-danger text-white fw-bold' : 'btn-outline-secondary'}`}
+                              onClick={() => setOrderPage(p)}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            disabled={orderPage >= Math.ceil(orders.length / 5)}
+                            onClick={() => setOrderPage((p) => Math.min(Math.ceil(orders.length / 5), p + 1))}
+                          >
+                            Sau <i className="bi bi-chevron-right"></i>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

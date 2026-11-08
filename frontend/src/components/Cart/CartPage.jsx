@@ -1058,9 +1058,6 @@ export default function CartPage({
                   <span className="badge bg-danger fw-bold px-3 py-1 fs-6">
                     Giảm ngay {memberDiscountRate * 100}%
                   </span>
-                  <span className="badge bg-success-subtle text-success small border border-success-subtle py-1 px-2">
-                    <i className="bi bi-check-circle-fill me-1"></i>Tự động áp dụng
-                  </span>
                 </div>
 
                 {memberDiscountAmount > 0 && (
@@ -1247,27 +1244,29 @@ export default function CartPage({
                 </div>
               </div>
 
-              <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-top pt-3">
+              <div className="border-top pt-4 text-center">
+                <div className="d-flex justify-content-center mb-2">
+                  <button
+                    type="button"
+                    className="shopee-btn-buy text-center px-5 py-3 fs-5"
+                    style={{ minWidth: '280px', maxWidth: '420px', width: '100%' }}
+                    disabled={isSubmitting || checkedItems.length === 0}
+                    onClick={handleConfirmOrder}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Đang đặt hàng...
+                      </>
+                    ) : (
+                      'Đặt Hàng'
+                    )}
+                  </button>
+                </div>
                 <div className="small text-muted">
                   Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo{' '}
                   <span className="text-primary" style={{ cursor: 'pointer' }}>Điều khoản Laptop World</span>.
                 </div>
-                <button
-                  type="button"
-                  className="shopee-btn-buy w-100 w-md-auto text-center"
-                  style={{ minWidth: '200px' }}
-                  disabled={isSubmitting || checkedItems.length === 0}
-                  onClick={handleConfirmOrder}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                      Đang đặt hàng...
-                    </>
-                  ) : (
-                    'Đặt Hàng'
-                  )}
-                </button>
               </div>
             </div>
           </div>
