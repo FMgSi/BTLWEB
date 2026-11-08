@@ -21,6 +21,16 @@
     </div>
 </div>
 
+<!-- SUBNAV TABS: CHUYỂN ĐỔI NHANH GIỮA KHÁCH HÀNG VÀ NHÂN VIÊN -->
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="/Admin/Customers" class="btn btn-sm btn-dark text-white fw-bold shadow-sm" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
+        <i class="bi bi-person-lines-fill me-1"></i> Danh sách khách hàng (@ViewBag.CustomerCount)
+    </a>
+    <a href="/Admin/Staff" class="btn btn-sm btn-light border text-dark" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
+        <i class="bi bi-person-badge me-1"></i> Tài khoản nhân viên (@ViewBag.StaffCount)
+    </a>
+</div>
+
 <!-- FILTER CARD -->
 <div class="admin-card mb-3">
     <form method="get" action="/Admin/Customers" id="filterForm">

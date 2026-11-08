@@ -148,10 +148,20 @@
                     <i class="bi bi-bar-chart-line me-1"></i> Báo cáo thống kê
                 </a>
 
-                <!-- 6. Quản lý khách hàng -->
-                <a href="/Admin/Customers" class="nav-taskbar-item @(currentCtrl == "admin" && currentAction == "customers" ? "active" : "")">
-                    <i class="bi bi-people me-1"></i> Quản lý khách hàng
-                </a>
+                <!-- 6. Quản lý người dùng: Khách hàng & Nhân viên -->
+                <div class="nav-taskbar-group dropdown d-inline-flex align-items-center">
+                    <a href="/Admin/Customers" class="nav-taskbar-item @(currentCtrl == "admin" && (currentAction == "customers" || currentAction == "staff") ? "active" : "") pe-1" title="Quản lý khách hàng">
+                        <i class="bi bi-people me-1"></i> Quản lý khách hàng
+                    </a>
+                    <button class="nav-taskbar-toggle @(currentCtrl == "admin" && (currentAction == "customers" || currentAction == "staff") ? "active" : "") dropdown-toggle dropdown-toggle-split" 
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Mở menu Quản lý người dùng">
+                        <span class="visually-hidden">Mở menu</span>
+                    </button>
+                    <ul class="dropdown-menu shadow-lg border mt-1">
+                        <li><a class="dropdown-item @(currentCtrl == "admin" && currentAction == "customers" ? "active" : "")" href="/Admin/Customers"><i class="bi bi-person-lines-fill me-2 text-muted"></i> Danh sách khách hàng</a></li>
+                        <li><a class="dropdown-item @(currentCtrl == "admin" && currentAction == "staff" ? "active" : "")" href="/Admin/Staff"><i class="bi bi-person-badge me-2 text-muted"></i> Tài khoản nhân viên</a></li>
+                    </ul>
+                </div>
             </nav>
         </div>
     </header>

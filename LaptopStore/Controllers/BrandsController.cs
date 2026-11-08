@@ -12,7 +12,7 @@ namespace LaptopStore.Controllers;
 /// Controller Quản trị Hãng / Thương hiệu Laptop (Brands)
 /// Tương ứng với PublishersController trong LapTrinhWeb (TvcLesson08Df)
 /// </summary>
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class BrandsController : Controller
 {
     private readonly AppDbContext _context;

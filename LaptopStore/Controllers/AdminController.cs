@@ -96,7 +96,7 @@ public class AdminController : Controller
             return View();
         }
 
-        if (!user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        if (!user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase) && !user.Role.Equals("Staff", StringComparison.OrdinalIgnoreCase))
         {
             ViewBag.Error = "Tài khoản của bạn không có quyền truy cập Trang Quản Trị.";
             return View();
@@ -108,7 +108,7 @@ public class AdminController : Controller
             new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new(ClaimTypes.Name, string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName),
             new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Role, "Admin")
+            new(ClaimTypes.Role, user.Role)
         };
 
         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -127,7 +127,7 @@ public class AdminController : Controller
         // Lưu thông tin vào Session để tương thích ngược
         HttpContext.Session.SetString("UserId", user.UserId.ToString());
         HttpContext.Session.SetString("Username", user.Username);
-        HttpContext.Session.SetString("Role", "Admin");
+        HttpContext.Session.SetString("Role", user.Role);
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
         {
@@ -417,6 +417,8 @@ public class AdminController : Controller
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
         if (ViewBag.TotalPages == 0) ViewBag.TotalPages = 1;
+        ViewBag.CustomerCount = await _db.Users.CountAsync(u => u.Role == "Customer");
+        ViewBag.StaffCount = await _db.Users.CountAsync(u => u.Role != "Customer");
 
         return View(pagedList);
     }
@@ -447,6 +449,257 @@ public class AdminController : Controller
             return Json(new { success = true, isActive = user.IsActive, message = user.IsActive ? "Đã mở khóa tài khoản khách hàng thành công" : "Đã khóa tài khoản khách hàng thành công" });
         }
         return Json(new { success = false, message = "Không tìm thấy khách hàng trong cơ sở dữ liệu" });
+    }
+
+    /// <summary>
+    /// GET: /Admin/Staff
+    /// Quản lý danh sách tài khoản nhân viên & quản trị viên
+    /// </summary>
+    public async Task<IActionResult> Staff(string? search, string? status, string? role, int page = 1)
+    {
+        var staffUsers = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Role != "Customer")
+            .OrderByDescending(u => u.UserId)
+            .ToListAsync();
+
+        var dtoList = staffUsers.Select(u => new StaffDto
+        {
+            UserId = u.UserId,
+            StaffCode = $"NV{u.UserId:D3}",
+            Username = u.Username,
+            FullName = string.IsNullOrWhiteSpace(u.FullName) ? u.Username : u.FullName,
+            Email = u.Email,
+            PhoneNumber = u.PhoneNumber ?? "Chưa cập nhật",
+            Role = u.Role,
+            IsActive = u.IsActive,
+            CreatedAt = u.CreatedAt
+        }).ToList();
+
+        var query = dtoList.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower().Trim();
+            query = query.Where(c => c.FullName.ToLower().Contains(s) 
+                                  || c.Username.ToLower().Contains(s)
+                                  || c.Email.ToLower().Contains(s) 
+                                  || c.StaffCode.ToLower().Contains(s) 
+                                  || c.PhoneNumber.Contains(s));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        {
+            if (status == "active") query = query.Where(c => c.IsActive);
+            else if (status == "locked") query = query.Where(c => !c.IsActive);
+        }
+
+        if (!string.IsNullOrWhiteSpace(role) && role != "all")
+        {
+            query = query.Where(c => c.Role.Equals(role, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var list = query.ToList();
+        int pageSize = 5; // Giới hạn bảng hiển thị 5 nhân viên mỗi trang
+        var total = list.Count;
+        var pagedList = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        int currentUserId = 0;
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? HttpContext.Session.GetString("UserId"), out currentUserId);
+
+        ViewBag.Search = search ?? "";
+        ViewBag.Status = status ?? "all";
+        ViewBag.Role = role ?? "all";
+        ViewBag.TotalCount = total;
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
+        if (ViewBag.TotalPages == 0) ViewBag.TotalPages = 1;
+        ViewBag.CurrentUserId = currentUserId;
+        ViewBag.CustomerCount = await _db.Users.CountAsync(u => u.Role == "Customer");
+        ViewBag.StaffCount = total;
+
+        return View(pagedList);
+    }
+
+    /// <summary>
+    /// GET: /Admin/GetStaffJson
+    /// Lấy chi tiết nhân viên để load lên modal Sửa
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetStaffJson(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role == "Customer")
+        {
+            return Json(new { success = false, message = "Không tìm thấy thông tin nhân viên." });
+        }
+
+        return Json(new
+        {
+            success = true,
+            data = new
+            {
+                userId = user.UserId,
+                username = user.Username,
+                fullName = user.FullName,
+                email = user.Email,
+                phoneNumber = user.PhoneNumber ?? "",
+                role = user.Role,
+                isActive = user.IsActive
+            }
+        });
+    }
+
+    /// <summary>
+    /// POST: /Admin/CreateStaff
+    /// Thêm tài khoản nhân viên mới
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateStaff([FromForm] CreateStaffInput input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Username) || string.IsNullOrWhiteSpace(input.FullName) || string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password))
+        {
+            return Json(new { success = false, message = "Vui lòng nhập đầy đủ họ tên, tên đăng nhập, email và mật khẩu." });
+        }
+
+        string username = input.Username.Trim();
+        string email = input.Email.Trim();
+
+        if (await _db.Users.AnyAsync(u => u.Username == username))
+        {
+            return Json(new { success = false, message = "Tên đăng nhập đã được sử dụng. Vui lòng chọn tên khác." });
+        }
+
+        if (await _db.Users.AnyAsync(u => u.Email == email))
+        {
+            return Json(new { success = false, message = "Địa chỉ email đã được sử dụng bởi tài khoản khác." });
+        }
+
+        string role = input.Role == "Admin" ? "Admin" : "Staff";
+
+        var newStaff = new User
+        {
+            Username = username,
+            FullName = input.FullName.Trim(),
+            Email = email,
+            PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim(),
+            PasswordHash = LaptopStore.Helpers.PasswordHelper.HashPassword(input.Password),
+            Role = role,
+            IsActive = input.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Users.Add(newStaff);
+        await _db.SaveChangesAsync();
+
+        return Json(new { success = true, message = $"Thêm nhân viên {newStaff.FullName} thành công!" });
+    }
+
+    /// <summary>
+    /// POST: /Admin/UpdateStaff
+    /// Cập nhật thông tin tài khoản nhân viên
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateStaff([FromForm] UpdateStaffInput input)
+    {
+        var user = await _db.Users.FindAsync(input.UserId);
+        if (user == null || user.Role == "Customer")
+        {
+            return Json(new { success = false, message = "Không tìm thấy thông tin nhân viên." });
+        }
+
+        if (string.IsNullOrWhiteSpace(input.FullName) || string.IsNullOrWhiteSpace(input.Email))
+        {
+            return Json(new { success = false, message = "Họ tên và email không được để trống." });
+        }
+
+        string email = input.Email.Trim();
+        if (await _db.Users.AnyAsync(u => u.UserId != input.UserId && u.Email == email))
+        {
+            return Json(new { success = false, message = "Địa chỉ email này đã được sử dụng bởi tài khoản khác." });
+        }
+
+        user.FullName = input.FullName.Trim();
+        user.Email = email;
+        user.PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim();
+        user.Role = input.Role == "Admin" ? "Admin" : "Staff";
+        user.IsActive = input.IsActive;
+
+        if (!string.IsNullOrWhiteSpace(input.Password))
+        {
+            if (input.Password.Length < 6)
+            {
+                return Json(new { success = false, message = "Mật khẩu mới phải có tối thiểu 6 ký tự." });
+            }
+            user.PasswordHash = LaptopStore.Helpers.PasswordHelper.HashPassword(input.Password);
+        }
+
+        await _db.SaveChangesAsync();
+        return Json(new { success = true, message = "Cập nhật thông tin nhân viên thành công!" });
+    }
+
+    /// <summary>
+    /// POST: /Admin/DeleteStaff
+    /// Xóa tài khoản nhân viên
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteStaff(int id)
+    {
+        int currentUserId = 0;
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? HttpContext.Session.GetString("UserId"), out currentUserId);
+        if (id == currentUserId && currentUserId > 0)
+        {
+            return Json(new { success = false, message = "Bạn không thể tự xóa tài khoản của chính mình đang đăng nhập." });
+        }
+
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role == "Customer")
+        {
+            return Json(new { success = false, message = "Không tìm thấy thông tin nhân viên cần xóa." });
+        }
+
+        bool hasOrders = await _db.Orders.AnyAsync(o => o.UserId == id);
+        bool hasTickets = await _db.ServiceTickets.AnyAsync(s => s.UserId == id);
+
+        if (hasOrders || hasTickets)
+        {
+            user.IsActive = false;
+            await _db.SaveChangesAsync();
+            return Json(new { success = true, message = "Tài khoản nhân viên này đã có phát sinh giao dịch/phiếu tiếp nhận trong hệ thống nên đã được tự động vô hiệu hóa (khóa) để bảo toàn lịch sử dữ liệu." });
+        }
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+        return Json(new { success = true, message = "Đã xóa tài khoản nhân viên thành công!" });
+    }
+
+    /// <summary>
+    /// POST: /Admin/ToggleStaffLock
+    /// Khóa / Mở khóa tài khoản nhân viên
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleStaffLock(int id)
+    {
+        int currentUserId = 0;
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? HttpContext.Session.GetString("UserId"), out currentUserId);
+        if (id == currentUserId && currentUserId > 0)
+        {
+            return Json(new { success = false, message = "Bạn không thể tự khóa tài khoản của chính mình đang đăng nhập." });
+        }
+
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role == "Customer")
+        {
+            return Json(new { success = false, message = "Không tìm thấy thông tin nhân viên." });
+        }
+
+        user.IsActive = !user.IsActive;
+        await _db.SaveChangesAsync();
+        return Json(new { success = true, isActive = user.IsActive, message = user.IsActive ? "Đã kích hoạt hoạt động tài khoản nhân viên" : "Đã khóa tài khoản nhân viên thành công" });
     }
 
     /// <summary>

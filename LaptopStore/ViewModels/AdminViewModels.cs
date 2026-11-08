@@ -69,6 +69,53 @@ public class CustomerDto
     public bool IsActive { get; set; } = true;
 }
 
+public class StaffDto
+{
+    public int UserId { get; set; }
+    public string StaffCode { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string Role { get; set; } = "Staff"; // "Admin", "Staff"
+    public string RoleDisplay => Role switch
+    {
+        "Admin" => "Quản trị viên",
+        "Staff" => "Nhân viên",
+        _ => Role
+    };
+    public string RoleBadgeClass => Role switch
+    {
+        "Admin" => "badge-tier-diamond",
+        "Staff" => "badge-tier-gold",
+        _ => "badge-tier-silver"
+    };
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateStaffInput
+{
+    public string Username { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string Password { get; set; } = string.Empty;
+    public string Role { get; set; } = "Staff";
+    public bool IsActive { get; set; } = true;
+}
+
+public class UpdateStaffInput
+{
+    public int UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string? Password { get; set; } // để trống nếu không đổi mật khẩu
+    public string Role { get; set; } = "Staff";
+    public bool IsActive { get; set; } = true;
+}
+
 public class DiscountDto
 {
     public int DiscountId { get; set; }

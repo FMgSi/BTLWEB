@@ -11,9 +11,9 @@ namespace LaptopStore.Controllers;
 
 /// <summary>
 /// Controller Quản trị (Admin) dành cho việc quản lý sản phẩm Laptop
-/// Được bảo vệ chặt chẽ bởi Cookie Authentication: [Authorize(Roles = "Admin")]
+/// Được bảo vệ chặt chẽ bởi Cookie Authentication: [Authorize(Roles = "Admin,Staff")]
 /// </summary>
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class ProductController : Controller
 {
     private readonly AppDbContext _db;

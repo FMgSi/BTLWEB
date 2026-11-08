@@ -11,9 +11,9 @@ namespace LaptopStore.Controllers;
 /// <summary>
 /// Controller Quản trị Bảng Màu sắc Laptop (Colors)
 /// Thiết kế theo mô hình MVC mẫu của LapTrinhWeb (CategoriesController / BrandsController)
-/// Được bảo vệ chặt chẽ bởi Cookie Authentication: [Authorize(Roles = "Admin")]
+/// Được bảo vệ chặt chẽ bởi Cookie Authentication: [Authorize(Roles = "Admin,Staff")]
 /// </summary>
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class ColorsController : Controller
 {
     private readonly AppDbContext _context;

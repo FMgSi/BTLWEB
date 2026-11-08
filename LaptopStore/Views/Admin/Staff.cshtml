@@ -1,0 +1,608 @@
+@model IEnumerable<LaptopStore.ViewModels.StaffDto>
+@{
+    ViewData["Title"] = "Quản lý nhân viên";
+    string currentStatus = ViewBag.Status ?? "all";
+    string currentRole = ViewBag.Role ?? "all";
+    string currentSearch = ViewBag.Search ?? "";
+    int currentUserId = ViewBag.CurrentUserId ?? 0;
+}
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Quản lý tài khoản nhân viên</h2>
+        <p class="text-muted small mb-0">Thêm mới, chỉnh sửa thông tin, phân quyền và khóa/xóa tài khoản nhân viên hệ thống</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+            <i class="bi bi-person-plus-fill"></i> Thêm nhân viên
+        </button>
+    </div>
+</div>
+
+<!-- SUBNAV TABS: CHUYỂN ĐỔI NHANH GIỮA KHÁCH HÀNG VÀ NHÂN VIÊN -->
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="/Admin/Customers" class="btn btn-sm btn-light border text-dark" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
+        <i class="bi bi-person-lines-fill me-1"></i> Danh sách khách hàng (@ViewBag.CustomerCount)
+    </a>
+    <a href="/Admin/Staff" class="btn btn-sm btn-dark text-white fw-bold shadow-sm" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
+        <i class="bi bi-person-badge me-1"></i> Tài khoản nhân viên (@ViewBag.StaffCount)
+    </a>
+</div>
+
+<!-- FILTER CARD -->
+<div class="admin-card mb-3">
+    <form method="get" action="/Admin/Staff" id="filterForm">
+        <div class="row g-3 align-items-center">
+            <!-- Search Input & Nút Làm Mới -->
+            <div class="col-lg-4 col-md-12">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="position-relative flex-grow-1">
+                        <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
+                        <input type="text" name="search" id="searchInput" value="@currentSearch" class="form-control-dark ps-5" 
+                               placeholder="Tìm nhân viên (Tên, Mã, Email, SĐT...)" onchange="this.form.submit()" />
+                    </div>
+                    <a href="/Admin/Staff" class="btn-action-tool d-inline-flex align-items-center gap-1 text-nowrap" title="Làm mới bộ lọc và danh sách">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- Trạng thái hoạt động -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-semibold text-nowrap">Trạng thái:</span>
+                    <input type="hidden" name="status" id="statusInput" value="@currentStatus" />
+                    <div class="filter-btn-group">
+                        <button type="button" class="filter-btn-item @(currentStatus == "all" ? "active" : "")" onclick="setStatus('all')">Tất cả</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "active" ? "active" : "")" onclick="setStatus('active')">Hoạt động</button>
+                        <button type="button" class="filter-btn-item @(currentStatus == "locked" ? "active" : "")" onclick="setStatus('locked')">Bị khóa</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phân quyền / Vai trò -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small fw-semibold text-nowrap">Vai trò:</span>
+                    <input type="hidden" name="role" id="roleInput" value="@currentRole" />
+                    <div class="filter-btn-group">
+                        <button type="button" class="filter-btn-item @(currentRole == "all" ? "active" : "")" onclick="setRole('all')">Tất cả</button>
+                        <button type="button" class="filter-btn-item @(currentRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "active" : "")" onclick="setRole('Admin')">Quản trị viên</button>
+                        <button type="button" class="filter-btn-item @(currentRole.Equals("Staff", StringComparison.OrdinalIgnoreCase) ? "active" : "")" onclick="setRole('Staff')">Nhân viên</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- STAFF TABLE CARD -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="card-title-text">
+            <i class="bi bi-person-badge text-dark me-2"></i> Bảng dữ liệu nhân viên
+        </h5>
+        <span class="text-muted small">Cập nhật theo thời gian thực</span>
+    </div>
+
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" class="custom-checkbox" /></th>
+                    <th>Mã NV</th>
+                    <th>Họ và tên</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Số điện thoại</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Ngày tạo</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var s in Model)
+                    {
+                        bool isSelf = s.UserId == currentUserId;
+                        <tr id="row-staff-@s.UserId">
+                            <td><input type="checkbox" class="custom-checkbox" /></td>
+                            <td class="fw-semibold text-dark">@s.StaffCode</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" 
+                                         style="width: 32px; height: 32px; font-size: 0.85rem; background: @(s.Role == "Admin" ? "#0f172a" : "#2563eb");">
+                                        @s.FullName.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold text-dark">@s.FullName</span>
+                                        @if (isSelf)
+                                        {
+                                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Bạn</span>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-secondary fw-semibold">@s.Username</td>
+                            <td class="text-secondary">@s.PhoneNumber</td>
+                            <td class="text-secondary small">@s.Email</td>
+                            <td>
+                                <span class="badge-status @s.RoleBadgeClass">
+                                    @s.RoleDisplay
+                                </span>
+                            </td>
+                            <td class="text-muted small">@s.CreatedAt.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="badge-status @(s.IsActive ? "badge-in-stock" : "badge-out-of-stock")" id="staff-status-badge-@s.UserId">
+                                    @(s.IsActive ? "Hoạt động" : "Bị khóa")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <!-- Nút Sửa -->
+                                    <button type="button" class="btn btn-sm btn-action-edit" title="Sửa thông tin nhân viên" 
+                                            onclick="openEditStaff(@s.UserId)">
+                                        <i class="bi bi-pencil-square"></i> Sửa
+                                    </button>
+
+                                    <!-- Nút Khóa / Mở khóa -->
+                                    @if (!isSelf)
+                                    {
+                                        <button type="button" class="btn btn-sm @(s.IsActive ? "btn-action-delete" : "btn-action-edit")" 
+                                                id="btn-lock-staff-@s.UserId" title="@(s.IsActive ? "Khóa tài khoản" : "Mở khóa tài khoản")"
+                                                onclick="toggleStaffLock(@s.UserId)">
+                                            <i class="bi @(s.IsActive ? "bi-lock" : "bi-unlock")"></i>
+                                            <span id="btn-lock-text-@s.UserId">@(s.IsActive ? "Khóa" : "Mở")</span>
+                                        </button>
+
+                                        <!-- Nút Xóa -->
+                                        <button type="button" class="btn btn-sm btn-action-delete" title="Xóa tài khoản nhân viên"
+                                                onclick="deleteStaff(@s.UserId, '@s.FullName')">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            Không tìm thấy tài khoản nhân viên nào phù hợp với bộ lọc.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION -->
+    @if ((ViewBag.TotalPages ?? 1) > 1)
+    {
+        int curPage = ViewBag.CurrentPage ?? 1;
+        int totPages = ViewBag.TotalPages ?? 1;
+        int totCount = ViewBag.TotalCount ?? (Model != null ? Model.Count() : 0);
+
+        var pagesToShow = new List<object>();
+        if (totPages <= 7)
+        {
+            for (int i = 1; i <= totPages; i++) { pagesToShow.Add(i); }
+        }
+        else
+        {
+            if (curPage <= 4)
+            {
+                pagesToShow.AddRange(new object[] { 1, 2, 3, 4, 5, "...", totPages });
+            }
+            else if (curPage >= totPages - 3)
+            {
+                pagesToShow.AddRange(new object[] { 1, "...", totPages - 4, totPages - 3, totPages - 2, totPages - 1, totPages });
+            }
+            else
+            {
+                pagesToShow.AddRange(new object[] { 1, "...", curPage - 1, curPage, curPage + 1, "...", totPages });
+            }
+        }
+
+        <div class="admin-pagination-wrap p-3 d-flex flex-wrap justify-content-between align-items-center border-top bg-white">
+            <div class="pagination-info small text-muted">
+                Trang <strong>@curPage</strong> / <strong>@totPages</strong> (Tổng số <strong>@totCount</strong> nhân viên)
+            </div>
+            <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
+                <li class="admin-page-item @(curPage <= 1 ? "disabled" : "")">
+                    <a href="@(curPage <= 1 ? "javascript:void(0)" : $"/Admin/Staff?page={curPage - 1}&search={ViewBag.Search}&status={ViewBag.Status}&role={ViewBag.Role}")" 
+                       class="btn btn-sm btn-light border @(curPage <= 1 ? "disabled opacity-50" : "text-dark")"
+                       title="Trang trước"
+                       style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-chevron-left"></i> Trước
+                    </a>
+                </li>
+                @foreach (var pageItem in pagesToShow)
+                {
+                    if (pageItem is string)
+                    {
+                        <li class="admin-page-item disabled">
+                            <span class="d-inline-flex align-items-center justify-content-center text-muted px-1" style="min-width: 24px; height: 34px; font-weight: bold; user-select: none;">...</span>
+                        </li>
+                    }
+                    else
+                    {
+                        int p = (int)pageItem;
+                        <li class="admin-page-item">
+                            <a href="/Admin/Staff?page=@p&search=@ViewBag.Search&status=@ViewBag.Status&role=@ViewBag.Role" 
+                               class="btn btn-sm @(p == curPage ? "btn-dark text-white fw-bold shadow-sm" : "btn-light border text-dark")"
+                               title="Trang @p"
+                               style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                                @p
+                            </a>
+                        </li>
+                    }
+                }
+                <li class="admin-page-item @(curPage >= totPages ? "disabled" : "")">
+                    <a href="@(curPage >= totPages ? "javascript:void(0)" : $"/Admin/Staff?page={curPage + 1}&search={ViewBag.Search}&status={ViewBag.Status}&role={ViewBag.Role}")" 
+                       class="btn btn-sm btn-light border @(curPage >= totPages ? "disabled opacity-50" : "text-dark")"
+                       title="Trang tiếp theo"
+                       style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                        Sau <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="admin-pagination-wrap p-3 border-top bg-white">
+            <div class="pagination-info small text-muted">
+                Hiển thị @(Model != null && Model.Any() ? 1 : 0)-@(Model != null ? Model.Count() : 0) trong tổng số @ViewBag.TotalCount nhân viên
+            </div>
+        </div>
+    }
+</div>
+
+<!-- FORM CHỨA CSRF TOKEN -->
+<form id="antiForgeryForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
+<!-- MODAL THÊM NHÂN VIÊN MỚI -->
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="addStaffModalLabel">
+                    <i class="bi bi-person-plus text-primary me-2"></i>Thêm tài khoản nhân viên mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <form id="addStaffForm" onsubmit="submitAddStaff(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-dark">Họ và tên nhân viên *</label>
+                        <input type="text" name="FullName" class="form-control-dark" placeholder="Ví dụ: Nguyễn Văn Hùng" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Tên đăng nhập *</label>
+                            <input type="text" name="Username" class="form-control-dark" placeholder="hungnv" required minlength="3" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Số điện thoại</label>
+                            <input type="text" name="PhoneNumber" class="form-control-dark" placeholder="0912345678" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Địa chỉ Email *</label>
+                        <input type="email" name="Email" class="form-control-dark" placeholder="hungnv@pcstore.vn" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Mật khẩu khởi tạo *</label>
+                        <input type="password" name="Password" class="form-control-dark" placeholder="Tối thiểu 6 ký tự" required minlength="6" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Phân quyền / Vai trò *</label>
+                            <select name="Role" class="form-select-dark">
+                                <option value="Staff" selected>Nhân viên</option>
+                                <option value="Admin">Quản trị viên</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Trạng thái kích hoạt</label>
+                            <select name="IsActive" class="form-select-dark">
+                                <option value="true" selected>Hoạt động</option>
+                                <option value="false">Tạm khóa</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom" id="btnSubmitAddStaff">
+                        <i class="bi bi-check-circle me-1"></i> Lưu nhân viên
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL SỬA THÔNG TIN NHÂN VIÊN -->
+<div class="modal fade" id="editStaffModal" tabindex="-1" aria-labelledby="editStaffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="editStaffModalLabel">
+                    <i class="bi bi-pencil-square text-warning me-2"></i>Chỉnh sửa tài khoản nhân viên
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <form id="editStaffForm" onsubmit="submitEditStaff(event)">
+                <input type="hidden" name="UserId" id="editUserId" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-dark">Họ và tên nhân viên *</label>
+                        <input type="text" name="FullName" id="editFullName" class="form-control-dark" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Tên đăng nhập</label>
+                            <input type="text" id="editUsername" class="form-control-dark text-muted" readonly disabled />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Số điện thoại</label>
+                            <input type="text" name="PhoneNumber" id="editPhoneNumber" class="form-control-dark" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Địa chỉ Email *</label>
+                        <input type="email" name="Email" id="editEmail" class="form-control-dark" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Đổi mật khẩu mới (Bỏ trống nếu không đổi)</label>
+                        <input type="password" name="Password" id="editPassword" class="form-control-dark" placeholder="Nhập mật khẩu mới nếu muốn đổi" minlength="6" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Phân quyền / Vai trò *</label>
+                            <select name="Role" id="editRole" class="form-select-dark">
+                                <option value="Staff">Nhân viên</option>
+                                <option value="Admin">Quản trị viên</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-dark">Trạng thái kích hoạt</label>
+                            <select name="IsActive" id="editIsActive" class="form-select-dark">
+                                <option value="true">Hoạt động</option>
+                                <option value="false">Tạm khóa</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom" id="btnSubmitEditStaff">
+                        <i class="bi bi-check2-circle me-1"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setStatus(val) {
+            document.getElementById('statusInput').value = val;
+            document.getElementById('filterForm').submit();
+        }
+
+        function setRole(val) {
+            document.getElementById('roleInput').value = val;
+            document.getElementById('filterForm').submit();
+        }
+
+        function getToken() {
+            return document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value 
+                || document.querySelector('input[name="__RequestVerificationToken"]')?.value 
+                || '';
+        }
+
+        // Thêm nhân viên mới bằng AJAX
+        function submitAddStaff(e) {
+            e.preventDefault();
+            const form = document.getElementById('addStaffForm');
+            const formData = new FormData(form);
+            const token = getToken();
+
+            const btn = document.getElementById('btnSubmitAddStaff');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+
+            fetch('/Admin/CreateStaff', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Lưu nhân viên';
+                if (data.success) {
+                    alert(data.message || 'Thêm nhân viên thành công!');
+                    const modalEl = document.getElementById('addStaffModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Thao tác không thành công.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Lưu nhân viên';
+                console.error(err);
+                alert('Có lỗi xảy ra trong quá trình thêm nhân viên: ' + err.message);
+            });
+        }
+
+        // Mở modal sửa nhân viên và load dữ liệu
+        function openEditStaff(id) {
+            fetch(`/Admin/GetStaffJson?id=${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const u = data.data;
+                    document.getElementById('editUserId').value = u.userId;
+                    document.getElementById('editFullName').value = u.fullName;
+                    document.getElementById('editUsername').value = u.username;
+                    document.getElementById('editEmail').value = u.email;
+                    document.getElementById('editPhoneNumber').value = u.phoneNumber || '';
+                    document.getElementById('editRole').value = u.role;
+                    document.getElementById('editIsActive').value = u.isActive ? 'true' : 'false';
+                    document.getElementById('editPassword').value = '';
+
+                    const modal = new bootstrap.Modal(document.getElementById('editStaffModal'));
+                    modal.show();
+                } else {
+                    alert(data.message || 'Không thể lấy thông tin nhân viên.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi kết nối khi tải dữ liệu nhân viên: ' + err.message);
+            });
+        }
+
+        // Lưu thay đổi khi sửa nhân viên
+        function submitEditStaff(e) {
+            e.preventDefault();
+            const form = document.getElementById('editStaffForm');
+            const formData = new FormData(form);
+            const token = getToken();
+
+            const btn = document.getElementById('btnSubmitEditStaff');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+
+            fetch('/Admin/UpdateStaff', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Lưu thay đổi';
+                if (data.success) {
+                    alert(data.message || 'Cập nhật nhân viên thành công!');
+                    const modalEl = document.getElementById('editStaffModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Cập nhật thất bại.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Lưu thay đổi';
+                console.error(err);
+                alert('Có lỗi xảy ra: ' + err.message);
+            });
+        }
+
+        // Khóa / Mở khóa nhân viên
+        function toggleStaffLock(id) {
+            const token = getToken();
+            const formData = new URLSearchParams();
+            formData.append('id', id);
+            if (token) formData.append('__RequestVerificationToken', token);
+
+            fetch('/Admin/ToggleStaffLock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: formData.toString()
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const badge = document.getElementById(`staff-status-badge-${id}`);
+                    const btn = document.getElementById(`btn-lock-staff-${id}`);
+                    const btnText = document.getElementById(`btn-lock-text-${id}`);
+
+                    if (data.isActive) {
+                        if (badge) {
+                            badge.className = 'badge-status badge-in-stock';
+                            badge.innerText = 'Hoạt động';
+                        }
+                        if (btn) {
+                            btn.className = 'btn btn-sm btn-action-delete';
+                            btn.innerHTML = `<i class="bi bi-lock"></i> <span id="btn-lock-text-${id}">Khóa</span>`;
+                        }
+                    } else {
+                        if (badge) {
+                            badge.className = 'badge-status badge-out-of-stock';
+                            badge.innerText = 'Bị khóa';
+                        }
+                        if (btn) {
+                            btn.className = 'btn btn-sm btn-action-edit';
+                            btn.innerHTML = `<i class="bi bi-unlock"></i> <span id="btn-lock-text-${id}">Mở</span>`;
+                        }
+                    }
+                } else {
+                    alert(data.message || 'Không thể thực hiện thao tác.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi thao tác: ' + err.message);
+            });
+        }
+
+        // Xóa nhân viên
+        function deleteStaff(id, name) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa tài khoản nhân viên "${name}" không?`)) {
+                return;
+            }
+
+            const token = getToken();
+            const formData = new URLSearchParams();
+            formData.append('id', id);
+            if (token) formData.append('__RequestVerificationToken', token);
+
+            fetch('/Admin/DeleteStaff', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: formData.toString()
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'Đã xóa tài khoản nhân viên thành công!');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Không thể xóa tài khoản này.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Lỗi thao tác: ' + err.message);
+            });
+        }
+    </script>
+}

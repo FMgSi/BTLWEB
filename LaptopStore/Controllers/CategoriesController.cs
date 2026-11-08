@@ -12,7 +12,7 @@ namespace LaptopStore.Controllers;
 /// Controller Quản trị Thể loại / Phân khúc Laptop (Categories)
 /// Triển khai đầy đủ CRUD theo chuẩn mô hình được học trong LapTrinhWeb (TvcLesson08Df)
 /// </summary>
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class CategoriesController : Controller
 {
     private readonly AppDbContext _context;
