@@ -935,9 +935,9 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </div>
                     ) : (
                       /* NHẬP THÔNG TIN MÁY NGOÀI */
-                      <div className="row g-2 mb-3">
+                      <div className="row g-2 mb-3 align-items-start">
                         <div className="col-sm-7 position-relative" ref={modelDropdownWrapperRef}>
-                          <label className="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-1">
+                          <label className="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-1" style={{ minHeight: '22px' }}>
                             <span>Hãng và Model máy <span className="text-danger">*</span></span>
                             {selectedMatchedProductId && (
                               <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: '10px' }}>
@@ -1042,7 +1042,9 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                           )}
                         </div>
                         <div className="col-sm-5">
-                          <label className="form-label small fw-bold text-dark">Số Serial máy (nếu biết)</label>
+                          <label className="form-label small fw-bold text-dark d-flex align-items-center mb-1" style={{ minHeight: '22px' }}>
+                            <span>Số Serial máy (nếu biết)</span>
+                          </label>
                           <input
                             type="text"
                             className="form-control form-control-sm font-monospace"

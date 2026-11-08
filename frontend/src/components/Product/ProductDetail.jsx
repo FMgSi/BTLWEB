@@ -766,7 +766,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                         >
                           <div className="fw-semibold small">RAM {v.ramGB}GB • SSD {v.storageGB}GB</div>
                           <div className="d-flex align-items-center gap-2 mt-1" style={{ fontSize: '11px' }}>
-                            <span className="text-muted">SKU: <code>{v.sku}</code></span>
                             {isVariantOos ? (
                               <span className="badge bg-danger text-white">Hết hàng</span>
                             ) : (
@@ -838,11 +837,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                     </span>
                   )}
                 </span>
-                {activeVariant?.sku && (
-                  <span className="text-muted" style={{ fontSize: '11px' }}>
-                    SKU: <code>{activeVariant.sku}</code>
-                  </span>
-                )}
               </div>
             </div>
 
