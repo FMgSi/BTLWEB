@@ -5,7 +5,7 @@
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">Chỉnh sửa sản phẩm #SP@Model.ProductId.ToString("D3")</h2>
+        <h2 class="page-title">Chỉnh sửa sản phẩm: @Model.ProductName <span class="text-muted font-monospace fs-6">#SP@(Model.ProductId.ToString("D3"))</span></h2>
         <p class="text-muted small mb-0">Cập nhật thông tin chi tiết, giá bán, tồn kho và cấu hình máy</p>
     </div>
     <div class="page-actions">
@@ -316,55 +316,5 @@
             const delBtn = document.getElementById('slot' + slot + 'DeleteBtn');
             if (delBtn) delBtn.disabled = true;
         }
-    </script>
-}
-            }
-        }
-
-        function deleteSlotImage(slot) {
-            if (slot <= 1) return;
-            document.getElementById('slot' + slot + 'Preview').src = getPlaceholder(slot);
-            document.getElementById('slot' + slot + 'FileName').innerText = '(Đã đánh dấu xóa)';
-            document.getElementById('slot' + slot + 'FileInput').value = '';
-            const delInput = document.getElementById('deleteSlot' + slot + 'Input');
-            if (delInput) delInput.value = 'true';
-            hasUnsavedChanges = true;
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const colorSelect = document.getElementById('colorSelect');
-            if (colorSelect) {
-                // Khởi tạo màu ban đầu
-                if (currentColorId > 0) {
-                    colorSelect.value = currentColorId;
-                } else if (colorSelect.options.length > 0) {
-                    currentColorId = Number(colorSelect.value);
-                }
-                document.getElementById('selectedColorIdInput').value = currentColorId;
-                renderSlotsForColor(currentColorId);
-
-                colorSelect.addEventListener('change', function(e) {
-                    const newColorId = Number(this.value);
-                    if (hasUnsavedChanges) {
-                        const ok = confirm('Bạn có thay đổi ảnh chưa lưu cho màu hiện tại. Tiếp tục đổi màu sẽ hủy các ảnh vừa chọn?\n\n- Bấm OK để tiếp tục đổi màu.\n- Bấm Cancel để ở lại lưu cập nhật.');
-                        if (!ok) {
-                            this.value = currentColorId;
-                            return;
-                        }
-                    }
-                    currentColorId = newColorId;
-                    document.getElementById('selectedColorIdInput').value = currentColorId;
-                    renderSlotsForColor(currentColorId);
-                });
-            }
-
-            // Cho phép submit form mà không bị chặn
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function() {
-                    hasUnsavedChanges = false;
-                });
-            }
-        });
     </script>
 }

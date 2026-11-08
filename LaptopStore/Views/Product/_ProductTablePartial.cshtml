@@ -32,7 +32,11 @@
                                  class="border" />
                         </td>
                         <td>
-                            <div class="fw-semibold text-dark">@item.ProductName</div>
+                            <div class="fw-semibold text-dark">
+                                <a asp-action="Edit" asp-route-id="@item.ProductId" class="text-dark text-decoration-none" title="Nhấp để sửa tên và thông tin sản phẩm">
+                                    @item.ProductName
+                                </a>
+                            </div>
                             <div class="text-muted" style="font-size: 0.75rem;">
                                 @(item.Category?.CategoryName ?? "Laptop")
                             </div>
