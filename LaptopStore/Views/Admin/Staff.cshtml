@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = "Quản lý tài khoản";
     string currentStatus = ViewBag.Status ?? "all";
-    string currentRole = ViewBag.Role ?? "all";
     string currentSearch = ViewBag.Search ?? "";
     int currentUserId = ViewBag.CurrentUserId ?? 0;
 }
@@ -10,7 +9,7 @@
 <div class="page-header">
     <div>
         <h2 class="page-title">Quản lý tài khoản</h2>
-        <p class="text-muted small mb-0">Thêm mới, chỉnh sửa thông tin, phân quyền và khóa/xóa tài khoản nhân viên hệ thống</p>
+        <p class="text-muted small mb-0">Thêm mới, chỉnh sửa thông tin và khóa/xóa tài khoản nhân viên hệ thống</p>
     </div>
     <div class="page-actions">
         <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addStaffModal">
@@ -34,7 +33,7 @@
     <form method="get" action="/Admin/Staff" id="filterForm">
         <div class="row g-3 align-items-center">
             <!-- Search Input & Nút Làm Mới -->
-            <div class="col-lg-4 col-md-12">
+            <div class="col-lg-6 col-md-12">
                 <div class="d-flex align-items-center gap-2">
                     <div class="position-relative flex-grow-1">
                         <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px;"></i>
@@ -48,7 +47,7 @@
             </div>
 
             <!-- Trạng thái hoạt động -->
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-6 col-md-12">
                 <div class="d-flex align-items-center gap-2">
                     <span class="text-secondary small fw-semibold text-nowrap">Trạng thái:</span>
                     <input type="hidden" name="status" id="statusInput" value="@currentStatus" />
@@ -56,19 +55,6 @@
                         <button type="button" class="filter-btn-item @(currentStatus == "all" ? "active" : "")" onclick="setStatus('all')">Tất cả</button>
                         <button type="button" class="filter-btn-item @(currentStatus == "active" ? "active" : "")" onclick="setStatus('active')">Hoạt động</button>
                         <button type="button" class="filter-btn-item @(currentStatus == "locked" ? "active" : "")" onclick="setStatus('locked')">Bị khóa</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phân quyền / Vai trò -->
-            <div class="col-lg-4 col-md-6">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-secondary small fw-semibold text-nowrap">Vai trò:</span>
-                    <input type="hidden" name="role" id="roleInput" value="@currentRole" />
-                    <div class="filter-btn-group">
-                        <button type="button" class="filter-btn-item @(currentRole == "all" ? "active" : "")" onclick="setRole('all')">Tất cả</button>
-                        <button type="button" class="filter-btn-item @(currentRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "active" : "")" onclick="setRole('Admin')">Quản trị viên</button>
-                        <button type="button" class="filter-btn-item @(currentRole.Equals("Staff", StringComparison.OrdinalIgnoreCase) ? "active" : "")" onclick="setRole('Staff')">Nhân viên</button>
                     </div>
                 </div>
             </div>
@@ -95,7 +81,6 @@
                     <th>Tên đăng nhập</th>
                     <th>Số điện thoại</th>
                     <th>Email</th>
-                    <th>Vai trò</th>
                     <th>Ngày tạo</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Hành động</th>
@@ -113,7 +98,7 @@
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" 
-                                         style="width: 32px; height: 32px; font-size: 0.85rem; background: @(s.Role == "Admin" ? "#0f172a" : "#2563eb");">
+                                         style="width: 32px; height: 32px; font-size: 0.85rem; background: #0f172a;">
                                         @s.FullName.Substring(0, 1).ToUpper()
                                     </div>
                                     <div>
@@ -128,11 +113,6 @@
                             <td class="text-secondary fw-semibold">@s.Username</td>
                             <td class="text-secondary">@s.PhoneNumber</td>
                             <td class="text-secondary small">@s.Email</td>
-                            <td>
-                                <span class="badge-status @s.RoleBadgeClass">
-                                    @s.RoleDisplay
-                                </span>
-                            </td>
                             <td class="text-muted small">@s.CreatedAt.ToString("dd/MM/yyyy")</td>
                             <td>
                                 <span class="badge-status @(s.IsActive ? "badge-in-stock" : "badge-out-of-stock")" id="staff-status-badge-@s.UserId">
@@ -171,7 +151,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="10" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                             Không tìm thấy tài khoản nhân viên nào phù hợp với bộ lọc.
                         </td>
@@ -301,27 +281,18 @@
                         <label class="form-label-dark">Mật khẩu khởi tạo *</label>
                         <input type="password" name="Password" class="form-control-dark" placeholder="Tối thiểu 6 ký tự" required minlength="6" />
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label-dark">Phân quyền / Vai trò *</label>
-                            <select name="Role" class="form-select-dark">
-                                <option value="Staff" selected>Nhân viên</option>
-                                <option value="Admin">Quản trị viên</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label-dark">Trạng thái kích hoạt</label>
-                            <select name="IsActive" class="form-select-dark">
-                                <option value="true" selected>Hoạt động</option>
-                                <option value="false">Tạm khóa</option>
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Trạng thái kích hoạt</label>
+                        <select name="IsActive" class="form-select-dark">
+                            <option value="true" selected>Hoạt động</option>
+                            <option value="false">Tạm khóa</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn-primary-custom" id="btnSubmitAddStaff">
-                        <i class="bi bi-check-circle me-1"></i> Lưu nhân viên
+                        Lưu nhân viên
                     </button>
                 </div>
             </form>
@@ -362,27 +333,18 @@
                         <label class="form-label-dark">Đổi mật khẩu mới (Bỏ trống nếu không đổi)</label>
                         <input type="password" name="Password" id="editPassword" class="form-control-dark" placeholder="Nhập mật khẩu mới nếu muốn đổi" minlength="6" />
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label-dark">Phân quyền / Vai trò *</label>
-                            <select name="Role" id="editRole" class="form-select-dark">
-                                <option value="Staff">Nhân viên</option>
-                                <option value="Admin">Quản trị viên</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label-dark">Trạng thái kích hoạt</label>
-                            <select name="IsActive" id="editIsActive" class="form-select-dark">
-                                <option value="true">Hoạt động</option>
-                                <option value="false">Tạm khóa</option>
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label-dark">Trạng thái kích hoạt</label>
+                        <select name="IsActive" id="editIsActive" class="form-select-dark">
+                            <option value="true">Hoạt động</option>
+                            <option value="false">Tạm khóa</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn-primary-custom" id="btnSubmitEditStaff">
-                        <i class="bi bi-check2-circle me-1"></i> Lưu thay đổi
+                        Lưu thay đổi
                     </button>
                 </div>
             </form>
@@ -394,11 +356,6 @@
     <script>
         function setStatus(val) {
             document.getElementById('statusInput').value = val;
-            document.getElementById('filterForm').submit();
-        }
-
-        function setRole(val) {
-            document.getElementById('roleInput').value = val;
             document.getElementById('filterForm').submit();
         }
 
@@ -460,7 +417,6 @@
                     document.getElementById('editUsername').value = u.username;
                     document.getElementById('editEmail').value = u.email;
                     document.getElementById('editPhoneNumber').value = u.phoneNumber || '';
-                    document.getElementById('editRole').value = u.role;
                     document.getElementById('editIsActive').value = u.isActive ? 'true' : 'false';
                     document.getElementById('editPassword').value = '';
 

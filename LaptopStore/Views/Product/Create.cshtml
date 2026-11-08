@@ -256,7 +256,23 @@
 </form>
 
 @section Scripts {
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
     <script>
+        $(document).ready(function() {
+            $('#Description').summernote({
+                placeholder: 'Nhập mô tả tính năng nổi bật, thiết kế, màn hình của máy...',
+                tabsize: 2,
+                height: 150,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['font', ['strikethrough']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'table', 'hr']]
+                ]
+            });
+        });
+
         function handleSlotFileChange(slot, input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];

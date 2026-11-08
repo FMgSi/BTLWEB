@@ -455,7 +455,7 @@ public class AdminController : Controller
     /// GET: /Admin/Staff
     /// Quản lý danh sách tài khoản nhân viên & quản trị viên
     /// </summary>
-    public async Task<IActionResult> Staff(string? search, string? status, string? role, int page = 1)
+    public async Task<IActionResult> Staff(string? search, string? status, int page = 1)
     {
         var staffUsers = await _db.Users
             .AsNoTracking()
@@ -494,11 +494,6 @@ public class AdminController : Controller
             else if (status == "locked") query = query.Where(c => !c.IsActive);
         }
 
-        if (!string.IsNullOrWhiteSpace(role) && role != "all")
-        {
-            query = query.Where(c => c.Role.Equals(role, StringComparison.OrdinalIgnoreCase));
-        }
-
         var list = query.ToList();
         int pageSize = 5; // Giới hạn bảng hiển thị 5 nhân viên mỗi trang
         var total = list.Count;
@@ -509,7 +504,6 @@ public class AdminController : Controller
 
         ViewBag.Search = search ?? "";
         ViewBag.Status = status ?? "all";
-        ViewBag.Role = role ?? "all";
         ViewBag.TotalCount = total;
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
