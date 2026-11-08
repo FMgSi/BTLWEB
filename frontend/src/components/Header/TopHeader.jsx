@@ -18,7 +18,7 @@ export default function TopHeader({
     setKeyword(searchKeyword || '');
   }, [searchKeyword]);
 
-  // Xử lý gửi từ khóa tìm kiếm khi người dùng nhấn Enter hoặc bấm nút Tìm kiếm
+  // Gửi từ khóa tìm kiếm
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
     if (onSearch) {
@@ -26,7 +26,7 @@ export default function TopHeader({
     }
   };
 
-  // Dropdown menu người dùng dùng chung cho cả giao diện máy tính và di động
+  // Menu dropdown tài khoản
   const renderUserDropdown = () => (
     <div 
       className="position-absolute end-0 top-100 mt-2 bg-white rounded-3 shadow-lg border p-2 text-start"
@@ -92,7 +92,7 @@ export default function TopHeader({
       <div className="site-container">
         <div className="row align-items-center g-2 g-md-3">
           {/* Logo */}
-          <div className="col-auto logo-wrap" style={{ minWidth: '150px', maxWidth: '240px' }}>
+          <div className="col-auto logo-wrap flex-shrink-0" style={{ maxWidth: '240px' }}>
             <a 
               href="/" 
               onClick={(e) => {
@@ -102,7 +102,7 @@ export default function TopHeader({
               }} 
               className="text-white text-decoration-none d-flex flex-column"
             >
-              <span className="fw-black fs-4 lh-1">PC<span className="text-pc-red">STORE</span></span>
+              <span className="fw-black fs-4 lh-1 text-nowrap">PC<span className="text-pc-red">STORE</span></span>
               <span style={{ fontSize: '9px', letterSpacing: '0.8px' }} className="text-secondary fw-semibold d-none d-sm-inline">
                 LAPTOP CHÍNH HÃNG - GAMING - MACBOOK
               </span>

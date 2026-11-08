@@ -208,7 +208,14 @@ button,
   display: none;
 }
 
+.customer-navbar-inner {
+  width: 100%;
+  overflow: hidden;
+}
+
 .customer-nav-scroll {
+  flex: 1 1 0%;
+  min-width: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   white-space: nowrap;
@@ -241,10 +248,20 @@ button,
     font-size: 12px !important;
   }
   .product-title {
-    font-size: 12px;
-    height: 32px;
+    font-size: 13px;
+    height: auto;
+    min-height: 32px;
+    word-break: break-word;
   }
   .product-specs {
-    font-size: 10px;
+    font-size: 11px;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-container {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 }

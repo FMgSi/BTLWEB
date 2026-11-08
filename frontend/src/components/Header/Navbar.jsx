@@ -1,6 +1,7 @@
 import React from 'react';
 
 export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
+  // Chuyển tab điều hướng
   const handleClick = (e, tab) => {
     e.preventDefault();
     if (onNavigate) {

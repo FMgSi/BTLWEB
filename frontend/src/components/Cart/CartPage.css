@@ -1,6 +1,4 @@
-/* =========================================================================
-   CartPage.css - Giao diện Giỏ hàng Hiện đại chuẩn E-commerce / FPT Shop
-   ========================================================================= */
+/* Giao diện Giỏ hàng & Thanh toán */
 
 .cart-page-wrap {
   background-color: #f8fafc;
@@ -8,7 +6,7 @@
   padding-bottom: 60px;
 }
 
-/* Container tập trung ở giữa, để trống 2 lề bên cạnh thay vì chiếm hết toàn bộ diện tích màn hình */
+/* Container tập trung ở giữa */
 .cart-centered-container {
   max-width: 1040px !important;
   margin-left: auto !important;
@@ -19,21 +17,27 @@
 .cart-breadcrumb {
   font-size: 13px;
   color: #64748b;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
 }
 
 .cart-breadcrumb a {
   color: #64748b;
   text-decoration: none;
   transition: color 0.15s;
+  white-space: nowrap;
 }
 
 .cart-breadcrumb a:hover {
   color: #e11b1e;
   text-decoration: underline;
+}
+
+.cart-breadcrumb span {
+  white-space: nowrap;
 }
 
 /* Card bao bọc danh sách sản phẩm giỏ hàng */
@@ -585,13 +589,15 @@
   box-shadow: 0 0 0 1px #ee4d2d;
 }
 
-/* =========================================================================
-   Responsive Design Optimizations for CartPage
-   ========================================================================= */
+/* Responsive cho Giỏ hàng & Thanh toán */
 @media (max-width: 767.98px) {
   .cart-page-wrap {
     padding-top: 1rem !important;
     padding-bottom: 90px !important;
+  }
+  .cart-centered-container {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
   .shopee-cart-footer {
     padding: 10px 14px;
@@ -605,14 +611,15 @@
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
   }
   .shopee-btn-buy {
-    padding: 10px 20px;
+    padding: 10px 16px;
     font-size: 14px;
   }
   .shopee-payment-option {
-    padding: 10px !important;
+    padding: 8px !important;
+    font-size: 13px;
   }
   .shopee-tier-pill {
-    padding: 10px !important;
+    padding: 8px !important;
   }
 }
 

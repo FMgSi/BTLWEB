@@ -30,7 +30,7 @@ export default function CartPage({
   const [formError, setFormError] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState('');
 
-  // 1. Quản lý Địa chỉ nhận hàng (Lưu 1 lần vào localStorage, các lần mua sau tự động add vào)
+  // Địa chỉ nhận hàng
   const [savedAddress, setSavedAddress] = useState(() => {
     try {
       const saved = localStorage.getItem('pcstore_shipping_address');
@@ -50,29 +50,27 @@ export default function CartPage({
   const [isEditingAddress, setIsEditingAddress] = useState(!savedAddress?.address);
   const [orderNotes, setOrderNotes] = useState('');
 
-  // 2. Phương thức thanh toán & Mua hàng
-  // 'cod' | 'banking' (VietQR) | 'vnpay' | 'installment'
+  // Phương thức thanh toán & hình thức mua
   const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [purchaseMode, setPurchaseMode] = useState('Full'); // 'Full' | 'Installment'
+  const [purchaseMode, setPurchaseMode] = useState('Full');
   const [termMonths, setTermMonths] = useState(6);
   const [serverInstallmentPlan, setServerInstallmentPlan] = useState(null);
 
-  // 3. Voucher khuyến mãi liên kết trực tiếp với /api/promotions
+  // Voucher khuyến mãi
   const [availablePromotions, setAvailablePromotions] = useState([]);
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [voucherInputCode, setVoucherInputCode] = useState('');
   const [voucherError, setVoucherError] = useState('');
   const [isLoadingPromotions, setIsLoadingPromotions] = useState(false);
 
-  // 4. Ưu đãi Hạng thành viên (Tự động áp dụng theo tài khoản, chỉ hiển thị Hạng Vàng & % giảm)
+  // Hạng thành viên
   const memberTier = useMemo(() => {
     const rawTier = currentUser?.tier || currentUser?.memberTier || '';
     if (rawTier.includes('Bạc') || rawTier.includes('Silver')) return 'Bạc';
-    // Mặc định chuẩn hóa hiển thị Hạng Vàng theo chỉ đạo của người dùng
     return 'Vàng';
   }, [currentUser]);
 
-  // Tự động tải danh sách Voucher từ API Backend (/api/promotions)
+  // Tải danh sách voucher từ API
   useEffect(() => {
     setIsLoadingPromotions(true);
     fetch('/api/promotions')
@@ -167,7 +165,7 @@ export default function CartPage({
     ? serverInstallmentPlan.monthlyInstallmentAmount
     : Math.floor(financedAmount / termMonths);
 
-  // Chuyển sang màn hình Mua hàng Shopee
+  // Chuyển sang bước thanh toán
   const handleProceedToCheckout = () => {
     if (checkedItems.length === 0) {
       if (showToast) showToast('Vui lòng chọn ít nhất 1 sản phẩm để mua hàng!');
@@ -180,7 +178,7 @@ export default function CartPage({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Lưu địa chỉ vào localStorage để lần sau tự động nạp
+  // Lưu địa chỉ giao hàng
   const handleSaveAddress = () => {
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
       setPhoneError('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ chi tiết!');
@@ -245,7 +243,7 @@ export default function CartPage({
     setTimeout(() => setCopiedKey(''), 2000);
   };
 
-  // Xử lý khi nhấn nút Đặt Hàng (Gửi lên Backend API)
+  // Gửi đơn hàng lên hệ thống
   const handleConfirmOrder = async (e) => {
     if (e) e.preventDefault();
 
@@ -421,6 +419,7 @@ export default function CartPage({
     }
   };
 
+  // Đóng modal QR
   const handleCloseQrModal = () => {
     const code = pendingOrder?.orderId || '';
     const completed = pendingOrder;
@@ -470,12 +469,12 @@ export default function CartPage({
           {isCheckoutStep && (
             <>
               <span>/</span>
-              <span className="text-dark fw-bold">Thanh toán (Shopee Style)</span>
+              <span className="text-dark fw-bold">Thanh toán</span>
             </>
           )}
         </div>
 
-        {/* 1. MÀN HÌNH ĐẶT HÀNG THÀNH CÔNG */}
+        {/* Đặt hàng thành công */}
         {orderSuccess ? (
           <div className="bg-white rounded-3 border p-5 text-center shadow-sm my-3 mx-auto" style={{ maxWidth: '640px' }}>
             <div className="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '64px', height: '64px' }}>
@@ -566,11 +565,9 @@ export default function CartPage({
             </button>
           </div>
         ) : !isCheckoutStep ? (
-          /* =========================================================================
-             2. GIAO DIỆN GIỎ HÀNG SHOPEE (PDF HÌNH 1)
-             ========================================================================= */
+          /* Giao diện Giỏ hàng */
           <div>
-            {/* Header bảng Shopee Cart - Hiển thị trên máy tính */}
+            {/* Header bảng giỏ hàng trên desktop */}
             <div className="shopee-table-header d-none d-md-flex align-items-center mb-3">
               <div style={{ width: '45%' }} className="d-flex align-items-center gap-3">
                 <input
@@ -739,8 +736,8 @@ export default function CartPage({
                         </div>
                         <div className="flex-grow-1 min-w-0">
                           <div
-                            className="fw-bold text-dark mb-1 small text-truncate"
-                            style={{ cursor: 'pointer' }}
+                            className="fw-bold text-dark mb-1 small"
+                            style={{ cursor: 'pointer', lineHeight: '1.35', wordBreak: 'break-word' }}
                             onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
                           >
                             {item.name}
@@ -845,11 +842,9 @@ export default function CartPage({
             </div>
           </div>
         ) : (
-          /* =========================================================================
-             3. GIAO DIỆN THANH TOÁN SHOPEE (PDF HÌNH 2)
-             ========================================================================= */
+          /* Giao diện Thanh toán */
           <div>
-            {/* Nút quay lại giỏ hàng */}
+            {/* Quay lại giỏ hàng */}
             <div className="mb-3">
               <button
                 type="button"
@@ -860,8 +855,8 @@ export default function CartPage({
               </button>
             </div>
 
-            {/* KHỐI 1: ĐỊA CHỈ NHẬN HÀNG (LƯU TỰ ĐỘNG, NÚT THAY ĐỔI) */}
-            <div className="shopee-address-card p-4 mb-3 border">
+            {/* Địa chỉ nhận hàng */}
+            <div className="shopee-address-card p-3 p-md-4 mb-3 border">
               <div className="shopee-address-ribbon mb-3"></div>
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <div className="fw-bold text-danger fs-6 d-flex align-items-center gap-2">
@@ -957,7 +952,7 @@ export default function CartPage({
               )}
             </div>
 
-            {/* KHỐI 2: DANH SÁCH SẢN PHẨM ĐẶT MUA (SHOPEE STYLE) */}
+            {/* Danh sách sản phẩm đặt mua */}
             <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
               <div className="d-none d-md-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary small fw-semibold">
                 <span style={{ width: '50%' }}>Sản phẩm ({checkedItems.length})</span>
@@ -986,7 +981,7 @@ export default function CartPage({
                         >
                           {item.name}
                         </div>
-                        <div className="small text-muted" style={{ fontSize: '11px' }}>
+                        <div className="small text-muted" style={{ fontSize: '12px' }}>
                           Phân loại: {item.colorName || 'Mặc định'}
                           {item.selectedRam && ` • ${item.selectedRam}`}
                           {item.selectedStorage && ` • ${item.selectedStorage}`}
@@ -1004,41 +999,51 @@ export default function CartPage({
                     </div>
                   </div>
 
-                  {/* Bố cục Mobile (< md) */}
-                  <div className="d-flex d-md-none justify-content-between align-items-center gap-2">
-                    <div className="d-flex align-items-center gap-2 min-w-0">
-                      <img
-                        src={item.image || '/images/default.png'}
-                        alt={item.name}
-                        style={{ width: '45px', height: '45px', objectFit: 'contain' }}
-                        className="rounded border flex-shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <div
-                          className="fw-bold text-dark small text-truncate"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
-                        >
-                          {item.name}
+                  {/* Bố cục Mobile (< md): Cân đối tỉ lệ, chữ dài tự xuống dòng */}
+                  <div className="d-flex d-md-none gap-2 align-items-start py-1">
+                    <img
+                      src={item.image || '/images/default.png'}
+                      alt={item.name}
+                      style={{ width: '52px', height: '52px', objectFit: 'contain' }}
+                      className="rounded border flex-shrink-0 bg-white p-1"
+                    />
+                    <div className="flex-grow-1 min-w-0">
+                      <div
+                        className="fw-bold text-dark mb-1"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          lineHeight: '1.35',
+                          wordBreak: 'break-word',
+                        }}
+                        onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
+                      >
+                        {item.name}
+                      </div>
+                      <div className="text-muted mb-1" style={{ fontSize: '11px', lineHeight: '1.3' }}>
+                        {item.colorName || 'Mặc định'}
+                        {item.selectedRam && ` • ${item.selectedRam}`}
+                        {item.selectedStorage && ` • ${item.selectedStorage}`}
+                      </div>
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-1 border-top border-light">
+                        <div className="text-secondary" style={{ fontSize: '12px' }}>
+                          Đơn giá: {formatVND(item.price)} <span className="fw-bold text-dark ms-1">x{item.quantity || 1}</span>
                         </div>
-                        <div className="text-muted" style={{ fontSize: '10px' }}>
-                          {item.colorName || 'Mặc định'} • x{item.quantity || 1} • {formatVND(item.price)}
+                        <div className="fw-bold text-danger" style={{ fontSize: '13px' }}>
+                          {formatVND((item.price || 0) * (item.quantity || 1))}
                         </div>
                       </div>
-                    </div>
-                    <div className="fw-bold text-danger small flex-shrink-0 text-end">
-                      {formatVND((item.price || 0) * (item.quantity || 1))}
                     </div>
                   </div>
                 </div>
               ))}
 
               {/* Lời nhắn cho người bán */}
-              <div className="mt-3 pt-2 d-flex align-items-center gap-3">
+              <div className="mt-3 pt-2 d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 gap-sm-3">
                 <span className="small text-secondary fw-semibold flex-shrink-0">Lời nhắn:</span>
                 <input
                   type="text"
-                  className="form-control form-control-sm"
+                  className="form-control form-control-sm flex-grow-1 w-100"
                   placeholder="Lưu ý cho người bán (Ví dụ: Giao giờ hành chính, gọi trước khi đến...)"
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
@@ -1046,22 +1051,22 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* KHỐI 3: ƯU ĐÃI HẠNG THÀNH VIÊN (CHỈ HIỂN THỊ HẠNG VÀNG & % GIẢM) */}
+            {/* Ưu đãi Hạng Thành Viên */}
             <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
-              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <div className="d-flex align-items-center gap-2 flex-wrap">
                   <i className="bi bi-award-fill text-warning fs-5"></i>
                   <span className="fw-bold text-dark">Ưu Đãi Hạng Thành Viên:</span>
-                  <span className="badge bg-warning text-dark fw-bold px-3 py-1 fs-6">
+                  <span className="badge bg-warning text-dark fw-bold px-2 py-1">
                     🥇 Hạng {memberTier}
                   </span>
-                  <span className="badge bg-danger fw-bold px-3 py-1 fs-6">
+                  <span className="badge bg-danger fw-bold px-2 py-1">
                     Giảm ngay {memberDiscountRate * 100}%
                   </span>
                 </div>
 
                 {memberDiscountAmount > 0 && (
-                  <div className="d-flex align-items-center gap-2 ms-auto">
+                  <div className="d-flex align-items-center gap-2">
                     <span className="small text-muted">Ưu đãi giảm:</span>
                     <strong className="text-danger fs-5">-{formatVND(memberDiscountAmount)}</strong>
                   </div>
@@ -1069,16 +1074,16 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* KHỐI 4: VOUCHER KHUYẾN MÃI (LIÊN KẾT TRỰC TIẾP VỚI KHUYẾN MÃI CỦA SHOP) */}
-            <div className="bg-white rounded-3 border p-4 mb-3 shadow-sm">
-              <div className="d-flex align-items-center justify-content-between">
+            {/* Voucher khuyến mãi */}
+            <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <div className="d-flex align-items-center gap-2">
                   <i className="bi bi-ticket-perforated-fill text-danger fs-5"></i>
-                  <span className="fw-bold text-dark">Laptop World / Shopee Voucher</span>
+                  <span className="fw-bold text-dark">Voucher giảm giá</span>
                 </div>
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-2 flex-wrap">
                   {appliedVoucher ? (
-                    <div className="d-flex align-items-center gap-2">
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
                       <span className="badge bg-danger px-3 py-2 fw-bold font-monospace">
                         {appliedVoucher.code} (-{formatVND(voucherDiscountAmount)})
                       </span>
@@ -1103,14 +1108,14 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* KHỐI 5: PHƯƠNG THỨC THANH TOÁN (TIỀN MẶT, CHUYỂN KHOẢN, THẺ NGÂN HÀNG, TRẢ GÓP 0%) */}
-            <div className="bg-white rounded-3 border p-4 mb-3 shadow-sm">
+            {/* Phương thức thanh toán */}
+            <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
               <h6 className="fw-bold text-dark mb-3">Phương thức thanh toán</h6>
 
               <div className="row g-2 mb-3">
-                <div className="col-md-3 col-6">
+                <div className="col-6 col-md-3">
                   <div
-                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'cod' && purchaseMode === 'Full' ? 'active' : ''}`}
+                    className={`shopee-payment-option p-2 p-sm-3 text-center h-100 ${paymentMethod === 'cod' && purchaseMode === 'Full' ? 'active' : ''}`}
                     onClick={() => {
                       setPaymentMethod('cod');
                       setPurchaseMode('Full');
@@ -1121,9 +1126,9 @@ export default function CartPage({
                   </div>
                 </div>
 
-                <div className="col-md-3 col-6">
+                <div className="col-6 col-md-3">
                   <div
-                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'transfer' && purchaseMode === 'Full' ? 'active' : ''}`}
+                    className={`shopee-payment-option p-2 p-sm-3 text-center h-100 ${paymentMethod === 'transfer' && purchaseMode === 'Full' ? 'active' : ''}`}
                     onClick={() => {
                       setPaymentMethod('transfer');
                       setPurchaseMode('Full');
@@ -1134,9 +1139,9 @@ export default function CartPage({
                   </div>
                 </div>
 
-                <div className="col-md-3 col-6">
+                <div className="col-6 col-md-3">
                   <div
-                    className={`shopee-payment-option p-3 text-center h-100 ${paymentMethod === 'card' && purchaseMode === 'Full' ? 'active' : ''}`}
+                    className={`shopee-payment-option p-2 p-sm-3 text-center h-100 ${paymentMethod === 'card' && purchaseMode === 'Full' ? 'active' : ''}`}
                     onClick={() => {
                       setPaymentMethod('card');
                       setPurchaseMode('Full');
@@ -1147,9 +1152,9 @@ export default function CartPage({
                   </div>
                 </div>
 
-                <div className="col-md-3 col-6">
+                <div className="col-6 col-md-3">
                   <div
-                    className={`shopee-payment-option p-3 text-center h-100 ${purchaseMode === 'Installment' ? 'active' : ''}`}
+                    className={`shopee-payment-option p-2 p-sm-3 text-center h-100 ${purchaseMode === 'Installment' ? 'active' : ''}`}
                     onClick={() => {
                       setPurchaseMode('Installment');
                       setPaymentMethod('installment');
@@ -1161,10 +1166,10 @@ export default function CartPage({
                 </div>
               </div>
 
-              {/* Tùy chọn kỳ hạn trả góp nếu chọn Trả góp */}
+              {/* Kỳ hạn trả góp */}
               {purchaseMode === 'Installment' && (
                 <div className="bg-light p-3 rounded-3 border mt-3">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                     <label className="form-label small fw-bold text-dark m-0">Chọn kỳ hạn trả góp:</label>
                     <div className="d-flex gap-2">
                       {[3, 6, 9, 12].map((t) => (
@@ -1204,8 +1209,8 @@ export default function CartPage({
               )}
             </div>
 
-            {/* KHỐI 6: CHI TIẾT THANH TOÁN VÀ NÚT ĐẶT HÀNG (SHOPEE STYLE) */}
-            <div className="bg-white rounded-3 border p-4 shadow-sm">
+            {/* Chi tiết thanh toán & nút Đặt Hàng */}
+            <div className="bg-white rounded-3 border p-3 p-md-4 shadow-sm">
               {formError && (
                 <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
                   <i className="bi bi-exclamation-triangle-fill fs-6 flex-shrink-0"></i>
@@ -1214,28 +1219,28 @@ export default function CartPage({
               )}
 
               <div className="d-flex flex-column gap-2 mb-3 small text-secondary">
-                <div className="d-flex justify-content-between">
+                <div className="d-flex justify-content-between flex-wrap gap-1">
                   <span>Tổng tiền hàng:</span>
                   <span className="text-dark fw-semibold">{formatVND(totalPayable)}</span>
                 </div>
                 {memberDiscountAmount > 0 && (
-                  <div className="d-flex justify-content-between text-success">
+                  <div className="d-flex justify-content-between flex-wrap gap-1 text-success">
                     <span>Ưu đãi thành viên (Hạng {memberTier} - {memberDiscountRate * 100}%):</span>
                     <strong className="text-success">-{formatVND(memberDiscountAmount)}</strong>
                   </div>
                 )}
                 {voucherDiscountAmount > 0 && (
-                  <div className="d-flex justify-content-between text-danger">
+                  <div className="d-flex justify-content-between flex-wrap gap-1 text-danger">
                     <span>Voucher giảm giá ({appliedVoucher?.code}):</span>
                     <strong className="text-danger">-{formatVND(voucherDiscountAmount)}</strong>
                   </div>
                 )}
-                <div className="d-flex justify-content-between">
+                <div className="d-flex justify-content-between flex-wrap gap-1">
                   <span>Phí vận chuyển:</span>
                   <span className="text-success fw-semibold">Miễn phí vận chuyển</span>
                 </div>
-                <div className="d-flex justify-content-between border-top pt-3 fs-5">
-                  <span className="fw-bold text-dark">
+                <div className="d-flex justify-content-between align-items-center border-top pt-3 flex-wrap gap-2">
+                  <span className="fw-bold text-dark fs-6">
                     {purchaseMode === 'Installment' ? 'Cần trả ngay hôm nay (30%):' : 'Tổng thanh toán:'}
                   </span>
                   <span className="fw-bold text-danger fs-4">
@@ -1244,12 +1249,12 @@ export default function CartPage({
                 </div>
               </div>
 
-              <div className="border-top pt-4 text-center">
+              <div className="border-top pt-3 text-center">
                 <div className="d-flex justify-content-center mb-2">
                   <button
                     type="button"
-                    className="shopee-btn-buy text-center px-5 py-3 fs-5"
-                    style={{ minWidth: '280px', maxWidth: '420px', width: '100%' }}
+                    className="shopee-btn-buy text-center px-4 py-3 fs-5"
+                    style={{ maxWidth: '420px', width: '100%' }}
                     disabled={isSubmitting || checkedItems.length === 0}
                     onClick={handleConfirmOrder}
                   >
@@ -1263,7 +1268,7 @@ export default function CartPage({
                     )}
                   </button>
                 </div>
-                <div className="small text-muted">
+                <div className="small text-muted" style={{ fontSize: '12px' }}>
                   Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo{' '}
                   <span className="text-primary" style={{ cursor: 'pointer' }}>Điều khoản Laptop World</span>.
                 </div>
@@ -1273,7 +1278,7 @@ export default function CartPage({
         )}
       </div>
 
-      {/* 4. MODAL CHỌN VOUCHER (LIÊN KẾT TỪ /api/promotions) */}
+      {/* Modal chọn voucher */}
       {showVoucherModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1070 }}>
           <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '520px' }}>
@@ -1366,7 +1371,7 @@ export default function CartPage({
         </div>
       )}
 
-      {/* 5. MODAL VIETQR TỰ ĐỘNG */}
+      {/* Modal VietQR */}
       {showQrModal && pendingOrder && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1080 }}>
           <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '500px' }}>

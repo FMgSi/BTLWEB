@@ -91,12 +91,7 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-
-
-
-
-
-  // States cho các bộ lọc
+  // Bộ lọc sản phẩm
   const [activeTag, setActiveTag] = useState("Tất cả sản phẩm");
   const [sortBy, setSortBy] = useState("newest");
   const [selectedBrands, setSelectedBrands] = useState([]);
