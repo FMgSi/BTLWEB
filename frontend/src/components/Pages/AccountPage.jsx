@@ -319,30 +319,30 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
         <div className="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
           <button
             type="button"
-            className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${
+            className={`btn btn-sm px-3 py-2 fw-bold rounded-2 flex-grow-1 text-center ${
               activeTab === 'orders' ? 'btn-danger text-white' : 'btn-light text-secondary'
             }`}
             onClick={() => setActiveTab('orders')}
           >
-            <i className="bi bi-bag-check me-1"></i> 1. Đơn hàng của tôi ({orders.length})
+            <i className="bi bi-bag-check me-1"></i> 1. Đơn hàng ({orders.length})
           </button>
           <button
             type="button"
-            className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${
+            className={`btn btn-sm px-3 py-2 fw-bold rounded-2 flex-grow-1 text-center ${
               activeTab === 'installments' ? 'btn-danger text-white' : 'btn-light text-secondary'
             }`}
             onClick={() => setActiveTab('installments')}
           >
-            <i className="bi bi-credit-card-2-front me-1"></i> 2. Trả góp sản phẩm đã mua ({installmentOrders.length})
+            <i className="bi bi-credit-card-2-front me-1"></i> 2. Trả góp ({installmentOrders.length})
           </button>
           <button
             type="button"
-            className={`btn btn-sm px-4 py-2 fw-bold rounded-2 ${
+            className={`btn btn-sm px-3 py-2 fw-bold rounded-2 flex-grow-1 text-center ${
               activeTab === 'membership' ? 'btn-danger text-white' : 'btn-light text-secondary'
             }`}
             onClick={() => setActiveTab('membership')}
           >
-            <i className="bi bi-award me-1"></i> 3. Hạng thành viên & Quyền lợi
+            <i className="bi bi-award me-1"></i> 3. Hạng thành viên
           </button>
         </div>
 

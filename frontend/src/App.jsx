@@ -107,6 +107,7 @@ export default function App() {
   const [customMin, setCustomMin] = useState("");
   const [customMax, setCustomMax] = useState("");
   const [appliedCustomPrice, setAppliedCustomPrice] = useState(null);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   // States phân trang & dữ liệu Backend API
   const [currentPage, setCurrentPage] = useState(1);
@@ -786,7 +787,49 @@ export default function App() {
                 }}
                 sortBy={sortBy}
                 setSortBy={(sort) => { setSortBy(sort); setCurrentPage(1); }}
+                onToggleMobileFilter={() => setShowMobileFilter(true)}
               />
+
+              {/* Modal Bộ lọc dành cho Mobile */}
+              {showMobileFilter && (
+                <div className="modal show d-block d-md-none" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                  <div className="modal-dialog modal-dialog-scrollable m-3">
+                    <div className="modal-content">
+                      <div className="modal-header py-2">
+                        <h6 className="modal-title fw-bold">
+                          <i className="bi bi-funnel text-danger me-1"></i> Bộ lọc sản phẩm
+                        </h6>
+                        <button type="button" className="btn-close" onClick={() => setShowMobileFilter(false)}></button>
+                      </div>
+                      <div className="modal-body p-3">
+                        <FilterSection
+                          selectedPriceRange={selectedPriceRange}
+                          setSelectedPriceRange={(val) => { setSelectedPriceRange(val); setCurrentPage(1); }}
+                          customMin={customMin}
+                          setCustomMin={setCustomMin}
+                          customMax={customMax}
+                          setCustomMax={setCustomMax}
+                          onApplyCustomPrice={(min, max) => { handleApplyCustomPrice(min, max); setShowMobileFilter(false); }}
+                          selectedBrands={selectedBrands}
+                          toggleBrand={toggleBrand}
+                          selectedSizes={selectedSizes}
+                          toggleSize={toggleSize}
+                          selectedRams={selectedRams}
+                          toggleRam={toggleRam}
+                          selectedCpus={selectedCpus}
+                          toggleCpu={toggleCpu}
+                          onResetFilters={handleResetFilters}
+                        />
+                      </div>
+                      <div className="modal-footer py-2">
+                        <button type="button" className="btn btn-sm btn-danger w-100 fw-bold" onClick={() => setShowMobileFilter(false)}>
+                          Áp dụng bộ lọc
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {isLoading ? (
                 <div className="text-center py-5 bg-white rounded border shadow-sm my-3">

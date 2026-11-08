@@ -571,8 +571,8 @@ export default function CartPage({
              2. GIAO DIỆN GIỎ HÀNG SHOPEE (PDF HÌNH 1)
              ========================================================================= */
           <div>
-            {/* Header bảng Shopee Cart */}
-            <div className="shopee-table-header d-flex align-items-center mb-3">
+            {/* Header bảng Shopee Cart - Hiển thị trên máy tính */}
+            <div className="shopee-table-header d-none d-md-flex align-items-center mb-3">
               <div style={{ width: '45%' }} className="d-flex align-items-center gap-3">
                 <input
                   type="checkbox"
@@ -588,6 +588,30 @@ export default function CartPage({
               <div style={{ width: '10%' }} className="text-center fw-semibold">Thao Tác</div>
             </div>
 
+            {/* Header rút gọn cho Mobile (< md) */}
+            <div className="d-flex d-md-none justify-content-between align-items-center bg-white p-3 rounded-3 border shadow-sm mb-3">
+              <label className="d-flex align-items-center gap-2 m-0 fw-semibold text-dark">
+                <input
+                  type="checkbox"
+                  className="cart-checkbox"
+                  checked={isAllChecked}
+                  onChange={(e) => onToggleAll(e.target.checked)}
+                />
+                <span>Chọn tất cả ({checkedItems.length}/{cartItems.length})</span>
+              </label>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-danger py-0 px-2 small"
+                onClick={() => {
+                  if (window.confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
+                    onClearCart();
+                  }
+                }}
+              >
+                Xóa tất cả
+              </button>
+            </div>
+
             {/* Danh sách các sản phẩm trong giỏ hàng kiểu Shopee */}
             <div className="bg-white rounded-3 border shadow-sm p-3 mb-4">
               {cartItems.map((item) => {
@@ -595,103 +619,175 @@ export default function CartPage({
                 const isChecked = item.checked !== false;
 
                 return (
-                  <div
-                    key={item.cartItemId || item.id}
-                    className="d-flex align-items-center py-3 border-bottom"
-                    style={{ gap: '15px' }}
-                  >
-                    {/* Checkbox & Thông tin sản phẩm */}
-                    <div style={{ width: '45%' }} className="d-flex align-items-center gap-3">
-                      <input
-                        type="checkbox"
-                        className="cart-checkbox flex-shrink-0"
-                        checked={isChecked}
-                        onChange={() => onToggleCheck(item.cartItemId || item.id)}
-                      />
-                      <div
-                        className="cart-item-thumb flex-shrink-0"
-                        style={{ cursor: 'pointer', width: '70px', height: '70px' }}
-                        onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
-                        title="Bấm để xem lại thông số kỹ thuật sản phẩm"
-                      >
-                        <img
-                          src={item.image || '/images/default.png'}
-                          alt={item.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                          className="rounded border"
+                  <div key={item.cartItemId || item.id} className="py-3 border-bottom">
+                    {/* Bố cục Desktop (>= md) */}
+                    <div className="d-none d-md-flex align-items-center" style={{ gap: '15px' }}>
+                      {/* Checkbox & Thông tin sản phẩm */}
+                      <div style={{ width: '45%' }} className="d-flex align-items-center gap-3">
+                        <input
+                          type="checkbox"
+                          className="cart-checkbox flex-shrink-0"
+                          checked={isChecked}
+                          onChange={() => onToggleCheck(item.cartItemId || item.id)}
                         />
-                      </div>
-                      <div className="flex-grow-1">
                         <div
-                          className="fw-bold text-dark mb-1"
-                          style={{ cursor: 'pointer', fontSize: '14px', lineHeight: '1.3' }}
+                          className="cart-item-thumb flex-shrink-0"
+                          style={{ cursor: 'pointer', width: '70px', height: '70px' }}
                           onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
-                          title="Bấm vào để xem lại chi tiết sản phẩm"
+                          title="Bấm để xem lại thông số kỹ thuật sản phẩm"
                         >
-                          {item.name}
+                          <img
+                            src={item.image || '/images/default.png'}
+                            alt={item.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            className="rounded border"
+                          />
                         </div>
-                        {(item.selectedRam || item.selectedStorage || item.colorName) && (
-                          <div className="small text-muted" style={{ fontSize: '12px' }}>
-                            {item.colorName && (
-                              <span className="badge bg-light text-dark border me-1">
-                                Màu: {item.colorName}
-                              </span>
-                            )}
-                            {item.selectedRam && <span>RAM: {item.selectedRam}</span>}
-                            {item.selectedRam && item.selectedStorage && <span> • </span>}
-                            {item.selectedStorage && <span>SSD: {item.selectedStorage}</span>}
+                        <div className="flex-grow-1">
+                          <div
+                            className="fw-bold text-dark mb-1"
+                            style={{ cursor: 'pointer', fontSize: '14px', lineHeight: '1.3' }}
+                            onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
+                            title="Bấm vào để xem lại chi tiết sản phẩm"
+                          >
+                            {item.name}
+                          </div>
+                          {(item.selectedRam || item.selectedStorage || item.colorName) && (
+                            <div className="small text-muted" style={{ fontSize: '12px' }}>
+                              {item.colorName && (
+                                <span className="badge bg-light text-dark border me-1">
+                                  Màu: {item.colorName}
+                                </span>
+                              )}
+                              {item.selectedRam && <span>RAM: {item.selectedRam}</span>}
+                              {item.selectedRam && item.selectedStorage && <span> • </span>}
+                              {item.selectedStorage && <span>SSD: {item.selectedStorage}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Đơn giá */}
+                      <div style={{ width: '15%' }} className="text-center">
+                        <div className="fw-bold text-danger">{formatVND(item.price)}</div>
+                        {item.originalPrice && item.originalPrice > item.price && (
+                          <div className="text-muted text-decoration-line-through small" style={{ fontSize: '11px' }}>
+                            {formatVND(item.originalPrice)}
                           </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Đơn giá */}
-                    <div style={{ width: '15%' }} className="text-center">
-                      <div className="fw-bold text-danger">{formatVND(item.price)}</div>
-                      {item.originalPrice && item.originalPrice > item.price && (
-                        <div className="text-muted text-decoration-line-through small" style={{ fontSize: '11px' }}>
-                          {formatVND(item.originalPrice)}
+                      {/* Số lượng (+ / -) */}
+                      <div style={{ width: '15%' }} className="d-flex justify-content-center">
+                        <div className="cart-qty-ctrl">
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            disabled={(item.quantity || 1) <= 1}
+                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="cart-qty-val">{item.quantity || 1}</span>
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, 1)}
+                          >
+                            +
+                          </button>
                         </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Số lượng (+ / -) */}
-                    <div style={{ width: '15%' }} className="d-flex justify-content-center">
-                      <div className="cart-qty-ctrl">
+                      {/* Số tiền (Thành tiền của từng dòng) */}
+                      <div style={{ width: '15%' }} className="text-center fw-bold text-danger fs-6">
+                        {formatVND(itemTotal)}
+                      </div>
+
+                      {/* Thao tác (Xóa) */}
+                      <div style={{ width: '10%' }} className="text-center">
                         <button
                           type="button"
-                          className="cart-qty-btn"
-                          disabled={(item.quantity || 1) <= 1}
-                          onClick={() => onUpdateQuantity(item.cartItemId || item.id, -1)}
+                          className="btn btn-sm btn-link text-danger text-decoration-none p-0"
+                          onClick={() => onRemoveItem(item.cartItemId || item.id)}
+                          title="Xóa sản phẩm này"
                         >
-                          -
-                        </button>
-                        <span className="cart-qty-val">{item.quantity || 1}</span>
-                        <button
-                          type="button"
-                          className="cart-qty-btn"
-                          onClick={() => onUpdateQuantity(item.cartItemId || item.id, 1)}
-                        >
-                          +
+                          <i className="bi bi-trash3 me-1"></i>Xóa
                         </button>
                       </div>
                     </div>
 
-                    {/* Số tiền (Thành tiền của từng dòng) */}
-                    <div style={{ width: '15%' }} className="text-center fw-bold text-danger fs-6">
-                      {formatVND(itemTotal)}
-                    </div>
+                    {/* Bố cục Mobile (< md) gọn gàng, trực quan */}
+                    <div className="d-flex d-md-none flex-column gap-2">
+                      <div className="d-flex align-items-start gap-2">
+                        <input
+                          type="checkbox"
+                          className="cart-checkbox mt-1 flex-shrink-0"
+                          checked={isChecked}
+                          onChange={() => onToggleCheck(item.cartItemId || item.id)}
+                        />
+                        <div
+                          className="cart-item-thumb flex-shrink-0"
+                          style={{ cursor: 'pointer', width: '60px', height: '60px' }}
+                          onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
+                        >
+                          <img
+                            src={item.image || '/images/default.png'}
+                            alt={item.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            className="rounded border"
+                          />
+                        </div>
+                        <div className="flex-grow-1 min-w-0">
+                          <div
+                            className="fw-bold text-dark mb-1 small text-truncate"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
+                          >
+                            {item.name}
+                          </div>
+                          {(item.selectedRam || item.selectedStorage || item.colorName) && (
+                            <div className="text-muted" style={{ fontSize: '11px' }}>
+                              {item.colorName && <span className="badge bg-light text-dark border me-1">{item.colorName}</span>}
+                              {item.selectedRam && <span>{item.selectedRam}</span>}
+                              {item.selectedStorage && <span> • {item.selectedStorage}</span>}
+                            </div>
+                          )}
+                          <div className="text-danger fw-bold small mt-1">{formatVND(item.price)}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-sm text-danger p-0 ms-1"
+                          onClick={() => onRemoveItem(item.cartItemId || item.id)}
+                          title="Xóa"
+                        >
+                          <i className="bi bi-trash3 fs-6"></i>
+                        </button>
+                      </div>
 
-                    {/* Thao tác (Xóa) */}
-                    <div style={{ width: '10%' }} className="text-center">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-link text-danger text-decoration-none p-0"
-                        onClick={() => onRemoveItem(item.cartItemId || item.id)}
-                        title="Xóa sản phẩm này"
-                      >
-                        <i className="bi bi-trash3 me-1"></i>Xóa
-                      </button>
+                      <div className="d-flex align-items-center justify-content-between pt-2 border-top mt-1">
+                        <div className="small text-muted">
+                          Thành tiền: <strong className="text-danger">{formatVND(itemTotal)}</strong>
+                        </div>
+                        <div className="cart-qty-ctrl">
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            disabled={(item.quantity || 1) <= 1}
+                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="cart-qty-val">{item.quantity || 1}</span>
+                          <button
+                            type="button"
+                            className="cart-qty-btn"
+                            onClick={() => onUpdateQuantity(item.cartItemId || item.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -712,7 +808,7 @@ export default function CartPage({
                 </label>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-danger"
+                  className="btn btn-sm btn-outline-danger d-none d-sm-inline-block"
                   onClick={() => {
                     if (window.confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
                       onClearCart();
@@ -723,12 +819,12 @@ export default function CartPage({
                 </button>
               </div>
 
-              <div className="d-flex align-items-center gap-4">
-                <div className="text-end">
+              <div className="d-flex align-items-center justify-content-between justify-content-md-end gap-3 gap-md-4 w-100 w-md-auto">
+                <div className="text-start text-md-end">
                   <div className="text-muted small">
-                    Tổng thanh toán ({checkedItems.length} sản phẩm):
+                    Tổng thanh toán ({checkedItems.length} SP):
                   </div>
-                  <div className="fs-4 fw-bold text-danger lh-1">
+                  <div className="fs-5 fs-md-4 fw-bold text-danger lh-1">
                     {formatVND(totalPayable)}
                   </div>
                   {itemDiscountTotal > 0 && (
@@ -740,7 +836,7 @@ export default function CartPage({
 
                 <button
                   type="button"
-                  className="shopee-btn-buy"
+                  className="shopee-btn-buy flex-shrink-0"
                   disabled={checkedItems.length === 0}
                   onClick={handleProceedToCheckout}
                 >
@@ -863,8 +959,8 @@ export default function CartPage({
             </div>
 
             {/* KHỐI 2: DANH SÁCH SẢN PHẨM ĐẶT MUA (SHOPEE STYLE) */}
-            <div className="bg-white rounded-3 border p-4 mb-3 shadow-sm">
-              <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary small fw-semibold">
+            <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
+              <div className="d-none d-md-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary small fw-semibold">
                 <span style={{ width: '50%' }}>Sản phẩm ({checkedItems.length})</span>
                 <span style={{ width: '15%' }} className="text-center">Đơn giá</span>
                 <span style={{ width: '15%' }} className="text-center">Số lượng</span>
@@ -872,39 +968,68 @@ export default function CartPage({
               </div>
 
               {checkedItems.map((item) => (
-                <div key={item.cartItemId || item.id} className="d-flex align-items-center py-2 border-bottom">
-                  <div style={{ width: '50%' }} className="d-flex align-items-center gap-3">
-                    <img
-                      src={item.image || '/images/default.png'}
-                      alt={item.name}
-                      style={{ width: '50px', height: '50px', objectFit: 'contain' }}
-                      className="rounded border flex-shrink-0"
-                    />
-                    <div>
-                      {/* Bấm vào chữ sản phẩm trên để tự động mở xem lại thông số */}
-                      <div
-                        className="fw-bold text-dark text-truncate"
-                        style={{ cursor: 'pointer', maxWidth: '350px', fontSize: '14px' }}
-                        onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
-                        title="Bấm vào để xem lại chi tiết thông số kỹ thuật"
-                      >
-                        {item.name}
-                      </div>
-                      <div className="small text-muted" style={{ fontSize: '11px' }}>
-                        Phân loại: {item.colorName || 'Mặc định'}
-                        {item.selectedRam && ` • ${item.selectedRam}`}
-                        {item.selectedStorage && ` • ${item.selectedStorage}`}
+                <div key={item.cartItemId || item.id} className="py-2 border-bottom">
+                  {/* Bố cục Desktop (>= md) */}
+                  <div className="d-none d-md-flex align-items-center">
+                    <div style={{ width: '50%' }} className="d-flex align-items-center gap-3">
+                      <img
+                        src={item.image || '/images/default.png'}
+                        alt={item.name}
+                        style={{ width: '50px', height: '50px', objectFit: 'contain' }}
+                        className="rounded border flex-shrink-0"
+                      />
+                      <div>
+                        <div
+                          className="fw-bold text-dark text-truncate"
+                          style={{ cursor: 'pointer', maxWidth: '350px', fontSize: '14px' }}
+                          onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
+                          title="Bấm vào để xem lại chi tiết thông số kỹ thuật"
+                        >
+                          {item.name}
+                        </div>
+                        <div className="small text-muted" style={{ fontSize: '11px' }}>
+                          Phân loại: {item.colorName || 'Mặc định'}
+                          {item.selectedRam && ` • ${item.selectedRam}`}
+                          {item.selectedStorage && ` • ${item.selectedStorage}`}
+                        </div>
                       </div>
                     </div>
+                    <div style={{ width: '15%' }} className="text-center small text-secondary">
+                      {formatVND(item.price)}
+                    </div>
+                    <div style={{ width: '15%' }} className="text-center small text-dark fw-bold">
+                      {item.quantity || 1}
+                    </div>
+                    <div style={{ width: '20%' }} className="text-end fw-bold text-dark">
+                      {formatVND((item.price || 0) * (item.quantity || 1))}
+                    </div>
                   </div>
-                  <div style={{ width: '15%' }} className="text-center small text-secondary">
-                    {formatVND(item.price)}
-                  </div>
-                  <div style={{ width: '15%' }} className="text-center small text-dark fw-bold">
-                    {item.quantity || 1}
-                  </div>
-                  <div style={{ width: '20%' }} className="text-end fw-bold text-dark">
-                    {formatVND((item.price || 0) * (item.quantity || 1))}
+
+                  {/* Bố cục Mobile (< md) */}
+                  <div className="d-flex d-md-none justify-content-between align-items-center gap-2">
+                    <div className="d-flex align-items-center gap-2 min-w-0">
+                      <img
+                        src={item.image || '/images/default.png'}
+                        alt={item.name}
+                        style={{ width: '45px', height: '45px', objectFit: 'contain' }}
+                        className="rounded border flex-shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div
+                          className="fw-bold text-dark small text-truncate"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => onSelectProduct && onSelectProduct(item.productId || item.id)}
+                        >
+                          {item.name}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '10px' }}>
+                          {item.colorName || 'Mặc định'} • x{item.quantity || 1} • {formatVND(item.price)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="fw-bold text-danger small flex-shrink-0 text-end">
+                      {formatVND((item.price || 0) * (item.quantity || 1))}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1190,15 +1315,15 @@ export default function CartPage({
                 </div>
               </div>
 
-              <div className="d-flex justify-content-between align-items-center border-top pt-3">
-                <div className="small text-muted" style={{ maxWidth: '60%' }}>
+              <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-top pt-3">
+                <div className="small text-muted">
                   Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo{' '}
                   <span className="text-primary" style={{ cursor: 'pointer' }}>Điều khoản Laptop World</span>.
                 </div>
                 <button
                   type="button"
-                  className="shopee-btn-buy"
-                  style={{ minWidth: '220px' }}
+                  className="shopee-btn-buy w-100 w-md-auto text-center"
+                  style={{ minWidth: '200px' }}
                   disabled={isSubmitting || checkedItems.length === 0}
                   onClick={handleConfirmOrder}
                 >

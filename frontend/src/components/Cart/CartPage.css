@@ -573,3 +573,41 @@
   background-color: #fff8f6;
   box-shadow: 0 0 0 1px #ee4d2d;
 }
+
+/* =========================================================================
+   Responsive Design Optimizations for CartPage
+   ========================================================================= */
+@media (max-width: 767.98px) {
+  .cart-page-wrap {
+    padding-top: 1rem !important;
+    padding-bottom: 90px !important;
+  }
+  .shopee-cart-footer {
+    padding: 10px 14px;
+    margin-top: 16px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    z-index: 1020;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .shopee-btn-buy {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  .shopee-payment-option {
+    padding: 10px !important;
+  }
+  .shopee-tier-pill {
+    padding: 10px !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .shopee-cart-footer .fs-5 {
+    font-size: 16px !important;
+  }
+}
+

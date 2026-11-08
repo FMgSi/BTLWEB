@@ -148,3 +148,60 @@ body {
   color: #fff;
   border-color: var(--pc-red);
 }
+
+/* =========================================================================
+   Responsive Design Optimizations for Customer Storefront
+   ========================================================================= */
+.category-nav-btn {
+  width: 256px;
+}
+
+.customer-navbar-inner {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.customer-navbar-inner::-webkit-scrollbar {
+  display: none;
+}
+
+.customer-nav-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.customer-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  .site-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .site-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .category-nav-btn {
+    width: auto;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  .customer-nav-scroll .nav-link {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    font-size: 12px !important;
+  }
+  .product-title {
+    font-size: 12px;
+    height: 32px;
+  }
+  .product-specs {
+    font-size: 10px;
+  }
+}

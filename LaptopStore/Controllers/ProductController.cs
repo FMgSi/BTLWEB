@@ -472,6 +472,51 @@ public class ProductController : Controller
     }
 
     /// <summary>
+    /// 11. Xóa một phiên bản cấu hình & màu sắc (POST: /Product/DeleteVariant/5)
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteVariant(int id)
+    {
+        var variant = await _db.ProductVariants
+            .Include(v => v.Color)
+            .FirstOrDefaultAsync(v => v.VariantId == id);
+
+        if (variant == null)
+        {
+            return NotFound();
+        }
+
+        int productId = variant.ProductId;
+        string sku = variant.SKU;
+        string colorName = variant.Color?.Name ?? "Không xác định";
+
+        // Tách các liên kết với OrderItems (nếu có) để bảo toàn lịch sử đơn hàng
+        var orderItems = await _db.OrderItems.Where(oi => oi.VariantId == id).ToListAsync();
+        foreach (var oi in orderItems)
+        {
+            oi.VariantId = null;
+        }
+
+        _db.ProductVariants.Remove(variant);
+        await _db.SaveChangesAsync();
+
+        // Đồng bộ lại tổng tồn kho của sản phẩm gốc
+        var product = await _db.Products.FindAsync(productId);
+        if (product != null)
+        {
+            var totalStock = await _db.ProductVariants
+                .Where(v => v.ProductId == productId)
+                .SumAsync(v => v.StockQuantity);
+            product.StockQuantity = totalStock;
+            await _db.SaveChangesAsync();
+        }
+
+        TempData["SuccessMessage"] = $"Đã xóa thành công phiên bản '{sku}' ({colorName})!";
+        return RedirectToAction(nameof(Variants), new { id = productId });
+    }
+
+    /// <summary>
     /// Chuyển hướng nhanh sang trang Quản lý sản phẩm
     /// </summary>
     public IActionResult Dashboard() => RedirectToAction("Index");

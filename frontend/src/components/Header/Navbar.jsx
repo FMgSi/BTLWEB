@@ -9,22 +9,23 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
   };
 
   return (
-    <nav className="border-bottom bg-white shadow-sm">
+    <nav className="border-bottom bg-white shadow-sm customer-navbar">
       <div className="site-container">
-        <div className="d-flex align-items-center">
-          {/* Nút PHÂN LOẠI LAPTOP đỏ 240px */}
+        <div className="d-flex align-items-center customer-navbar-inner">
+          {/* Nút PHÂN LOẠI LAPTOP đỏ */}
           <div 
             onClick={(e) => handleClick(e, 'products')}
-            className="bg-pc-red text-white py-2 px-3 fw-bold d-flex align-items-center gap-2" 
-            style={{ width: '256px', fontSize: '13px', cursor: 'pointer' }}
+            className="bg-pc-red text-white py-2 px-3 fw-bold d-flex align-items-center gap-2 category-nav-btn flex-shrink-0" 
+            style={{ fontSize: '13px', cursor: 'pointer' }}
             title="Xem danh mục sản phẩm"
           >
             <i className="bi bi-list fs-5"></i>
-            <span>PHÂN LOẠI LAPTOP</span>
+            <span className="d-none d-sm-inline">PHÂN LOẠI LAPTOP</span>
+            <span className="d-sm-none">DANH MỤC</span>
           </div>
 
-          {/* Menu ngang tối giản theo chuẩn thiết kế: Sản phẩm · Sửa chữa & bảo hành · Tài khoản · Liên hệ */}
-          <ul className="nav ms-2 fw-semibold" style={{ fontSize: '13px' }}>
+          {/* Menu ngang tối giản có cuộn mượt trên thiết bị di động */}
+          <ul className="nav ms-2 fw-semibold customer-nav-scroll flex-nowrap" style={{ fontSize: '13px' }}>
             <li className="nav-item">
               <a 
                 className={`nav-link px-3 ${activeNav === 'home' ? 'text-pc-red border-bottom border-danger border-2 active' : 'text-dark'}`}

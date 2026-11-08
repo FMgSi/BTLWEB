@@ -6,7 +6,7 @@ import { FILTER_TAGS } from '../../data/mockData';
  * - Các nút Tag danh mục nhanh (Tất cả, Gaming, Văn phòng, Đồ họa, Mỏng nhẹ)
  * - Dropdown chọn tiêu chí sắp xếp (Mới nhất, Giá tăng dần, Giá giảm dần)
  */
-export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSortBy }) {
+export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSortBy, onToggleMobileFilter }) {
   return (
     <>
       <div className="d-flex justify-content-between align-items-center mb-2">
@@ -33,11 +33,22 @@ export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSor
           ))}
         </div>
 
-        {/* Dropdown chọn kiểu sắp xếp sản phẩm */}
-        <div className="d-flex align-items-center gap-2">
+        {/* Nút mở bộ lọc mobile & Dropdown chọn kiểu sắp xếp */}
+        <div className="d-flex align-items-center gap-2 ms-auto ms-sm-0">
+          {onToggleMobileFilter && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary d-md-none d-flex align-items-center gap-1"
+              onClick={onToggleMobileFilter}
+              title="Mở bộ lọc thương hiệu, giá, RAM, CPU"
+            >
+              <i className="bi bi-funnel"></i>
+              <span>Lọc</span>
+            </button>
+          )}
           <select
             className="form-select form-select-sm"
-            style={{ fontSize: '12px', minWidth: '150px' }}
+            style={{ fontSize: '12px', minWidth: '140px' }}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >

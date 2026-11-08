@@ -505,3 +505,68 @@
   z-index: 4;
   transition: width 0.1s linear;
 }
+
+/* =========================================================================
+   Responsive Design Optimizations for Product Detail
+   ========================================================================= */
+@media (max-width: 991.98px) {
+  .detail-main-image-card {
+    min-height: 280px;
+    padding: 16px;
+  }
+  .detail-main-img {
+    max-height: 260px;
+  }
+  .fpt-commitments-box {
+    margin-bottom: 20px;
+  }
+  .sticky-top {
+    position: static !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .detail-main-image-card {
+    min-height: 220px;
+    padding: 12px;
+  }
+  .detail-main-img {
+    max-height: 190px;
+  }
+  .detail-nav-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .detail-thumbnail-item {
+    width: 56px;
+    height: 56px;
+  }
+  .fpt-price-box {
+    padding: 12px !important;
+  }
+  .fpt-current-price {
+    font-size: 20px !important;
+  }
+  .fpt-original-price {
+    font-size: 13px !important;
+  }
+  .fpt-discount-badge {
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+  }
+  .fpt-promo-card {
+    margin-bottom: 15px;
+  }
+  .fpt-promo-header {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .fpt-promo-body {
+    padding: 12px;
+  }
+  .promo-list-item {
+    font-size: 12px;
+  }
+}
+

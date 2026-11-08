@@ -26,12 +26,89 @@ export default function TopHeader({
     }
   };
 
+  // Dropdown menu người dùng dùng chung cho cả giao diện máy tính và di động
+  const renderUserDropdown = () => (
+    <div 
+      className="position-absolute end-0 top-100 mt-2 bg-white rounded-3 shadow-lg border p-2 text-start"
+      style={{ minWidth: '220px', zIndex: 1050 }}
+    >
+      <div className="px-2 py-1 border-bottom mb-2 text-dark">
+        <div className="fw-bold small">{currentUser.fullName || currentUser.username}</div>
+        <div className="text-muted" style={{ fontSize: '11px' }}>{currentUser.email}</div>
+        <div className="badge bg-light text-secondary border mt-1" style={{ fontSize: '10px' }}>
+          {currentUser.role === 'Admin' ? '👑 Quyền: Quản trị viên (Admin)' : '👤 Quyền: Khách hàng (Customer)'}
+        </div>
+      </div>
+
+      {currentUser.role === 'Admin' && (
+        <a 
+          className="d-flex align-items-center gap-2 px-2 py-2 text-primary text-decoration-none rounded hover-bg-light small fw-bold"
+          href="http://localhost:5148/Admin" 
+          target="_blank" 
+          rel="noreferrer"
+          style={{ backgroundColor: '#eff6ff' }}
+        >
+          <i className="bi bi-shield-lock-fill"></i>
+          Vào trang Quản trị (Admin MVC)
+        </a>
+      )}
+
+      <a 
+        className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small"
+        href="/account"
+        onClick={(e) => {
+          e.preventDefault();
+          setShowDropdown(false);
+          if (onNavigate) {
+            onNavigate('account');
+          } else {
+            window.history.pushState({}, '', '/account');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }
+        }}
+      >
+        <i className="bi bi-person-badge-fill text-danger"></i>
+        Tài khoản & Đơn hàng của tôi
+      </a>
+
+      <a 
+        className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small mt-1"
+        href="/account?tab=devices"
+        onClick={(e) => {
+          e.preventDefault();
+          setShowDropdown(false);
+          if (onNavigate) {
+            onNavigate('account');
+          } else {
+            window.history.pushState({}, '', '/account?tab=devices');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }
+        }}
+      >
+        <i className="bi bi-shield-check text-success"></i>
+        Máy đã mua & Hạn bảo hành
+      </a>
+
+      <button 
+        className="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-1 mt-2"
+        type="button"
+        onClick={() => {
+          setShowDropdown(false);
+          if (onLogout) onLogout();
+        }}
+      >
+        <i className="bi bi-box-arrow-right"></i>
+        Đăng xuất
+      </button>
+    </div>
+  );
+
   return (
     <header className="top-header text-white py-2">
       <div className="site-container">
-        <div className="row align-items-center g-3">
+        <div className="row align-items-center g-2 g-md-3">
           {/* Logo */}
-          <div className="col-auto" style={{ width: '240px' }}>
+          <div className="col-auto logo-wrap" style={{ minWidth: '150px', maxWidth: '240px' }}>
             <a 
               href="/" 
               onClick={(e) => {
@@ -42,14 +119,14 @@ export default function TopHeader({
               className="text-white text-decoration-none d-flex flex-column"
             >
               <span className="fw-black fs-4 lh-1">PC<span className="text-pc-red">STORE</span></span>
-              <span style={{ fontSize: '9px', letterSpacing: '0.8px' }} className="text-secondary fw-semibold">
+              <span style={{ fontSize: '9px', letterSpacing: '0.8px' }} className="text-secondary fw-semibold d-none d-sm-inline">
                 LAPTOP CHÍNH HÃNG - GAMING - MACBOOK
               </span>
             </a>
           </div>
 
-          {/* Search Box */}
-          <div className="col">
+          {/* Search Box - Hiển thị full width trên mobile, dạng cột trên desktop */}
+          <div className="col-12 col-md order-3 order-md-2 mt-1 mt-md-0">
             <form onSubmit={handleSearchSubmit} className="input-group">
               <input
                 type="text"
@@ -79,8 +156,8 @@ export default function TopHeader({
             </form>
           </div>
 
-          {/* Hotline, Support, Account, Cart */}
-          <div className="col-auto d-none d-lg-flex align-items-center gap-4 text-white" style={{ fontSize: '12px' }}>
+          {/* Hotline, Support, Account, Cart trên màn hình lớn (Desktop / Laptop) */}
+          <div className="col-auto d-none d-lg-flex align-items-center gap-4 text-white order-md-3" style={{ fontSize: '12px' }}>
             <div className="d-flex align-items-center gap-2">
               <i className="bi bi-telephone text-secondary fs-5"></i>
               <div>
@@ -144,86 +221,11 @@ export default function TopHeader({
                   <i className="bi bi-chevron-down text-secondary" style={{ fontSize: '10px' }}></i>
                 </div>
 
-                {/* Dropdown menu tài khoản */}
-                {showDropdown && (
-                  <div 
-                    className="position-absolute end-0 top-100 mt-2 bg-white rounded-3 shadow-lg border p-2"
-                    style={{ minWidth: '220px', zIndex: 1050 }}
-                  >
-                    <div className="px-2 py-1 border-bottom mb-2 text-dark">
-                      <div className="fw-bold small">{currentUser.fullName || currentUser.username}</div>
-                      <div className="text-muted" style={{ fontSize: '11px' }}>{currentUser.email}</div>
-                      <div className="badge bg-light text-secondary border mt-1" style={{ fontSize: '10px' }}>
-                        {currentUser.role === 'Admin' ? '👑 Quyền: Quản trị viên (Admin)' : '👤 Quyền: Khách hàng (Customer)'}
-                      </div>
-                    </div>
-
-                    {currentUser.role === 'Admin' && (
-                      <a 
-                        className="d-flex align-items-center gap-2 px-2 py-2 text-primary text-decoration-none rounded hover-bg-light small fw-bold"
-                        href="http://localhost:5148/Admin" 
-                        target="_blank" 
-                        rel="noreferrer"
-                        style={{ backgroundColor: '#eff6ff' }}
-                      >
-                        <i className="bi bi-shield-lock-fill"></i>
-                        Vào trang Quản trị (Admin MVC)
-                      </a>
-                    )}
-
-                    <a 
-                      className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small"
-                      href="/account"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowDropdown(false);
-                        if (onNavigate) {
-                          onNavigate('account');
-                        } else {
-                          window.history.pushState({}, '', '/account');
-                          window.dispatchEvent(new PopStateEvent('popstate'));
-                        }
-                      }}
-                    >
-                      <i className="bi bi-person-badge-fill text-danger"></i>
-                      Tài khoản & Đơn hàng của tôi
-                    </a>
-
-                    <a 
-                      className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small mt-1"
-                      href="/account?tab=devices"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowDropdown(false);
-                        if (onNavigate) {
-                          onNavigate('account');
-                        } else {
-                          window.history.pushState({}, '', '/account?tab=devices');
-                          window.dispatchEvent(new PopStateEvent('popstate'));
-                        }
-                      }}
-                    >
-                      <i className="bi bi-shield-check text-success"></i>
-                      Máy đã mua & Hạn bảo hành
-                    </a>
-
-                    <button 
-                      className="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-1 mt-2"
-                      type="button"
-                      onClick={() => {
-                        setShowDropdown(false);
-                        if (onLogout) onLogout();
-                      }}
-                    >
-                      <i className="bi bi-box-arrow-right"></i>
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
+                {showDropdown && renderUserDropdown()}
               </div>
             )}
 
-            {/* Giỏ hàng */}
+            {/* Giỏ hàng Desktop */}
             <div 
               className="d-flex align-items-center gap-2 position-relative" 
               style={{ cursor: 'pointer' }}
@@ -237,6 +239,54 @@ export default function TopHeader({
                 </span>
               </div>
               <span className="fw-bold ms-1">Giỏ hàng</span>
+            </div>
+          </div>
+
+          {/* Cụm hành động nhanh cho Mobile & Tablet (< 992px): Tài khoản & Giỏ hàng luôn hiển thị */}
+          <div className="col-auto d-flex d-lg-none align-items-center gap-3 ms-auto order-2">
+            {/* Tài khoản Mobile */}
+            {!currentUser ? (
+              <button 
+                type="button"
+                className="btn btn-sm btn-link text-white text-decoration-none d-flex align-items-center gap-1 p-0"
+                onClick={onOpenLogin}
+                title="Đăng nhập tài khoản"
+              >
+                <i className="bi bi-person-circle fs-4"></i>
+              </button>
+            ) : (
+              <div className="position-relative">
+                <div 
+                  className="d-flex align-items-center" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  title="Tài khoản cá nhân"
+                >
+                  <div 
+                    className="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                    style={{ width: '28px', height: '28px', fontSize: '12px' }}
+                  >
+                    {(currentUser.fullName || currentUser.username || 'U')[0].toUpperCase()}
+                  </div>
+                </div>
+
+                {showDropdown && renderUserDropdown()}
+              </div>
+            )}
+
+            {/* Giỏ hàng Mobile */}
+            <div 
+              className="d-flex align-items-center position-relative text-white" 
+              style={{ cursor: 'pointer' }}
+              onClick={onOpenCart}
+              title="Xem giỏ hàng"
+            >
+              <div className="position-relative">
+                <i className="bi bi-cart3 fs-4"></i>
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-pc-red" style={{ fontSize: '9px' }}>
+                  {cartCount}
+                </span>
+              </div>
             </div>
           </div>
         </div>

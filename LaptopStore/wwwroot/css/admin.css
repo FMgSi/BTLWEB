@@ -1322,7 +1322,7 @@ input:checked + .admin-slider:before {
 }
 
 /* Responsive adjustments */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
     .admin-sidebar {
         transform: translateX(-100%);
     }
@@ -1333,6 +1333,98 @@ input:checked + .admin-slider:before {
         margin-left: 0;
     }
     .topbar-search-wrap {
-        width: 200px;
+        display: none !important;
+    }
+    .horizontal-taskbar-nav {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px;
+        white-space: nowrap;
+        scrollbar-width: thin;
+        flex-wrap: nowrap;
+    }
+    .horizontal-taskbar-nav::-webkit-scrollbar {
+        height: 4px;
+    }
+    .horizontal-taskbar-nav::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+    .page-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .page-actions .btn,
+    .page-actions a,
+    .page-actions button {
+        flex: 1 1 auto;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .admin-main-horizontal {
+        min-height: calc(100vh - 80px);
+    }
+    .admin-main main {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        padding-top: 1rem !important;
+    }
+    .admin-card {
+        padding: 1rem !important;
+        border-radius: 8px !important;
+    }
+    .page-title {
+        font-size: 1.25rem !important;
+    }
+    .nav-taskbar-item {
+        padding: 0.35rem 0.65rem !important;
+        font-size: 0.82rem !important;
+    }
+    .admin-table th,
+    .admin-table td {
+        padding: 0.65rem 0.75rem !important;
+        font-size: 0.82rem !important;
+    }
+    /* Filter bar forms stack cleanly on mobile */
+    .admin-card form.d-flex.flex-wrap {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+    .admin-card form.d-flex.flex-wrap > div {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .admin-card form.d-flex.flex-wrap > button,
+    .admin-card form.d-flex.flex-wrap > a {
+        width: 100% !important;
+        justify-content: center;
+        text-align: center;
+    }
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .brand-icon-box {
+        width: 30px;
+        height: 30px;
+        font-size: 0.95rem;
+    }
+    .topbar-user-avatar {
+        width: 24px;
+        height: 24px;
     }
 }

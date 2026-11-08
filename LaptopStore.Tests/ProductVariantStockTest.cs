@@ -682,4 +682,34 @@ public class ProductVariantStockTest
         var inheritedSilver = await db.ProductVariants.FindAsync(vSilver.VariantId);
         Assert.Null(inheritedSilver!.ImageUrl);
     }
+
+    [Fact]
+    public async Task DeleteVariant_RemovesVariant_AndSyncsProductStock()
+    {
+        var (db, product, colorSilver, colorBlack, vSilver, vBlack) = CreateTestSetup();
+        var controller = new ProductController(db, null!, null!)
+        {
+            TempData = new TempDataDictionary(new Microsoft.AspNetCore.Http.DefaultHttpContext(), new FakeTempDataProvider())
+        };
+
+        // Ban đầu tổng tồn kho Product là 1 + 2 = 3
+        Assert.Equal(3, product.StockQuantity);
+
+        // Xóa variant Silver (tồn kho 1)
+        var result = await controller.DeleteVariant(vSilver.VariantId);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Variants", redirect.ActionName);
+
+        // Variant Silver không còn tồn tại
+        var deletedSilver = await db.ProductVariants.FindAsync(vSilver.VariantId);
+        Assert.Null(deletedSilver);
+
+        // Variant Black vẫn còn
+        var remainingBlack = await db.ProductVariants.FindAsync(vBlack.VariantId);
+        Assert.NotNull(remainingBlack);
+
+        // Tồn kho của product giảm còn 2 (bằng tồn kho variant Black)
+        var updatedProduct = await db.Products.FindAsync(product.ProductId);
+        Assert.Equal(2, updatedProduct!.StockQuantity);
+    }
 }

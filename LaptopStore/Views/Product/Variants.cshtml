@@ -57,7 +57,7 @@
                     <span><i class="bi bi-cpu me-1"></i>CPU: <strong>@(Model.Specification?.CPU ?? "-")</strong></span>
                 </div>
             </div>
-            <div class="col-auto text-end border-start ps-4">
+            <div class="col-12 col-md-auto text-start text-md-end border-top border-md-top-0 border-md-start ps-md-4 pt-2 pt-md-0">
                 <div class="text-muted small">Tổng tồn kho (các phiên bản)</div>
                 <div class="fs-3 fw-bold @(totalVariantStock > 0 ? "text-success" : "text-danger")">
                     @totalVariantStock <span class="fs-6 fw-normal text-muted">máy</span>
@@ -263,14 +263,24 @@
                                         </form>
                                     </td>
                                     <td class="text-end pe-3">
-                                        @if (v.StockQuantity == 0)
-                                        {
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Hết hàng</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle small">Còn @v.StockQuantity</span>
-                                        }
+                                        <div class="d-inline-flex align-items-center justify-content-end gap-2">
+                                            @if (v.StockQuantity == 0)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Hết hàng</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle small">Còn @v.StockQuantity</span>
+                                            }
+                                            <form asp-action="DeleteVariant" asp-route-id="@v.VariantId" method="post" class="d-inline"
+                                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn phiên bản @v.SKU (@(v.Color?.Name ?? "Màu")) không?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 d-inline-flex align-items-center gap-1 small" title="Xóa phiên bản này">
+                                                    <i class="bi bi-trash"></i>
+                                                    <span>Xóa</span>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             }
