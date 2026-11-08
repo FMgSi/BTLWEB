@@ -503,19 +503,22 @@
 }
 
 .shopee-btn-buy {
-  background-color: #ee4d2d;
+  background-color: var(--pc-red, #e11b1e);
   color: #ffffff;
-  font-weight: 700;
+  font-weight: 600;
   border: none;
-  padding: 12px 36px;
-  border-radius: 4px;
+  padding: 12px 32px;
+  border-radius: 8px;
   font-size: 15px;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .shopee-btn-buy:hover:not(:disabled) {
-  background-color: #d73211;
+  background-color: var(--pc-red-hover, #c8101e);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(225, 27, 30, 0.25);
 }
 
 .shopee-btn-buy:disabled {

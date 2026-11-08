@@ -14,5 +14,7 @@ public interface IOrderService
 
     Task<(bool Success, string Message)> UpdateOrderStatusAsync(int orderId, string newStatus, string? note = null, string? changedBy = null);
 
+    Task<(bool Success, string Message)> CancelOrDeleteOrderAsync(int orderId, int? userId = null, string? phone = null);
+
     Task<AdminDashboardViewModel> GetDashboardStatsAsync();
 }

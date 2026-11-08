@@ -211,14 +211,78 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
 
   const remainingToNextTier = Math.max(0, nextTierAmount - totalSpent);
 
+  // Kiểm tra đơn hàng có thể xóa hay không: Cửa hàng chưa xác minh (Chờ xác nhận, Đang xử lý, Mới, Chờ duyệt)
+  const canDeleteOrder = (o) => {
+    if (!o) return false;
+    const s = (o.status || o.orderStatus || '').trim().toLowerCase();
+    return s === 'chờ xác nhận' || s === 'chờ xử lý' || s === 'đang xử lý' || s === 'mới' || s === 'chờ duyệt';
+  };
+
+  const handleDeleteOrder = async (order) => {
+    const code = order.orderCode || order.orderId;
+    const ok = window.confirm(
+      `Bạn có chắc chắn muốn xóa đơn hàng #${code} không?\n\nĐơn hàng này chưa được cửa hàng xác minh. Khi bạn bấm xóa, đơn hàng sẽ được hủy bỏ và toàn bộ sản phẩm sẽ được hoàn trả về kho.`
+    );
+    if (!ok) return;
+
+    try {
+      const orderId = order.orderId || order.id;
+      const res = await fetch(`/api/orders/${orderId}/delete`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`Đã xóa đơn hàng #${code} thành công!`);
+        setOrders((prev) => prev.filter((o) => (o.orderId || o.id) !== orderId));
+        if (guestOrderResult && (guestOrderResult.orderId === orderId || guestOrderResult.orderCode === code)) {
+          setGuestOrderResult(null);
+        }
+      } else {
+        alert(data.message || 'Không thể xóa đơn hàng. Vui lòng thử lại!');
+      }
+    } catch {
+      alert('Lỗi kết nối máy chủ khi xóa đơn hàng.');
+    }
+  };
+
+  const handleDeleteGuestOrder = async (order) => {
+    const code = order.orderCode;
+    const ok = window.confirm(
+      `Bạn có chắc chắn muốn xóa đơn hàng #${code} không?\n\nĐơn hàng này chưa được cửa hàng xác minh. Khi bạn bấm xóa, đơn hàng sẽ được hủy bỏ và toàn bộ sản phẩm sẽ được hoàn trả về kho.`
+    );
+    if (!ok) return;
+
+    try {
+      const phoneParam = guestPhone ? `?phone=${encodeURIComponent(guestPhone)}` : '';
+      const res = await fetch(`/api/orders/code/${encodeURIComponent(code)}/delete${phoneParam}`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`Đã xóa đơn hàng #${code} thành công!`);
+        setGuestOrderResult(null);
+      } else {
+        alert(data.message || 'Không thể xóa đơn hàng.');
+      }
+    } catch {
+      alert('Lỗi kết nối máy chủ khi xóa đơn hàng.');
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Mới':
-        return <span className="badge bg-primary">Mới tiếp nhận</span>;
+      case 'Chờ xác nhận':
+      case 'Chờ xử lý':
+        return <span className="badge bg-primary">Chờ cửa hàng xác minh</span>;
       case 'Đang xử lý':
-        return <span className="badge bg-warning text-dark">Đang chuẩn bị hàng</span>;
+        return <span className="badge bg-warning text-dark">Chờ xác minh & Chuẩn bị</span>;
+      case 'Đã xác nhận':
+        return <span className="badge bg-info text-dark">Đã xác minh</span>;
       case 'Đang giao':
-        return <span className="badge bg-info text-dark">Đang vận chuyển</span>;
+      case 'Đang giao hàng':
+        return <span className="badge bg-info text-dark">Đang giao hàng</span>;
       case 'Hoàn thành':
       case 'Đã giao':
         return <span className="badge bg-success">Giao thành công</span>;
@@ -452,6 +516,20 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                           </tbody>
                         </table>
                       </div>
+
+                      {canDeleteOrder(guestOrderResult) && (
+                        <div className="d-flex justify-content-end pt-3 border-top mt-3">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 py-1 px-3 fw-semibold"
+                            onClick={() => handleDeleteGuestOrder(guestOrderResult)}
+                            title="Xóa đơn hàng khi cửa hàng chưa xác minh"
+                          >
+                            <i className="bi bi-trash3"></i>
+                            <span>Xóa đơn hàng này (Chưa xác minh)</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -551,13 +629,26 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                             </table>
                           </div>
 
-                          <div className="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top mt-3">
+                          <div className="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top mt-3 gap-2">
                             <div className="small text-muted">
                               <i className="bi bi-geo-alt me-1"></i> Giao đến: <strong>{order.shippingAddress}</strong>
                             </div>
-                            <div className="text-end">
-                              <span className="small text-muted me-2">Tổng thanh toán:</span>
-                              <strong className="fs-5 text-danger">{formatVND(order.totalAmount)}</strong>
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="text-end">
+                                <span className="small text-muted me-2">Tổng thanh toán:</span>
+                                <strong className="fs-5 text-danger">{formatVND(order.totalAmount)}</strong>
+                              </div>
+                              {canDeleteOrder(order) && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 py-1 px-3 fw-semibold"
+                                  onClick={() => handleDeleteOrder(order)}
+                                  title="Xóa đơn hàng khi cửa hàng chưa xác minh"
+                                >
+                                  <i className="bi bi-trash3"></i>
+                                  <span>Xóa đơn hàng</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

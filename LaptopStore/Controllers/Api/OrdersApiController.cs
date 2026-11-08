@@ -176,6 +176,68 @@ public class OrdersApiController : ControllerBase
     }
 
     /// <summary>
+    /// DELETE /api/orders/{id} hoặc POST /api/orders/{id}/delete
+    /// Khách hàng xóa đơn hàng khi cửa hàng chưa xác minh
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    [HttpPost("{id:int}/delete")]
+    public async Task<IActionResult> DeleteCustomerOrder(int id)
+    {
+        int? userId = null;
+        try
+        {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int uid))
+            {
+                userId = uid;
+            }
+        }
+        catch { }
+
+        var (success, message) = await _orderService.CancelOrDeleteOrderAsync(id, userId);
+        if (!success)
+        {
+            return BadRequest(new { success = false, message });
+        }
+
+        return Ok(new { success = true, message });
+    }
+
+    /// <summary>
+    /// DELETE /api/orders/code/{orderCode} hoặc POST /api/orders/code/{orderCode}/delete
+    /// Khách hàng (kể cả khách vãng lai) xóa đơn hàng theo mã đơn khi chưa xác minh
+    /// </summary>
+    [HttpDelete("code/{orderCode}")]
+    [HttpPost("code/{orderCode}/delete")]
+    public async Task<IActionResult> DeleteCustomerOrderByCode(string orderCode, [FromQuery] string? phone = null)
+    {
+        var order = await _orderService.GetOrderByCodeAsync(orderCode);
+        if (order == null)
+        {
+            return NotFound(new { success = false, message = "Không tìm thấy đơn hàng: " + orderCode });
+        }
+
+        int? userId = null;
+        try
+        {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int uid))
+            {
+                userId = uid;
+            }
+        }
+        catch { }
+
+        var (success, message) = await _orderService.CancelOrDeleteOrderAsync(order.OrderId, userId, phone);
+        if (!success)
+        {
+            return BadRequest(new { success = false, message });
+        }
+
+        return Ok(new { success = true, message });
+    }
+
+    /// <summary>
     /// POST /api/orders/pay-installment-period
     /// Khách hàng thanh toán một kỳ trả góp trực tuyến
     /// </summary>

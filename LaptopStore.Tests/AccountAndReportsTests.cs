@@ -237,4 +237,98 @@ public class AccountAndReportsTests
         var list3 = Assert.IsAssignableFrom<List<CustomerDto>>(viewResult3.Model);
         Assert.Equal(2, list3.Count);
     }
+
+    [Fact]
+    public async Task CancelOrDeleteOrderAsync_Succeeds_AndRestoresStock_WhenOrderIsUnverified()
+    {
+        using var db = GetInMemoryDbContext();
+        var product = new Product
+        {
+            ProductId = 10,
+            ProductName = "Test Laptop",
+            Price = 20_000_000m,
+            StockQuantity = 5
+        };
+        var variant = new ProductVariant
+        {
+            VariantId = 100,
+            ProductId = 10,
+            SKU = "TEST-SKU",
+            StockQuantity = 2
+        };
+        db.Products.Add(product);
+        db.ProductVariants.Add(variant);
+
+        var order = new Order
+        {
+            OrderId = 50,
+            UserId = 1,
+            OrderCode = "PC-TEST-001",
+            CustomerName = "Nguyễn Văn Test",
+            PhoneNumber = "0988888888",
+            ShippingAddress = "Hà Nội",
+            TotalAmount = 20_000_000m,
+            OrderStatus = "Chờ xác nhận", // Chưa xác minh
+            PaymentStatus = "Chờ thanh toán",
+            OrderItems = new List<OrderItem>
+            {
+                new() { OrderItemId = 1, ProductId = 10, VariantId = 100, Quantity = 2, UnitPrice = 10_000_000m }
+            }
+        };
+        db.Orders.Add(order);
+        await db.SaveChangesAsync();
+
+        var orderService = new OrderService(db, null!);
+
+        // Act: Khách hàng xóa đơn hàng chưa xác minh
+        var (success, message) = await orderService.CancelOrDeleteOrderAsync(50, userId: 1);
+
+        // Assert
+        Assert.True(success);
+        Assert.Contains("Đã xóa thành công", message);
+
+        // Đơn hàng đã bị xóa khỏi database
+        var deletedOrder = await db.Orders.FindAsync(50);
+        Assert.Null(deletedOrder);
+
+        // Tồn kho được hoàn trả
+        var updatedVariant = await db.ProductVariants.FindAsync(100);
+        Assert.Equal(4, updatedVariant!.StockQuantity); // 2 ban đầu + 2 hoàn trả
+
+        var updatedProduct = await db.Products.FindAsync(10);
+        Assert.Equal(7, updatedProduct!.StockQuantity); // 5 ban đầu + 2 hoàn trả
+    }
+
+    [Fact]
+    public async Task CancelOrDeleteOrderAsync_Fails_WhenOrderIsAlreadyVerifiedByStore()
+    {
+        using var db = GetInMemoryDbContext();
+        var order = new Order
+        {
+            OrderId = 51,
+            UserId = 1,
+            OrderCode = "PC-TEST-002",
+            CustomerName = "Nguyễn Văn Test",
+            PhoneNumber = "0988888888",
+            ShippingAddress = "Hà Nội",
+            TotalAmount = 20_000_000m,
+            OrderStatus = "Đã xác nhận", // Đã được cửa hàng xác minh
+            PaymentStatus = "Đã thanh toán"
+        };
+        db.Orders.Add(order);
+        await db.SaveChangesAsync();
+
+        var orderService = new OrderService(db, null!);
+
+        // Act: Khách hàng cố xóa đơn hàng đã xác minh
+        var (success, message) = await orderService.CancelOrDeleteOrderAsync(51, userId: 1);
+
+        // Assert
+        Assert.False(success);
+        Assert.Contains("Đơn hàng đã được cửa hàng xác minh", message);
+
+        // Đơn hàng vẫn còn nguyên trong database
+        var existingOrder = await db.Orders.FindAsync(51);
+        Assert.NotNull(existingOrder);
+    }
 }

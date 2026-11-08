@@ -35,23 +35,7 @@ export default function TopHeader({
       <div className="px-2 py-1 border-bottom mb-2 text-dark">
         <div className="fw-bold small">{currentUser.fullName || currentUser.username}</div>
         <div className="text-muted" style={{ fontSize: '11px' }}>{currentUser.email}</div>
-        <div className="badge bg-light text-secondary border mt-1" style={{ fontSize: '10px' }}>
-          {currentUser.role === 'Admin' ? '👑 Quyền: Quản trị viên (Admin)' : '👤 Quyền: Khách hàng (Customer)'}
-        </div>
       </div>
-
-      {currentUser.role === 'Admin' && (
-        <a 
-          className="d-flex align-items-center gap-2 px-2 py-2 text-primary text-decoration-none rounded hover-bg-light small fw-bold"
-          href="http://localhost:5148/Admin" 
-          target="_blank" 
-          rel="noreferrer"
-          style={{ backgroundColor: '#eff6ff' }}
-        >
-          <i className="bi bi-shield-lock-fill"></i>
-          Vào trang Quản trị (Admin MVC)
-        </a>
-      )}
 
       <a 
         className="d-flex align-items-center gap-2 px-2 py-2 text-dark text-decoration-none rounded hover-bg-light small"

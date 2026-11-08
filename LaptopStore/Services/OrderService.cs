@@ -829,6 +829,128 @@ public class OrderService : IOrderService
         });
     }
 
+    /// <summary>
+    /// Khách hàng xóa đơn hàng khi cửa hàng chưa xác minh (Chờ xác nhận, Đang xử lý, Mới, Chờ duyệt)
+    /// Tự động hoàn lại số lượng tồn kho của từng phiên bản/sản phẩm và xóa bỏ đơn hàng an toàn
+    /// </summary>
+    public async Task<(bool Success, string Message)> CancelOrDeleteOrderAsync(int orderId, int? userId = null, string? phone = null)
+    {
+        var order = await _db.Orders
+            .Include(o => o.OrderItems)
+            .Include(o => o.InstallmentContract)
+            .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+        if (order == null)
+        {
+            return (false, "Không tìm thấy đơn hàng cần xóa.");
+        }
+
+        // Kiểm tra quyền sở hữu đơn hàng
+        bool isOwner = false;
+        if (userId.HasValue && order.UserId == userId.Value)
+        {
+            isOwner = true;
+        }
+        else if (!string.IsNullOrWhiteSpace(phone))
+        {
+            var cleanInput = phone.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
+            var cleanOrderPhone = (order.PhoneNumber ?? "").Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
+            if (!string.IsNullOrEmpty(cleanInput) && cleanInput == cleanOrderPhone)
+            {
+                isOwner = true;
+            }
+        }
+        else if (userId.HasValue)
+        {
+            var user = await _db.Users.FindAsync(userId.Value);
+            if (user != null && !string.IsNullOrWhiteSpace(user.PhoneNumber))
+            {
+                var cleanUserPhone = user.PhoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
+                var cleanOrderPhone = (order.PhoneNumber ?? "").Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
+                if (cleanUserPhone == cleanOrderPhone)
+                {
+                    isOwner = true;
+                }
+            }
+        }
+
+        if (!isOwner)
+        {
+            return (false, "Bạn không có quyền xóa đơn hàng này.");
+        }
+
+        // Kiểm tra trạng thái: Cửa hàng chưa xác minh
+        // Các trạng thái đã xác minh: "Đã xác nhận", "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã giao"
+        var verifiedStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Đã xác nhận", "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã giao"
+        };
+
+        if (verifiedStatuses.Contains(order.OrderStatus))
+        {
+            return (false, $"Đơn hàng đã được cửa hàng xác minh ('{order.OrderStatus}') nên không thể tự xóa. Vui lòng liên hệ tổng đài 1800 1234 để được hỗ trợ.");
+        }
+
+        var executionStrategy = _db.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                // 1. Hoàn lại tồn kho cho ProductVariants và Products (nếu đơn chưa bị hủy trước đó)
+                if (!order.OrderStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var item in order.OrderItems)
+                    {
+                        if (item.VariantId.HasValue)
+                        {
+                            var variant = await _db.ProductVariants.FindAsync(item.VariantId.Value);
+                            if (variant != null)
+                            {
+                                variant.StockQuantity += item.Quantity;
+                            }
+                        }
+
+                        var product = await _db.Products.FindAsync(item.ProductId);
+                        if (product != null)
+                        {
+                            product.StockQuantity += item.Quantity;
+                        }
+                    }
+                }
+
+                // 2. Xóa các thực thể phụ thuộc
+                if (order.InstallmentContract != null)
+                {
+                    var schedules = await _db.InstallmentSchedules
+                        .Where(s => s.ContractId == order.InstallmentContract.ContractId)
+                        .ToListAsync();
+                    _db.InstallmentSchedules.RemoveRange(schedules);
+                    _db.InstallmentContracts.Remove(order.InstallmentContract);
+                }
+
+                var histories = await _db.OrderStatusHistories.Where(h => h.OrderId == order.OrderId).ToListAsync();
+                _db.OrderStatusHistories.RemoveRange(histories);
+
+                var payments = await _db.Payments.Where(p => p.OrderId == order.OrderId).ToListAsync();
+                _db.Payments.RemoveRange(payments);
+
+                _db.OrderItems.RemoveRange(order.OrderItems);
+                _db.Orders.Remove(order);
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                return (true, $"Đã xóa thành công đơn hàng #{order.OrderCode}!");
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                return (false, "Lỗi trong quá trình xóa đơn hàng: " + ex.Message);
+            }
+        });
+    }
+
     public async Task<AdminDashboardViewModel> GetDashboardStatsAsync()
     {
         var now = DateTime.UtcNow;
