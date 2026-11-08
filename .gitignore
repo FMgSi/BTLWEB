@@ -20,5 +20,3 @@ yarn-error.log*
 scratch_images/
 *.log
 .dotnet/
-LaptopStore/wwwroot/uploads/*
-!LaptopStore/wwwroot/uploads/.gitkeep
