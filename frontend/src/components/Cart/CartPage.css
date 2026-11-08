@@ -8,6 +8,14 @@
   padding-bottom: 60px;
 }
 
+/* Container tập trung ở giữa, để trống 2 lề bên cạnh thay vì chiếm hết toàn bộ diện tích màn hình */
+.cart-centered-container {
+  max-width: 1040px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100%;
+}
+
 .cart-breadcrumb {
   font-size: 13px;
   color: #64748b;

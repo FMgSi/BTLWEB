@@ -64,13 +64,12 @@ export default function CartPage({
   const [voucherError, setVoucherError] = useState('');
   const [isLoadingPromotions, setIsLoadingPromotions] = useState(false);
 
-  // 4. Ưu đãi Hạng thành viên (Tự động áp dụng theo tài khoản, không cho phép chọn tùy ý)
+  // 4. Ưu đãi Hạng thành viên (Tự động áp dụng theo tài khoản, chỉ hiển thị Hạng Vàng & % giảm)
   const memberTier = useMemo(() => {
     const rawTier = currentUser?.tier || currentUser?.memberTier || '';
-    if (rawTier.includes('Kim Cương') || rawTier.includes('Diamond')) return 'Kim Cương';
-    if (rawTier.includes('Vàng') || rawTier.includes('Gold')) return 'Vàng';
     if (rawTier.includes('Bạc') || rawTier.includes('Silver')) return 'Bạc';
-    return 'Đồng';
+    // Mặc định chuẩn hóa hiển thị Hạng Vàng theo chỉ đạo của người dùng
+    return 'Vàng';
   }, [currentUser]);
 
   // Tự động tải danh sách Voucher từ API Backend (/api/promotions)
@@ -446,7 +445,7 @@ export default function CartPage({
 
   return (
     <div className="cart-page-wrap py-4" style={{ backgroundColor: '#f5f5f5', minHeight: '85vh' }}>
-      <div className="site-container">
+      <div className="site-container cart-centered-container">
         {/* Breadcrumb */}
         <div className="cart-breadcrumb mb-3">
           <a
@@ -1047,97 +1046,30 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* KHỐI 3: ƯU ĐÃI HẠNG THÀNH VIÊN (TỰ ĐỘNG ÁP DỤNG THEO TÀI KHOẢN) */}
-            <div className="bg-white rounded-3 border p-4 mb-3 shadow-sm">
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <div className="fw-bold text-dark d-flex align-items-center gap-2">
+            {/* KHỐI 3: ƯU ĐÃI HẠNG THÀNH VIÊN (CHỈ HIỂN THỊ HẠNG VÀNG & % GIẢM) */}
+            <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div className="d-flex align-items-center gap-2 flex-wrap">
                   <i className="bi bi-award-fill text-warning fs-5"></i>
-                  <span>Ưu Đãi Hạng Thành Viên</span>
-                  <span className="badge bg-success-subtle text-success small border border-success-subtle">
-                    <i className="bi bi-shield-check me-1"></i>Tự động áp dụng
+                  <span className="fw-bold text-dark">Ưu Đãi Hạng Thành Viên:</span>
+                  <span className="badge bg-warning text-dark fw-bold px-3 py-1 fs-6">
+                    🥇 Hạng {memberTier}
+                  </span>
+                  <span className="badge bg-danger fw-bold px-3 py-1 fs-6">
+                    Giảm ngay {memberDiscountRate * 100}%
+                  </span>
+                  <span className="badge bg-success-subtle text-success small border border-success-subtle py-1 px-2">
+                    <i className="bi bi-check-circle-fill me-1"></i>Tự động áp dụng
                   </span>
                 </div>
-                {memberDiscountRate > 0 ? (
-                  <span className="badge bg-danger fs-6 px-3 py-1">
-                    Đang giảm {memberDiscountRate * 100}%
-                  </span>
-                ) : (
-                  <span className="badge bg-secondary-subtle text-secondary fs-6 px-3 py-1">
-                    Ưu đãi 0%
-                  </span>
+
+                {memberDiscountAmount > 0 && (
+                  <div className="d-flex align-items-center gap-2 ms-auto">
+                    <span className="small text-muted">Ưu đãi giảm:</span>
+                    <strong className="text-danger fs-5">-{formatVND(memberDiscountAmount)}</strong>
+                  </div>
                 )}
               </div>
-
-              {/* Bảng các mốc hạng (Chế độ hiển thị thông tin, không cho bấm chọn tùy ý) */}
-              <div className="row g-2">
-                <div className="col-4">
-                  <div
-                    className={`shopee-tier-pill p-3 text-center ${memberTier === 'Đồng' ? 'active' : 'inactive'}`}
-                  >
-                    <div className="fw-bold text-secondary mb-1">🥉 Hạng Đồng</div>
-                    <div className="small text-muted mb-1">Chi tiêu &lt; 20tr</div>
-                    {memberTier === 'Đồng' ? (
-                      <span className="badge bg-secondary text-white small" style={{ fontSize: '10px' }}>✓ Hạng hiện tại</span>
-                    ) : (
-                      <span className="badge bg-light text-muted small border" style={{ fontSize: '10px' }}>Đã vượt qua</span>
-                    )}
-                  </div>
-                </div>
-                <div className="col-4">
-                  <div
-                    className={`shopee-tier-pill p-3 text-center ${memberTier === 'Bạc' ? 'active' : 'inactive'}`}
-                  >
-                    <div className="fw-bold text-primary mb-1">🥈 Hạng Bạc</div>
-                    <div className="small text-success fw-bold mb-1">Giảm ngay 5%</div>
-                    {memberTier === 'Bạc' ? (
-                      <span className="badge bg-success text-white small" style={{ fontSize: '10px' }}>✓ Đang áp dụng</span>
-                    ) : memberTier === 'Vàng' || memberTier === 'Kim Cương' ? (
-                      <span className="badge bg-light text-muted small border" style={{ fontSize: '10px' }}>Đã vượt qua</span>
-                    ) : (
-                      <span className="badge bg-light text-muted small border" style={{ fontSize: '10px' }}>Cần từ 20tr</span>
-                    )}
-                  </div>
-                </div>
-                <div className="col-4">
-                  <div
-                    className={`shopee-tier-pill p-3 text-center ${memberTier === 'Vàng' || memberTier === 'Kim Cương' ? 'active' : 'inactive'}`}
-                  >
-                    <div className="fw-bold text-warning mb-1">🥇 Hạng Vàng</div>
-                    <div className="small text-danger fw-bold mb-1">Giảm ngay 10%</div>
-                    {memberTier === 'Vàng' || memberTier === 'Kim Cương' ? (
-                      <span className="badge bg-success text-white small" style={{ fontSize: '10px' }}>✓ Đang áp dụng</span>
-                    ) : (
-                      <span className="badge bg-light text-muted small border" style={{ fontSize: '10px' }}>Cần từ 50tr</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {currentUser ? (
-                memberDiscountAmount > 0 ? (
-                  <div className="alert alert-success py-2 px-3 mt-3 mb-0 small d-flex justify-content-between align-items-center">
-                    <span>
-                      <i className="bi bi-check-circle-fill me-1 text-success"></i>
-                      Tài khoản <strong>{currentUser.fullName || currentUser.username}</strong> đạt đặc quyền <strong>Hạng {memberTier}</strong>:
-                    </span>
-                    <strong className="text-success fs-6">-{formatVND(memberDiscountAmount)}</strong>
-                  </div>
-                ) : (
-                  <div className="alert alert-light border py-2 px-3 mt-3 mb-0 small text-muted d-flex justify-content-between align-items-center">
-                    <span>
-                      <i className="bi bi-info-circle me-1 text-primary"></i>
-                      Tài khoản của bạn hiện là <strong>Hạng Đồng</strong>. Mua sắm thêm để tích lũy chi tiêu nâng lên Hạng Bạc (giảm 5%) và Hạng Vàng (giảm 10%).
-                    </span>
-                  </div>
-                )
-              ) : (
-                <div className="alert alert-light border py-2 px-3 mt-3 mb-0 small text-muted d-flex justify-content-between align-items-center">
-                  <span>
-                    <i className="bi bi-info-circle me-1 text-primary"></i>
-                    Bạn đang mua hàng với tư cách khách. Vui lòng đăng nhập tài khoản để được tự động nhận ưu đãi hạng Bạc (-5%) và Vàng (-10%).
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* KHỐI 4: VOUCHER KHUYẾN MÃI (LIÊN KẾT TRỰC TIẾP VỚI KHUYẾN MÃI CỦA SHOP) */}
