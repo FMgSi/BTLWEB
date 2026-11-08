@@ -1,6 +1,6 @@
 @model IEnumerable<LaptopStore.ViewModels.CustomerDto>
 @{
-    ViewData["Title"] = "Quản lý khách hàng";
+    ViewData["Title"] = "Quản lý tài khoản";
     string currentStatus = ViewBag.Status ?? "all";
     string currentTier = ViewBag.Tier ?? "all";
     string currentSearch = ViewBag.Search ?? "";
@@ -8,26 +8,23 @@
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">Quản lý khách hàng</h2>
+        <h2 class="page-title">Quản lý tài khoản</h2>
         <p class="text-muted small mb-0">Theo dõi thông tin khách hàng, phân hạng thành viên và trạng thái tài khoản</p>
     </div>
     <div class="page-actions">
         <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
-            <i class="bi bi-person-plus-fill"></i> Thêm khách hàng
+            + Thêm khách hàng
         </button>
-        <a href="/Admin/ExportCustomers" class="btn-secondary-custom">
-            <i class="bi bi-file-earmark-excel"></i> Xuất file Excel
-        </a>
     </div>
 </div>
 
-<!-- SUBNAV TABS: CHUYỂN ĐỔI NHANH GIỮA KHÁCH HÀNG VÀ NHÂN VIÊN -->
+<!-- LỰA CHỌN MỤC KHÁCH HÀNG HOẶC NHÂN VIÊN -->
 <div class="d-flex align-items-center gap-2 mb-3">
     <a href="/Admin/Customers" class="btn btn-sm btn-dark text-white fw-bold shadow-sm" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
-        <i class="bi bi-person-lines-fill me-1"></i> Danh sách khách hàng (@ViewBag.CustomerCount)
+        Khách hàng (@ViewBag.CustomerCount)
     </a>
     <a href="/Admin/Staff" class="btn btn-sm btn-light border text-dark" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
-        <i class="bi bi-person-badge me-1"></i> Tài khoản nhân viên (@ViewBag.StaffCount)
+        Nhân viên (@ViewBag.StaffCount)
     </a>
 </div>
 
@@ -84,7 +81,7 @@
 <div class="admin-card">
     <div class="admin-card-header">
         <h5 class="card-title-text">
-            <i class="bi bi-people text-dark me-2"></i> Bảng dữ liệu khách hàng
+            Bảng dữ liệu khách hàng
         </h5>
         <span class="text-muted small">Cập nhật theo thời gian thực</span>
     </div>
@@ -239,7 +236,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title"><i class="bi bi-person-plus text-primary me-2"></i>Thêm khách hàng mới</h5>
+                <h5 class="modal-title">Thêm khách hàng mới</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
