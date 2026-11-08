@@ -79,16 +79,12 @@ public class ColorSlotsAndCatalogRedirectTests
     }
 
     [Fact]
-    public async Task ColorSlots_ChangingSlot3OfSilver_OnlyUpdatesSlot3_AndPreservesRemaining7Images()
+    public async Task ProductImageSlots_AProductHasOnly4ImagesTotal_UpdatingSlot3PreservesOther3Slots()
     {
         // Arrange
         using var db = GetInMemoryDbContext();
         var mockEnv = new MockWebHostEnvironment();
         Directory.CreateDirectory(mockEnv.WebRootPath);
-
-        var colorSilver = new Color { ColorId = 1, Name = "Bạc", HexCode = "#C0C0C0", IsActive = true };
-        var colorBlack = new Color { ColorId = 2, Name = "Đen", HexCode = "#000000", IsActive = true };
-        db.Colors.AddRange(colorSilver, colorBlack);
 
         var product = new Product
         {
@@ -96,76 +92,56 @@ public class ColorSlotsAndCatalogRedirectTests
             ProductName = "Dell XPS 13",
             Price = 28000000m,
             StockQuantity = 10,
-            ThumbnailUrl = "/images/silver-slot1.jpg",
+            ThumbnailUrl = "/images/product-slot1.jpg",
             IsActive = true
         };
         db.Products.Add(product);
 
-        // Tạo 4 ảnh cho màu Bạc
-        var silverImages = new List<ProductImage>
+        // Tạo 4 ảnh ban đầu cho sản phẩm (không phân chia theo màu sắc)
+        var productImages = new List<ProductImage>
         {
-            new ProductImage { ImageId = 1, ProductId = 10, ColorId = 1, DisplayOrder = 1, ImageUrl = "/images/silver-1.jpg" },
-            new ProductImage { ImageId = 2, ProductId = 10, ColorId = 1, DisplayOrder = 2, ImageUrl = "/images/silver-2.jpg" },
-            new ProductImage { ImageId = 3, ProductId = 10, ColorId = 1, DisplayOrder = 3, ImageUrl = "/images/silver-3.jpg" },
-            new ProductImage { ImageId = 4, ProductId = 10, ColorId = 1, DisplayOrder = 4, ImageUrl = "/images/silver-4.jpg" }
+            new ProductImage { ImageId = 1, ProductId = 10, DisplayOrder = 1, ImageUrl = "/images/slot-1.jpg" },
+            new ProductImage { ImageId = 2, ProductId = 10, DisplayOrder = 2, ImageUrl = "/images/slot-2.jpg" },
+            new ProductImage { ImageId = 3, ProductId = 10, DisplayOrder = 3, ImageUrl = "/images/slot-3.jpg" },
+            new ProductImage { ImageId = 4, ProductId = 10, DisplayOrder = 4, ImageUrl = "/images/slot-4.jpg" }
         };
 
-        // Tạo 4 ảnh cho màu Đen
-        var blackImages = new List<ProductImage>
-        {
-            new ProductImage { ImageId = 5, ProductId = 10, ColorId = 2, DisplayOrder = 1, ImageUrl = "/images/black-1.jpg" },
-            new ProductImage { ImageId = 6, ProductId = 10, ColorId = 2, DisplayOrder = 2, ImageUrl = "/images/black-2.jpg" },
-            new ProductImage { ImageId = 7, ProductId = 10, ColorId = 2, DisplayOrder = 3, ImageUrl = "/images/black-3.jpg" },
-            new ProductImage { ImageId = 8, ProductId = 10, ColorId = 2, DisplayOrder = 4, ImageUrl = "/images/black-4.jpg" }
-        };
-
-        db.ProductImages.AddRange(silverImages);
-        db.ProductImages.AddRange(blackImages);
+        db.ProductImages.AddRange(productImages);
         await db.SaveChangesAsync();
 
         var service = new ProductService(db, mockEnv);
 
-        // Act: Chỉ thay đổi ô 3 của màu Bạc (ColorId = 1)
+        // Act: Cập nhật thay thế ô ảnh số 3 của sản phẩm
         var editVm = new ProductEditViewModel
         {
             ProductId = 10,
             ProductName = "Dell XPS 13",
             Price = 28000000m,
             StockQuantity = 10,
-            SelectedColorId = 1, // Màu Bạc
-            Slot3Image = CreateMockFormFile("new-silver-angle3.jpg")
+            Slot3Image = CreateMockFormFile("new-angle3.jpg")
         };
 
         var updateSuccess = await service.UpdateProductAsync(editVm);
         Assert.True(updateSuccess);
 
-        // Assert: Lấy lại toàn bộ 8 ảnh sau khi cập nhật
-        var allImages = await db.ProductImages.Where(i => i.ProductId == 10).OrderBy(i => i.ImageId).ToListAsync();
-        Assert.Equal(8, allImages.Count);
+        // Assert: Sản phẩm có đúng 4 ảnh
+        var allImages = await db.ProductImages.Where(i => i.ProductId == 10).OrderBy(i => i.DisplayOrder).ToListAsync();
+        Assert.Equal(4, allImages.Count);
 
-        // 1. Ô số 3 của màu Bạc phải mang URL mới
-        var updatedSilverSlot3 = allImages.FirstOrDefault(i => i.ColorId == 1 && i.DisplayOrder == 3);
-        Assert.NotNull(updatedSilverSlot3);
-        Assert.StartsWith("/uploads/", updatedSilverSlot3.ImageUrl);
-        Assert.EndsWith(".jpg", updatedSilverSlot3.ImageUrl);
-        Assert.NotEqual("/images/silver-3.jpg", updatedSilverSlot3.ImageUrl);
+        // 1. Ô số 3 phải mang URL mới
+        var updatedSlot3 = allImages.FirstOrDefault(i => i.DisplayOrder == 3);
+        Assert.NotNull(updatedSlot3);
+        Assert.StartsWith("/uploads/", updatedSlot3.ImageUrl);
+        Assert.EndsWith(".jpg", updatedSlot3.ImageUrl);
+        Assert.NotEqual("/images/slot-3.jpg", updatedSlot3.ImageUrl);
 
-        // 2. 7 ảnh còn lại (Ô 1, 2, 4 của Bạc và toàn bộ 4 ô của Đen) phải còn nguyên vẹn 100%
-        var silverSlot1 = allImages.First(i => i.ColorId == 1 && i.DisplayOrder == 1);
-        var silverSlot2 = allImages.First(i => i.ColorId == 1 && i.DisplayOrder == 2);
-        var silverSlot4 = allImages.First(i => i.ColorId == 1 && i.DisplayOrder == 4);
-        Assert.Equal("/images/silver-1.jpg", silverSlot1.ImageUrl);
-        Assert.Equal("/images/silver-2.jpg", silverSlot2.ImageUrl);
-        Assert.Equal("/images/silver-4.jpg", silverSlot4.ImageUrl);
-
-        var blackSlot1 = allImages.First(i => i.ColorId == 2 && i.DisplayOrder == 1);
-        var blackSlot2 = allImages.First(i => i.ColorId == 2 && i.DisplayOrder == 2);
-        var blackSlot3 = allImages.First(i => i.ColorId == 2 && i.DisplayOrder == 3);
-        var blackSlot4 = allImages.First(i => i.ColorId == 2 && i.DisplayOrder == 4);
-        Assert.Equal("/images/black-1.jpg", blackSlot1.ImageUrl);
-        Assert.Equal("/images/black-2.jpg", blackSlot2.ImageUrl);
-        Assert.Equal("/images/black-3.jpg", blackSlot3.ImageUrl);
-        Assert.Equal("/images/black-4.jpg", blackSlot4.ImageUrl);
+        // 2. 3 ảnh còn lại (Ô 1, 2, 4) còn nguyên vẹn 100%
+        var slot1 = allImages.First(i => i.DisplayOrder == 1);
+        var slot2 = allImages.First(i => i.DisplayOrder == 2);
+        var slot4 = allImages.First(i => i.DisplayOrder == 4);
+        Assert.Equal("/images/slot-1.jpg", slot1.ImageUrl);
+        Assert.Equal("/images/slot-2.jpg", slot2.ImageUrl);
+        Assert.Equal("/images/slot-4.jpg", slot4.ImageUrl);
     }
 
     [Fact]

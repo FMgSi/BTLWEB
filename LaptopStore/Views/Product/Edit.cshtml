@@ -171,39 +171,21 @@
                         </div>
                     </div>
 
-                    <!-- 2. Quản lý hình ảnh theo màu sắc (4 ô ảnh) -->
+                    <!-- 2. Quản lý hình ảnh sản phẩm (Tối đa 4 ảnh cho sản phẩm) -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="text-dark fw-bold mb-0" style="font-size: 0.9rem;">
-                            <i class="bi bi-images text-danger me-1"></i> Bộ ảnh theo màu sắc (4 ô ảnh cố định)
+                            <i class="bi bi-images text-danger me-1"></i> Bộ ảnh sản phẩm (Tối đa 4 ảnh cố định)
                         </h6>
-                        <span class="badge bg-light text-muted border" style="font-size: 11px;">Mỗi màu 4 ô ảnh</span>
+                        <span class="badge bg-light text-muted border" style="font-size: 11px;">1 ảnh đại diện + 3 ảnh chi tiết</span>
                     </div>
 
-                    <!-- Bộ chọn màu sắc -->
-                    <div class="mb-3 p-2 rounded border bg-light">
-                        <label class="form-label-dark small fw-bold mb-1">
-                            <i class="bi bi-palette text-primary me-1"></i> Chọn màu sắc của laptop để quản lý ảnh:
-                        </label>
-                        @if (Model.ColorImagesList != null && Model.ColorImagesList.Any())
-                        {
-                            <select id="colorSelect" class="form-select-dark">
-                                @foreach (var c in Model.ColorImagesList)
-                                {
-                                    <option value="@c.ColorId" selected="@(c.ColorId == Model.SelectedColorId ? "selected" : null)">
-                                        @Model.ProductName · @c.ColorName (@c.HexCode)
-                                    </option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <div class="text-muted small">Chưa có màu sắc nào cho sản phẩm này. Vui lòng thêm phiên bản màu trước.</div>
-                        }
-                        <input type="hidden" asp-for="SelectedColorId" id="selectedColorIdInput" />
-                        <input type="hidden" asp-for="DeleteSlot2" id="deleteSlot2Input" value="false" />
-                        <input type="hidden" asp-for="DeleteSlot3" id="deleteSlot3Input" value="false" />
-                        <input type="hidden" asp-for="DeleteSlot4" id="deleteSlot4Input" value="false" />
+                    <div class="alert alert-light border py-2 px-3 mb-3 small text-muted">
+                        <i class="bi bi-info-circle text-primary me-1"></i> Sản phẩm có tối đa 4 ảnh dùng chung cho tất cả phiên bản màu sắc và cấu hình.
                     </div>
+
+                    <input type="hidden" asp-for="DeleteSlot2" id="deleteSlot2Input" value="false" />
+                    <input type="hidden" asp-for="DeleteSlot3" id="deleteSlot3Input" value="false" />
+                    <input type="hidden" asp-for="DeleteSlot4" id="deleteSlot4Input" value="false" />
 
                     <!-- 4 Ô ảnh theo thứ tự 1-4 -->
                     <div class="row g-2 mb-3">
@@ -212,7 +194,7 @@
                             <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
                                 <span class="badge bg-dark mb-2 small text-truncate" title="Ô 1 · Ảnh đại diện">Ô 1 · Đại diện</span>
                                 <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
-                                    <img id="slot1Preview" src="/images/placeholder.png" alt="Ô 1" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                    <img id="slot1Preview" src="@(string.IsNullOrEmpty(Model.Slot1Url) ? "/images/placeholder.png" : Model.Slot1Url)" alt="Ô 1" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
                                 </div>
                                 <input asp-for="Slot1Image" id="slot1FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(1, this)" />
                                 <button type="button" class="btn btn-sm btn-outline-dark w-100 mt-auto" onclick="document.getElementById('slot1FileInput').click()">
@@ -227,14 +209,14 @@
                             <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
                                 <span class="badge bg-secondary mb-2 small text-truncate" title="Ô 2 · Ảnh phụ">Ô 2 · Ảnh phụ</span>
                                 <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
-                                    <img id="slot2Preview" src="/images/placeholder.png" alt="Ô 2" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                    <img id="slot2Preview" src="@(string.IsNullOrEmpty(Model.Slot2Url) ? "/images/placeholder.png" : Model.Slot2Url)" alt="Ô 2" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
                                 </div>
                                 <input asp-for="Slot2Image" id="slot2FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(2, this)" />
                                 <div class="btn-group w-100 btn-group-sm mt-auto">
                                     <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('slot2FileInput').click()" title="Thay hoặc thêm ảnh">
                                         <i class="bi bi-upload"></i> Thay
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger" id="slot2DeleteBtn" onclick="deleteSlotImage(2)" title="Xóa ảnh ô này">
+                                    <button type="button" class="btn btn-outline-danger" id="slot2DeleteBtn" onclick="deleteSlotImage(2)" title="Xóa ảnh ô này" @(string.IsNullOrEmpty(Model.Slot2Url) ? "disabled" : "")>
                                         <i class="bi bi-trash"></i> Xóa
                                     </button>
                                 </div>
@@ -247,14 +229,14 @@
                             <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
                                 <span class="badge bg-secondary mb-2 small text-truncate" title="Ô 3 · Ảnh phụ">Ô 3 · Ảnh phụ</span>
                                 <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
-                                    <img id="slot3Preview" src="/images/placeholder.png" alt="Ô 3" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                    <img id="slot3Preview" src="@(string.IsNullOrEmpty(Model.Slot3Url) ? "/images/placeholder.png" : Model.Slot3Url)" alt="Ô 3" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
                                 </div>
                                 <input asp-for="Slot3Image" id="slot3FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(3, this)" />
                                 <div class="btn-group w-100 btn-group-sm mt-auto">
                                     <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('slot3FileInput').click()" title="Thay hoặc thêm ảnh">
                                         <i class="bi bi-upload"></i> Thay
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger" id="slot3DeleteBtn" onclick="deleteSlotImage(3)" title="Xóa ảnh ô này">
+                                    <button type="button" class="btn btn-outline-danger" id="slot3DeleteBtn" onclick="deleteSlotImage(3)" title="Xóa ảnh ô này" @(string.IsNullOrEmpty(Model.Slot3Url) ? "disabled" : "")>
                                         <i class="bi bi-trash"></i> Xóa
                                     </button>
                                 </div>
@@ -267,14 +249,14 @@
                             <div class="card h-100 border p-2 text-center bg-white shadow-sm slot-card">
                                 <span class="badge bg-secondary mb-2 small text-truncate" title="Ô 4 · Ảnh phụ">Ô 4 · Ảnh phụ</span>
                                 <div class="slot-preview-wrapper mb-2 d-flex align-items-center justify-content-center border rounded bg-light" style="height: 100px; overflow: hidden;">
-                                    <img id="slot4Preview" src="/images/placeholder.png" alt="Ô 4" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                                    <img id="slot4Preview" src="@(string.IsNullOrEmpty(Model.Slot4Url) ? "/images/placeholder.png" : Model.Slot4Url)" alt="Ô 4" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
                                 </div>
                                 <input asp-for="Slot4Image" id="slot4FileInput" type="file" class="d-none" accept="image/*" onchange="handleSlotFileChange(4, this)" />
                                 <div class="btn-group w-100 btn-group-sm mt-auto">
                                     <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('slot4FileInput').click()" title="Thay hoặc thêm ảnh">
                                         <i class="bi bi-upload"></i> Thay
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger" id="slot4DeleteBtn" onclick="deleteSlotImage(4)" title="Xóa ảnh ô này">
+                                    <button type="button" class="btn btn-outline-danger" id="slot4DeleteBtn" onclick="deleteSlotImage(4)" title="Xóa ảnh ô này" @(string.IsNullOrEmpty(Model.Slot4Url) ? "disabled" : "")>
                                         <i class="bi bi-trash"></i> Xóa
                                     </button>
                                 </div>
@@ -298,66 +280,44 @@
 
 @section Scripts {
     <script>
-        const colorImagesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ColorImagesList));
-        let currentColorId = @(Model.SelectedColorId ?? (Model.ColorImagesList.FirstOrDefault()?.ColorId ?? 0));
-        let hasUnsavedChanges = false;
-
-        function getPlaceholder(slot) {
-            return '/images/placeholder.png';
-        }
-
-        function renderSlotsForColor(colorId) {
-            const colorItem = colorImagesData.find(c => c.ColorId === colorId);
-            
-            // Cập nhật ô 1
-            const img1 = (colorItem && colorItem.Slot1Url) ? colorItem.Slot1Url : getPlaceholder(1);
-            document.getElementById('slot1Preview').src = img1;
-            document.getElementById('slot1FileName').innerText = '';
-            document.getElementById('slot1FileInput').value = '';
-
-            // Cập nhật ô 2
-            const img2 = (colorItem && colorItem.Slot2Url) ? colorItem.Slot2Url : getPlaceholder(2);
-            document.getElementById('slot2Preview').src = img2;
-            document.getElementById('slot2FileName').innerText = '';
-            document.getElementById('slot2FileInput').value = '';
-            document.getElementById('deleteSlot2Input').value = 'false';
-            document.getElementById('slot2DeleteBtn').disabled = !(colorItem && colorItem.Slot2Url);
-
-            // Cập nhật ô 3
-            const img3 = (colorItem && colorItem.Slot3Url) ? colorItem.Slot3Url : getPlaceholder(3);
-            document.getElementById('slot3Preview').src = img3;
-            document.getElementById('slot3FileName').innerText = '';
-            document.getElementById('slot3FileInput').value = '';
-            document.getElementById('deleteSlot3Input').value = 'false';
-            document.getElementById('slot3DeleteBtn').disabled = !(colorItem && colorItem.Slot3Url);
-
-            // Cập nhật ô 4
-            const img4 = (colorItem && colorItem.Slot4Url) ? colorItem.Slot4Url : getPlaceholder(4);
-            document.getElementById('slot4Preview').src = img4;
-            document.getElementById('slot4FileName').innerText = '';
-            document.getElementById('slot4FileInput').value = '';
-            document.getElementById('deleteSlot4Input').value = 'false';
-            document.getElementById('slot4DeleteBtn').disabled = !(colorItem && colorItem.Slot4Url);
-
-            hasUnsavedChanges = false;
-        }
-
         function handleSlotFileChange(slot, input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('slot' + slot + 'Preview').src = e.target.result;
-                    document.getElementById('slot' + slot + 'FileName').innerText = file.name;
+                    const img = document.getElementById('slot' + slot + 'Preview');
+                    if (img) img.src = e.target.result;
+                    const nameDiv = document.getElementById('slot' + slot + 'FileName');
+                    if (nameDiv) nameDiv.innerText = file.name;
                     if (slot > 1) {
                         const delInput = document.getElementById('deleteSlot' + slot + 'Input');
                         if (delInput) delInput.value = 'false';
                         const delBtn = document.getElementById('slot' + slot + 'DeleteBtn');
                         if (delBtn) delBtn.disabled = false;
                     }
-                    hasUnsavedChanges = true;
                 };
                 reader.readAsDataURL(file);
+            }
+        }
+
+        function deleteSlotImage(slot) {
+            const input = document.getElementById('slot' + slot + 'FileInput');
+            if (input) input.value = '';
+
+            const img = document.getElementById('slot' + slot + 'Preview');
+            if (img) img.src = '/images/placeholder.png';
+
+            const nameDiv = document.getElementById('slot' + slot + 'FileName');
+            if (nameDiv) nameDiv.innerText = '';
+
+            const delInput = document.getElementById('deleteSlot' + slot + 'Input');
+            if (delInput) delInput.value = 'true';
+
+            const delBtn = document.getElementById('slot' + slot + 'DeleteBtn');
+            if (delBtn) delBtn.disabled = true;
+        }
+    </script>
+}
             }
         }
 

@@ -164,11 +164,12 @@ public class ProductController : Controller
             RefreshRateHz = p.Specification?.RefreshRateHz,
             WeightKg = p.Specification?.WeightKg,
             BatteryWh = p.Specification?.BatteryWh,
-            OS = p.Specification?.OS
+            OS = p.Specification?.OS,
+            Slot1Url = p.Images.FirstOrDefault(i => i.DisplayOrder == 1)?.ImageUrl ?? p.ThumbnailUrl,
+            Slot2Url = p.Images.FirstOrDefault(i => i.DisplayOrder == 2)?.ImageUrl,
+            Slot3Url = p.Images.FirstOrDefault(i => i.DisplayOrder == 3)?.ImageUrl,
+            Slot4Url = p.Images.FirstOrDefault(i => i.DisplayOrder == 4)?.ImageUrl
         };
-
-        vm.ColorImagesList = await _productService.GetProductColorImagesAsync(id);
-        vm.SelectedColorId = vm.ColorImagesList.FirstOrDefault()?.ColorId;
 
         ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", p.BrandId);
         ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", p.CategoryId);
@@ -185,7 +186,6 @@ public class ProductController : Controller
     {
         if (!ModelState.IsValid)
         {
-            vm.ColorImagesList = await _productService.GetProductColorImagesAsync(vm.ProductId);
             ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", vm.BrandId);
             ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", vm.CategoryId);
             return View(vm);
@@ -195,7 +195,6 @@ public class ProductController : Controller
         if (!success)
         {
             ModelState.AddModelError("", "Đã xảy ra lỗi khi cập nhật sản phẩm. Vui lòng thử lại.");
-            vm.ColorImagesList = await _productService.GetProductColorImagesAsync(vm.ProductId);
             ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName", vm.BrandId);
             ViewBag.Categories = new SelectList(await _db.Categories.AsNoTracking().ToListAsync(), "CategoryId", "CategoryName", vm.CategoryId);
             return View(vm);

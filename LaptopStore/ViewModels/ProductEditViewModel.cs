@@ -91,6 +91,26 @@ public class ProductEditViewModel : IValidatableObject
     public int? SelectedColorId { get; set; }
 
     /// <summary>
+    /// URL ảnh hiện tại ở Ô 1 (Ảnh đại diện sản phẩm)
+    /// </summary>
+    public string? Slot1Url { get; set; }
+
+    /// <summary>
+    /// URL ảnh hiện tại ở Ô 2 (Ảnh phụ 1)
+    /// </summary>
+    public string? Slot2Url { get; set; }
+
+    /// <summary>
+    /// URL ảnh hiện tại ở Ô 3 (Ảnh phụ 2)
+    /// </summary>
+    public string? Slot3Url { get; set; }
+
+    /// <summary>
+    /// URL ảnh hiện tại ở Ô 4 (Ảnh phụ 3)
+    /// </summary>
+    public string? Slot4Url { get; set; }
+
+    /// <summary>
     /// File ảnh tải lên cho Ô 1 (Ảnh đại diện của màu - Bắt buộc / Ưu tiên)
     /// </summary>
     public IFormFile? Slot1Image { get; set; }

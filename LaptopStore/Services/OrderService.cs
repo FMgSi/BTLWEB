@@ -919,7 +919,30 @@ public class OrderService : IOrderService
                     }
                 }
 
-                // 2. Xóa các thực thể phụ thuộc
+                // 2. Phá vỡ tham chiếu vòng giữa InstallmentSchedules và Payments trước khi xóa
+                // Tránh lỗi EF Core: circular dependency between InstallmentSchedule.PaymentId and Payment.ScheduleId
+                if (order.InstallmentContract != null)
+                {
+                    var schedules = await _db.InstallmentSchedules
+                        .Where(s => s.ContractId == order.InstallmentContract.ContractId)
+                        .ToListAsync();
+                    foreach (var s in schedules)
+                    {
+                        s.PaymentId = null;
+                        s.Payment = null;
+                    }
+                }
+
+                var payments = await _db.Payments.Where(p => p.OrderId == order.OrderId).ToListAsync();
+                foreach (var p in payments)
+                {
+                    p.ScheduleId = null;
+                    p.Schedule = null;
+                }
+
+                await _db.SaveChangesAsync();
+
+                // 3. Xóa các thực thể phụ thuộc
                 if (order.InstallmentContract != null)
                 {
                     var schedules = await _db.InstallmentSchedules
@@ -932,9 +955,7 @@ public class OrderService : IOrderService
                 var histories = await _db.OrderStatusHistories.Where(h => h.OrderId == order.OrderId).ToListAsync();
                 _db.OrderStatusHistories.RemoveRange(histories);
 
-                var payments = await _db.Payments.Where(p => p.OrderId == order.OrderId).ToListAsync();
                 _db.Payments.RemoveRange(payments);
-
                 _db.OrderItems.RemoveRange(order.OrderItems);
                 _db.Orders.Remove(order);
 

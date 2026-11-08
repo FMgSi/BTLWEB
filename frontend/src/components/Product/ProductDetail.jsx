@@ -135,19 +135,13 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   const activeVariant = variantsForCurrentColor.find((v) => v.variantId === selectedVariantId)
     ?? variantsForCurrentColor[0] ?? null;
 
-  // Lấy bộ 4 ô ảnh thực tế của màu đang chọn
-  // Khi khách chọn màu, thư viện chỉ hiện những ảnh thực sự có của màu đó
-  const rawColorImages = (activeVariant?.images && activeVariant.images.length > 0)
-    ? activeVariant.images
-    : (product?.colorImages && activeColorId && product.colorImages[activeColorId]?.length > 0)
-      ? product.colorImages[activeColorId]
-      : (activeVariant?.imageUrl ? [activeVariant.imageUrl] : null);
+  // Bộ 4 ảnh của sản phẩm (không phân chia theo màu sắc, một sản phẩm chỉ có 4 ảnh dù cho có bao nhiêu biến thể)
+  const productImages = (product?.images && product.images.length > 0)
+    ? product.images.slice(0, 4)
+    : [product?.image || product?.thumbnailUrl || '/images/default.png'];
 
-  const isColorSpecific = Boolean(rawColorImages && rawColorImages.length > 0);
-  const genericImg = product?.image || product?.images?.[0] || '/images/default.png';
-  const activeGallery = isColorSpecific
-    ? rawColorImages
-    : (product?.images && product.images.length > 0 ? product.images : [genericImg]);
+  const genericImg = productImages[0] || '/images/default.png';
+  const activeGallery = productImages;
 
   const safeImageIndex = selectedImageIndex < activeGallery.length ? selectedImageIndex : 0;
   const currentImg = activeGallery[safeImageIndex] || activeGallery[0] || genericImg;
@@ -417,16 +411,10 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               <span className="detail-image-counter">{safeImageIndex + 1} / {activeGallery.length}</span>
             )}
 
-            {/* Chú thích ảnh phiên bản thật theo màu vs ảnh minh họa chung */}
-            {isColorSpecific ? (
-              <span className="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-3 px-2 py-1 z-3" style={{ fontSize: '11px' }}>
-                <i className="bi bi-camera-fill me-1 text-primary"></i>Ảnh màu: <strong>{activeVariant?.colorName}</strong> ({activeGallery.length} góc chụp)
-              </span>
-            ) : hasVariants ? (
-              <span className="badge bg-light text-secondary border position-absolute bottom-0 start-0 m-3 px-2 py-1 z-3 shadow-sm" style={{ fontSize: '11px' }}>
-                <i className="bi bi-info-circle me-1 text-secondary"></i>Ảnh minh họa của mẫu máy
-              </span>
-            ) : null}
+            {/* Chú thích bộ ảnh sản phẩm */}
+            <span className="badge bg-light text-secondary border position-absolute bottom-0 start-0 m-3 px-2 py-1 z-3 shadow-sm" style={{ fontSize: '11px' }}>
+              <i className="bi bi-images me-1 text-primary"></i>Bộ ảnh sản phẩm ({activeGallery.length} ảnh)
+            </span>
           </div>
 
           {/* Dải ảnh thu nhỏ của màu đang chọn (1 - 4 ảnh) */}

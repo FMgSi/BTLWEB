@@ -140,23 +140,27 @@
                         </div>
                     </div>
 
-                    <!-- 2. Quản lý hình ảnh theo màu sắc (4 ô ảnh) -->
+                    <!-- 2. Quản lý hình ảnh sản phẩm (Tối đa 4 ảnh cho sản phẩm) -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="text-dark fw-bold mb-0" style="font-size: 0.9rem;">
-                            <i class="bi bi-images text-danger me-1"></i> Bộ ảnh theo màu sắc (4 ô ảnh cố định)
+                            <i class="bi bi-images text-danger me-1"></i> Bộ ảnh sản phẩm (Tối đa 4 ảnh cố định)
                         </h6>
-                        <span class="badge bg-light text-muted border" style="font-size: 11px;">Mỗi màu 4 ô ảnh</span>
+                        <span class="badge bg-light text-muted border" style="font-size: 11px;">1 ảnh chính + 3 ảnh chi tiết</span>
                     </div>
 
-                    <!-- Bộ chọn màu sắc khởi tạo -->
+                    <div class="alert alert-light border py-2 px-3 mb-3 small text-muted">
+                        <i class="bi bi-info-circle text-primary me-1"></i> Mỗi sản phẩm có tối đa 4 ảnh dùng chung cho mọi biến thể.
+                    </div>
+
+                    <!-- Màu sắc khởi tạo phiên bản đầu tiên -->
                     <div class="mb-3 p-2 rounded border bg-light">
                         <label class="form-label-dark small fw-bold mb-1">
-                            <i class="bi bi-palette text-primary me-1"></i> Chọn màu sắc khởi tạo của laptop:
+                            <i class="bi bi-palette text-primary me-1"></i> Màu sắc phiên bản mặc định đầu tiên:
                         </label>
                         <select asp-for="SelectedColorId" class="form-select-dark" asp-items="ViewBag.Colors">
                         </select>
                         <div class="form-text small" style="font-size: 11px;">
-                            Sau khi tạo, bạn có thể tiếp tục bổ sung thêm các màu khác trong Quản lý Phiên bản & Chỉnh sửa
+                            Phiên bản đầu tiên sẽ tạo với màu này. Bạn có thể thêm nhiều phiên bản màu khác ở trang Quản lý Phiên bản.
                         </div>
                     </div>
 

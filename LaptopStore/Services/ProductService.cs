@@ -273,20 +273,20 @@ public class ProductService : IProductService
             discountPercent = (int)Math.Round((1 - (p.DiscountPrice.Value / p.Price)) * 100);
         }
 
-        var imageList = p.Images.OrderBy(img => img.DisplayOrder).Select(img => img.ImageUrl).ToList();
+        // Bộ 4 ảnh của sản phẩm (không phân chia theo màu sắc, tối đa 4 ảnh cho mỗi sản phẩm)
+        var imageList = p.Images
+            .OrderBy(img => img.DisplayOrder)
+            .Select(img => img.ImageUrl)
+            .Distinct()
+            .Take(4)
+            .ToList();
+
         if (!string.IsNullOrEmpty(p.ThumbnailUrl) && !imageList.Contains(p.ThumbnailUrl))
         {
             imageList.Insert(0, p.ThumbnailUrl);
-        }
-
-        // Gom nhóm ảnh theo từng màu sắc (DisplayOrder từ 1 đến 4)
-        var colorImagesMap = new Dictionary<int, List<string>>();
-        foreach (var grp in p.Images.Where(img => img.ColorId.HasValue).GroupBy(img => img.ColorId!.Value))
-        {
-            var imgs = grp.OrderBy(img => img.DisplayOrder).Select(img => img.ImageUrl).ToList();
-            if (imgs.Any())
+            if (imageList.Count > 4)
             {
-                colorImagesMap[grp.Key] = imgs;
+                imageList = imageList.Take(4).ToList();
             }
         }
 
@@ -297,20 +297,6 @@ public class ProductService : IProductService
             .ThenBy(v => v.StorageGB)
             .Select(v =>
             {
-                List<string> varImgs;
-                if (colorImagesMap.TryGetValue(v.ColorId, out var mapped) && mapped.Any())
-                {
-                    varImgs = mapped;
-                }
-                else if (!string.IsNullOrEmpty(v.ImageUrl))
-                {
-                    varImgs = new List<string> { v.ImageUrl };
-                }
-                else
-                {
-                    varImgs = imageList;
-                }
-
                 return new ProductVariantDto
                 {
                     VariantId = v.VariantId,
@@ -326,8 +312,8 @@ public class ProductService : IProductService
                     Price = v.Price,
                     DiscountPrice = v.DiscountPrice,
                     EffectivePrice = v.EffectivePrice,
-                    ImageUrl = varImgs.FirstOrDefault() ?? v.ImageUrl ?? p.ThumbnailUrl,
-                    Images = varImgs,
+                    ImageUrl = imageList.FirstOrDefault() ?? v.ImageUrl ?? p.ThumbnailUrl,
+                    Images = imageList, // Mỗi sản phẩm dùng chung bộ 4 ảnh dù cho có bao nhiêu biến thể
                     IsActive = v.IsActive
                 };
             }).ToList();
@@ -344,9 +330,9 @@ public class ProductService : IProductService
             OriginalPrice = oldPrice,
             DiscountPercent = discountPercent,
             StockQuantity = totalStock,
-            Image = p.ThumbnailUrl ?? "/images/default.png",
+            Image = p.ThumbnailUrl ?? imageList.FirstOrDefault() ?? "/images/default.png",
             Images = imageList,
-            ColorImages = colorImagesMap,
+            ColorImages = new Dictionary<int, List<string>>(),
             Description = p.Description ?? "Sản phẩm chính hãng với bảo hành 12-24 tháng.",
             Specification = p.Specification == null ? null : new ProductSpecDto
             {
@@ -525,7 +511,7 @@ public class ProductService : IProductService
                     if (defaultColor != null) colorId = defaultColor.ColorId;
                 }
 
-                // Lưu các ô ảnh 1, 2, 3, 4 nếu có
+                // Lưu tối đa 4 ô ảnh cố định của sản phẩm (không phân chia theo màu sắc)
                 async Task SaveSlotAsync(int slot, IFormFile? file, string? preSavedUrl = null)
                 {
                     string? url = preSavedUrl;
@@ -538,7 +524,7 @@ public class ProductService : IProductService
                         _db.ProductImages.Add(new ProductImage
                         {
                             ProductId = product.ProductId,
-                            ColorId = colorId,
+                            ColorId = null,
                             DisplayOrder = slot,
                             ImageUrl = url
                         });
@@ -603,67 +589,84 @@ public class ProductService : IProductService
                     p.ThumbnailUrl = newImg;
                 }
 
-                // Xử lý 4 ô ảnh độc lập cho màu sắc đang chọn (vm.SelectedColorId)
-                if (vm.SelectedColorId.HasValue && vm.SelectedColorId.Value > 0)
+                // Xử lý tối đa 4 ô ảnh độc lập cho sản phẩm (DisplayOrder 1..4, không phân chia theo màu sắc)
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+                async Task HandleProductSlotAsync(int slot, IFormFile? file, bool delete)
                 {
-                    int colorId = vm.SelectedColorId.Value;
-                    bool colorExists = await _db.Colors.AnyAsync(c => c.ColorId == colorId);
-                    if (colorExists)
+                    if (slot < 1 || slot > 4) return;
+
+                    var existing = p.Images.FirstOrDefault(img => img.DisplayOrder == slot);
+
+                    if (file != null && file.Length > 0)
                     {
-                        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-
-                        async Task HandleColorSlotAsync(int slot, IFormFile? file, bool delete)
+                        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                        if (allowedExtensions.Contains(ext) && file.Length <= 5 * 1024 * 1024)
                         {
-                            if (slot < 1 || slot > 4) return;
-
-                            var existing = p.Images.FirstOrDefault(img => img.ColorId == colorId && img.DisplayOrder == slot);
-
-                            if (file != null && file.Length > 0)
+                            string newUrl = await SaveImageFileAsync(file);
+                            if (existing != null)
                             {
-                                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                                if (allowedExtensions.Contains(ext) && file.Length <= 5 * 1024 * 1024)
-                                {
-                                    string newUrl = await SaveImageFileAsync(file);
-                                    if (existing != null)
-                                    {
-                                        existing.ImageUrl = newUrl;
-                                    }
-                                    else
-                                    {
-                                        var newImg = new ProductImage
-                                        {
-                                            ProductId = p.ProductId,
-                                            ColorId = colorId,
-                                            DisplayOrder = slot,
-                                            ImageUrl = newUrl
-                                        };
-                                        _db.ProductImages.Add(newImg);
-                                        p.Images.Add(newImg);
-                                    }
-
-                                    // Nếu là ô 1 (Ảnh đại diện), đồng bộ với các variant cùng màu và luôn cập nhật ảnh đại diện của laptop
-                                    if (slot == 1)
-                                    {
-                                        foreach (var v in p.Variants.Where(v => v.ColorId == colorId))
-                                        {
-                                            v.ImageUrl = newUrl;
-                                        }
-
-                                        p.ThumbnailUrl = newUrl;
-                                    }
-                                }
+                                existing.ImageUrl = newUrl;
+                                existing.ColorId = null;
                             }
-                            else if (delete && slot > 1 && existing != null)
+                            else
                             {
-                                _db.ProductImages.Remove(existing);
-                                p.Images.Remove(existing);
+                                var newImg = new ProductImage
+                                {
+                                    ProductId = p.ProductId,
+                                    ColorId = null,
+                                    DisplayOrder = slot,
+                                    ImageUrl = newUrl
+                                };
+                                _db.ProductImages.Add(newImg);
+                                p.Images.Add(newImg);
+                            }
+
+                            // Nếu là ô 1 (Ảnh đại diện), luôn cập nhật ThumbnailUrl của laptop
+                            if (slot == 1)
+                            {
+                                p.ThumbnailUrl = newUrl;
                             }
                         }
+                    }
+                    else if (delete && slot > 1 && existing != null)
+                    {
+                        _db.ProductImages.Remove(existing);
+                        p.Images.Remove(existing);
+                    }
+                }
 
-                        await HandleColorSlotAsync(1, vm.Slot1Image, false);
-                        await HandleColorSlotAsync(2, vm.Slot2Image, vm.DeleteSlot2);
-                        await HandleColorSlotAsync(3, vm.Slot3Image, vm.DeleteSlot3);
-                        await HandleColorSlotAsync(4, vm.Slot4Image, vm.DeleteSlot4);
+                await HandleProductSlotAsync(1, vm.Slot1Image, false);
+                await HandleProductSlotAsync(2, vm.Slot2Image, vm.DeleteSlot2);
+                await HandleProductSlotAsync(3, vm.Slot3Image, vm.DeleteSlot3);
+                await HandleProductSlotAsync(4, vm.Slot4Image, vm.DeleteSlot4);
+
+                // Loại bỏ bất kỳ ảnh dư thừa nào ngoài 4 ô (DisplayOrder 1..4) và dọn dẹp trùng lặp slot
+                for (int s = 1; s <= 4; s++)
+                {
+                    var slotImgs = p.Images.Where(img => img.DisplayOrder == s).ToList();
+                    if (slotImgs.Count > 1)
+                    {
+                        var extras = slotImgs.Skip(1).ToList();
+                        foreach (var ex in extras)
+                        {
+                            _db.ProductImages.Remove(ex);
+                            p.Images.Remove(ex);
+                        }
+                    }
+                    foreach (var img in slotImgs.Take(1))
+                    {
+                        img.ColorId = null;
+                    }
+                }
+
+                var outOfRange = p.Images.Where(img => img.DisplayOrder < 1 || img.DisplayOrder > 4).ToList();
+                if (outOfRange.Any())
+                {
+                    foreach (var o in outOfRange)
+                    {
+                        _db.ProductImages.Remove(o);
+                        p.Images.Remove(o);
                     }
                 }
 

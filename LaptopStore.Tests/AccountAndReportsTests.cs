@@ -331,4 +331,108 @@ public class AccountAndReportsTests
         var existingOrder = await db.Orders.FindAsync(51);
         Assert.NotNull(existingOrder);
     }
+
+    [Fact]
+    public async Task CancelOrDeleteOrderAsync_Succeeds_ForInstallmentOrder_WithMutualPaymentScheduleReferences()
+    {
+        using var db = GetInMemoryDbContext();
+        var product = new Product
+        {
+            ProductId = 20,
+            ProductName = "Surface Laptop Studio 2",
+            Price = 50_000_000m,
+            StockQuantity = 3
+        };
+        var variant = new ProductVariant
+        {
+            VariantId = 200,
+            ProductId = 20,
+            SKU = "SURFACE-STUDIO-2",
+            StockQuantity = 1
+        };
+        db.Products.Add(product);
+        db.ProductVariants.Add(variant);
+
+        var order = new Order
+        {
+            OrderId = 60,
+            UserId = 2,
+            OrderCode = "PC-INSTALLMENT-001",
+            CustomerName = "Trần Thị Test",
+            PhoneNumber = "0977777777",
+            ShippingAddress = "TP.HCM",
+            TotalAmount = 50_000_000m,
+            OrderStatus = "Đang xử lý", // Chưa xác minh
+            PaymentStatus = "Chờ trả trước",
+            PurchaseMode = "Installment",
+            OrderItems = new List<OrderItem>
+            {
+                new() { OrderItemId = 10, ProductId = 20, VariantId = 200, Quantity = 1, UnitPrice = 50_000_000m }
+            }
+        };
+
+        var contract = new InstallmentContract
+        {
+            ContractId = 1,
+            OrderId = 60,
+            ContractCode = "HDTG-TEST",
+            TermMonths = 6,
+            PrepayAmount = 15_000_000m,
+            TotalFinancedAmount = 35_000_000m,
+            MonthlyInstallmentAmount = 5_833_333m,
+            Status = "Chờ trả trước"
+        };
+
+        var schedule = new InstallmentSchedule
+        {
+            ScheduleId = 1,
+            ContractId = 1,
+            PeriodNumber = 1,
+            DueDate = DateTime.UtcNow.AddMonths(1),
+            Amount = 5_833_333m,
+            Status = "Chưa thanh toán"
+        };
+
+        var payment = new Payment
+        {
+            PaymentId = 1,
+            OrderId = 60,
+            PaymentMethod = "VietQR",
+            Amount = 15_000_000m,
+            PaymentStatus = "Chờ xác nhận",
+            PaymentType = "Prepay"
+        };
+
+        // Gắn liên kết 2 chiều giữa Schedule và Payment (nguyên nhân gây lỗi circular dependency trước đây)
+        schedule.PaymentId = 1;
+        payment.ScheduleId = 1;
+
+        contract.Schedules.Add(schedule);
+        order.InstallmentContract = contract;
+        order.Payments.Add(payment);
+
+        db.Orders.Add(order);
+        await db.SaveChangesAsync();
+
+        var orderService = new OrderService(db, null!);
+
+        // Act: Khách hàng xóa đơn hàng trả góp chưa xác minh
+        var (success, message) = await orderService.CancelOrDeleteOrderAsync(60, userId: 2);
+
+        // Assert
+        Assert.True(success);
+        Assert.Contains("Đã xóa thành công", message);
+
+        // Kiểm tra xóa sạch các bảng liên quan và không bị lỗi circular dependency
+        Assert.Null(await db.Orders.FindAsync(60));
+        Assert.Null(await db.InstallmentContracts.FindAsync(1));
+        Assert.Null(await db.InstallmentSchedules.FindAsync(1));
+        Assert.Null(await db.Payments.FindAsync(1));
+
+        // Tồn kho được phục hồi chính xác
+        var updatedVariant = await db.ProductVariants.FindAsync(200);
+        Assert.Equal(2, updatedVariant!.StockQuantity); // 1 ban đầu + 1 hoàn trả
+        var updatedProduct = await db.Products.FindAsync(20);
+        Assert.Equal(4, updatedProduct!.StockQuantity); // 3 ban đầu + 1 hoàn trả
+    }
 }
