@@ -79,38 +79,85 @@
 </div>
 
 <!-- PAGINATION FOOTER -->
-<div class="admin-pagination-wrap">
-    <div class="pagination-info">
-        Hiển thị 1-@ViewBag.PageSize trên @ViewBag.TotalCount sản phẩm
+@if (ViewBag.TotalPages != null && (int)ViewBag.TotalPages > 0)
+{
+    int curPage = ViewBag.CurrentPage ?? 1;
+    int totPages = ViewBag.TotalPages ?? 1;
+    int totCount = ViewBag.TotalCount ?? 0;
+    int pageSize = ViewBag.PageSize ?? 5;
+    int startItem = totCount > 0 ? (curPage - 1) * pageSize + 1 : 0;
+    int endItem = Math.Min(curPage * pageSize, totCount);
+
+    var pagesToShow = new List<object>();
+    if (totPages <= 7)
+    {
+        for (int i = 1; i <= totPages; i++) { pagesToShow.Add(i); }
+    }
+    else
+    {
+        if (curPage <= 4)
+        {
+            pagesToShow.AddRange(new object[] { 1, 2, 3, 4, 5, "...", totPages });
+        }
+        else if (curPage >= totPages - 3)
+        {
+            pagesToShow.AddRange(new object[] { 1, "...", totPages - 4, totPages - 3, totPages - 2, totPages - 1, totPages });
+        }
+        else
+        {
+            pagesToShow.AddRange(new object[] { 1, "...", curPage - 1, curPage, curPage + 1, "...", totPages });
+        }
+    }
+
+    <div class="admin-pagination-wrap p-3 d-flex flex-wrap justify-content-between align-items-center border-top bg-white">
+        <div class="pagination-info small text-muted">
+            Trang <strong>@curPage</strong> / <strong>@totPages</strong> (Hiển thị <strong>@startItem - @endItem</strong> trong tổng số <strong>@totCount</strong> sản phẩm)
+        </div>
+        <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
+            <!-- Nút Trước -->
+            <li class="admin-page-item @(curPage <= 1 ? "disabled" : "")">
+                <a href="javascript:void(0)" 
+                   onclick="@(curPage <= 1 ? "" : $"loadProductPage({curPage - 1})")" 
+                   class="btn btn-sm btn-light border @(curPage <= 1 ? "disabled opacity-50" : "text-dark")"
+                   title="Trang trước"
+                   style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-chevron-left"></i> Trước
+                </a>
+            </li>
+
+            @foreach (var pageItem in pagesToShow)
+            {
+                if (pageItem is string)
+                {
+                    <li class="admin-page-item disabled">
+                        <span class="d-inline-flex align-items-center justify-content-center text-muted px-1" style="min-width: 24px; height: 34px; font-weight: bold; user-select: none;">...</span>
+                    </li>
+                }
+                else
+                {
+                    int p = (int)pageItem;
+                    <li class="admin-page-item">
+                        <a href="javascript:void(0)" 
+                           onclick="loadProductPage(@p)" 
+                           class="btn btn-sm @(p == curPage ? "btn-dark text-white fw-bold shadow-sm" : "btn-light border text-dark")"
+                           title="Trang @p"
+                           style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                            @p
+                        </a>
+                    </li>
+                }
+            }
+
+            <!-- Nút Sau -->
+            <li class="admin-page-item @(curPage >= totPages ? "disabled" : "")">
+                <a href="javascript:void(0)" 
+                   onclick="@(curPage >= totPages ? "" : $"loadProductPage({curPage + 1})")" 
+                   class="btn btn-sm btn-light border @(curPage >= totPages ? "disabled opacity-50" : "text-dark")"
+                   title="Trang tiếp theo"
+                   style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                    Sau <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
     </div>
-    <ul class="admin-pagination">
-        <!-- Nút Trước -->
-        <li class="admin-page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
-            <a href="javascript:void(0)" onclick="loadProductPage(@(ViewBag.CurrentPage - 1))">
-                <i class="bi bi-chevron-left"></i> Trước
-            </a>
-        </li>
-
-        @for (int i = 1; i <= Math.Min((int)ViewBag.TotalPages, 5); i++)
-        {
-            <li class="admin-page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                <a href="javascript:void(0)" onclick="loadProductPage(@i)">@i</a>
-            </li>
-        }
-
-        @if (ViewBag.TotalPages > 5)
-        {
-            <li class="admin-page-item disabled"><a href="javascript:void(0)">...</a></li>
-            <li class="admin-page-item @(ViewBag.TotalPages == ViewBag.CurrentPage ? "active" : "")">
-                <a href="javascript:void(0)" onclick="loadProductPage(@ViewBag.TotalPages)">@ViewBag.TotalPages</a>
-            </li>
-        }
-
-        <!-- Nút Sau -->
-        <li class="admin-page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
-            <a href="javascript:void(0)" onclick="loadProductPage(@(ViewBag.CurrentPage + 1))">
-                Sau <i class="bi bi-chevron-right"></i>
-            </a>
-        </li>
-    </ul>
-</div>
+}

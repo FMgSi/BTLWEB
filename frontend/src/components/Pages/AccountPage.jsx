@@ -657,40 +657,89 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                       </div>
                     ))}
 
-                    {/* Phân trang 5 đơn hàng mỗi trang */}
+                    {/* Phân trang 5 đơn hàng mỗi trang - Chuẩn hình dáng và tính năng như trang quản lý */}
                     {Math.ceil(orders.length / 5) > 1 && (
-                      <div className="d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded-3 border shadow-sm mt-2">
+                      <div className="d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded-3 border shadow-sm mt-3">
                         <div className="small text-muted">
-                          Trang <strong>{orderPage}</strong> / <strong>{Math.ceil(orders.length / 5)}</strong> (Tổng <strong>{orders.length}</strong> đơn)
+                          Trang <strong>{orderPage}</strong> / <strong>{Math.ceil(orders.length / 5)}</strong> (Tổng <strong>{orders.length}</strong> đơn hàng)
                         </div>
-                        <div className="d-flex gap-1 align-items-center">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            disabled={orderPage <= 1}
-                            onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
-                          >
-                            <i className="bi bi-chevron-left"></i> Trước
-                          </button>
-                          {Array.from({ length: Math.ceil(orders.length / 5) }, (_, i) => i + 1).map((p) => (
+                        <ul className="d-flex gap-1 list-unstyled align-items-center m-0 p-0">
+                          <li>
                             <button
-                              key={p}
                               type="button"
-                              className={`btn btn-sm ${p === orderPage ? 'btn-danger text-white fw-bold' : 'btn-outline-secondary'}`}
-                              onClick={() => setOrderPage(p)}
+                              className={`btn btn-sm ${orderPage <= 1 ? 'btn-light border text-muted disabled opacity-50' : 'btn-light border text-dark'}`}
+                              disabled={orderPage <= 1}
+                              onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
+                              title="Trang trước"
+                              style={{ minWidth: '34px', height: '34px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              {p}
+                              <i className="bi bi-chevron-left"></i> Trước
                             </button>
-                          ))}
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            disabled={orderPage >= Math.ceil(orders.length / 5)}
-                            onClick={() => setOrderPage((p) => Math.min(Math.ceil(orders.length / 5), p + 1))}
-                          >
-                            Sau <i className="bi bi-chevron-right"></i>
-                          </button>
-                        </div>
+                          </li>
+                          {(() => {
+                            const tot = Math.ceil(orders.length / 5);
+                            const pages = [];
+                            if (tot <= 7) {
+                              for (let i = 1; i <= tot; i++) pages.push(i);
+                            } else {
+                              if (orderPage <= 4) {
+                                pages.push(1, 2, 3, 4, 5, '...', tot);
+                              } else if (orderPage >= tot - 3) {
+                                pages.push(1, '...', tot - 4, tot - 3, tot - 2, tot - 1, tot);
+                              } else {
+                                pages.push(1, '...', orderPage - 1, orderPage, orderPage + 1, '...', tot);
+                              }
+                            }
+                            return pages.map((p, idx) => {
+                              if (p === '...') {
+                                return (
+                                  <li key={`ord-dots-${idx}`}>
+                                    <span
+                                      className="text-muted d-inline-flex align-items-center justify-content-center px-1 user-select-none"
+                                      style={{ minWidth: '24px', height: '34px', fontWeight: 700 }}
+                                    >
+                                      ...
+                                    </span>
+                                  </li>
+                                );
+                              }
+                              const isActive = p === orderPage;
+                              return (
+                                <li key={p}>
+                                  <button
+                                    type="button"
+                                    className={`btn btn-sm ${isActive ? 'btn-dark text-white fw-bold shadow-sm' : 'btn-light border text-dark'}`}
+                                    onClick={() => setOrderPage(p)}
+                                    title={`Trang ${p}`}
+                                    style={{
+                                      minWidth: '34px',
+                                      height: '34px',
+                                      borderRadius: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: isActive ? 700 : 500
+                                    }}
+                                  >
+                                    {p}
+                                  </button>
+                                </li>
+                              );
+                            });
+                          })()}
+                          <li>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${orderPage >= Math.ceil(orders.length / 5) ? 'btn-light border text-muted disabled opacity-50' : 'btn-light border text-dark'}`}
+                              disabled={orderPage >= Math.ceil(orders.length / 5)}
+                              onClick={() => setOrderPage((p) => Math.min(Math.ceil(orders.length / 5), p + 1))}
+                              title="Trang tiếp theo"
+                              style={{ minWidth: '34px', height: '34px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              Sau <i className="bi bi-chevron-right"></i>
+                            </button>
+                          </li>
+                        </ul>
                       </div>
                     )}
                   </div>

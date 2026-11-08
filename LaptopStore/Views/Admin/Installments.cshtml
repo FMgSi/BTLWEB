@@ -264,26 +264,67 @@
         int curPage = ViewBag.CurrentPage ?? 1;
         int totPages = ViewBag.TotalPages ?? 1;
         int totCount = ViewBag.TotalCount ?? (Model != null ? Model.Count() : 0);
+
+        var pagesToShow = new List<object>();
+        if (totPages <= 7)
+        {
+            for (int i = 1; i <= totPages; i++) { pagesToShow.Add(i); }
+        }
+        else
+        {
+            if (curPage <= 4)
+            {
+                pagesToShow.AddRange(new object[] { 1, 2, 3, 4, 5, "...", totPages });
+            }
+            else if (curPage >= totPages - 3)
+            {
+                pagesToShow.AddRange(new object[] { 1, "...", totPages - 4, totPages - 3, totPages - 2, totPages - 1, totPages });
+            }
+            else
+            {
+                pagesToShow.AddRange(new object[] { 1, "...", curPage - 1, curPage, curPage + 1, "...", totPages });
+            }
+        }
+
         <div class="admin-pagination-wrap p-3 d-flex flex-wrap justify-content-between align-items-center border-top bg-white">
             <div class="pagination-info small text-muted">
                 Trang <strong>@curPage</strong> / <strong>@totPages</strong> (Tổng số <strong>@totCount</strong> hợp đồng)
             </div>
             <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
                 <li class="admin-page-item @(curPage <= 1 ? "disabled" : "")">
-                    <a href="/Admin/Installments?page=@(curPage - 1)&search=@ViewBag.Search&status=@ViewBag.Status" class="btn btn-sm btn-light border @(curPage <= 1 ? "disabled" : "")">
+                    <a href="@(curPage <= 1 ? "javascript:void(0)" : $"/Admin/Installments?page={curPage - 1}&search={ViewBag.Search}&status={ViewBag.Status}")" 
+                       class="btn btn-sm btn-light border @(curPage <= 1 ? "disabled opacity-50" : "text-dark")"
+                       title="Trang trước"
+                       style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
                         <i class="bi bi-chevron-left"></i> Trước
                     </a>
                 </li>
-                @for (int p = 1; p <= totPages; p++)
+                @foreach (var pageItem in pagesToShow)
                 {
-                    <li class="admin-page-item">
-                        <a href="/Admin/Installments?page=@p&search=@ViewBag.Search&status=@ViewBag.Status" class="btn btn-sm @(p == curPage ? "btn-dark text-white fw-bold" : "btn-light border text-dark")">
-                            @p
-                        </a>
-                    </li>
+                    if (pageItem is string)
+                    {
+                        <li class="admin-page-item disabled">
+                            <span class="d-inline-flex align-items-center justify-content-center text-muted px-1" style="min-width: 24px; height: 34px; font-weight: bold; user-select: none;">...</span>
+                        </li>
+                    }
+                    else
+                    {
+                        int p = (int)pageItem;
+                        <li class="admin-page-item">
+                            <a href="/Admin/Installments?page=@p&search=@ViewBag.Search&status=@ViewBag.Status" 
+                               class="btn btn-sm @(p == curPage ? "btn-dark text-white fw-bold shadow-sm" : "btn-light border text-dark")"
+                               title="Trang @p"
+                               style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                                @p
+                            </a>
+                        </li>
+                    }
                 }
                 <li class="admin-page-item @(curPage >= totPages ? "disabled" : "")">
-                    <a href="/Admin/Installments?page=@(curPage + 1)&search=@ViewBag.Search&status=@ViewBag.Status" class="btn btn-sm btn-light border @(curPage >= totPages ? "disabled" : "")">
+                    <a href="@(curPage >= totPages ? "javascript:void(0)" : $"/Admin/Installments?page={curPage + 1}&search={ViewBag.Search}&status={ViewBag.Status}")" 
+                       class="btn btn-sm btn-light border @(curPage >= totPages ? "disabled opacity-50" : "text-dark")"
+                       title="Trang tiếp theo"
+                       style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
                         Sau <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>

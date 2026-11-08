@@ -41,37 +41,64 @@ export default function Pagination({
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 pt-2 border-top">
-      <nav>
-        <ul className="pagination pagination-sm m-0">
+    <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 pt-3 border-top">
+      {/* Phân trang đồng bộ phong cách với trang quản lý (các nút bấm riêng biệt, bo viền 6px, nền sáng/tối) */}
+      <nav aria-label="Page navigation">
+        <ul className="d-flex gap-1 list-unstyled align-items-center m-0 p-0">
           {/* Nút Trang Trước (<) */}
-          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+          <li>
             <button
-              className="page-link text-dark"
+              type="button"
+              className={`btn btn-sm ${currentPage === 1 ? 'btn-light border text-muted disabled opacity-50' : 'btn-light border text-dark'}`}
               onClick={() => onPageChange && onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
               title="Trang trước"
+              style={{
+                minWidth: '34px',
+                height: '34px',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 500
+              }}
             >
               <i className="bi bi-chevron-left"></i>
             </button>
           </li>
 
-          {/* Các nút bấm số trang (1, 2, 3...) */}
+          {/* Các nút bấm số trang (1, 2, 3...) & Dấu ba chấm (...) */}
           {getPageNumbers().map((page, index) => {
             if (page === '...') {
               return (
-                <li key={`ellipsis-${index}`} className="page-item disabled">
-                  <span className="page-link">...</span>
+                <li key={`ellipsis-${index}`}>
+                  <span
+                    className="text-muted d-inline-flex align-items-center justify-content-center px-1 user-select-none"
+                    style={{ minWidth: '24px', height: '34px', fontWeight: 700 }}
+                  >
+                    ...
+                  </span>
                 </li>
               );
             }
 
             const isActive = page === currentPage;
             return (
-              <li key={page} className={`page-item ${isActive ? 'active' : ''}`}>
+              <li key={page}>
                 <button
-                  className={`page-link ${isActive ? 'bg-pc-red text-white border-0 fw-bold' : 'text-dark'}`}
+                  type="button"
+                  className={`btn btn-sm ${isActive ? 'btn-dark text-white fw-bold shadow-sm' : 'btn-light border text-dark'}`}
                   onClick={() => onPageChange && onPageChange(page)}
+                  title={`Trang ${page}`}
+                  style={{
+                    minWidth: '34px',
+                    height: '34px',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: isActive ? 700 : 500
+                  }}
                 >
                   {page}
                 </button>
@@ -80,12 +107,22 @@ export default function Pagination({
           })}
 
           {/* Nút Trang Sau (>) */}
-          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+          <li>
             <button
-              className="page-link text-dark"
+              type="button"
+              className={`btn btn-sm ${currentPage === totalPages ? 'btn-light border text-muted disabled opacity-50' : 'btn-light border text-dark'}`}
               onClick={() => onPageChange && onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               title="Trang tiếp theo"
+              style={{
+                minWidth: '34px',
+                height: '34px',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 500
+              }}
             >
               <i className="bi bi-chevron-right"></i>
             </button>
@@ -94,7 +131,7 @@ export default function Pagination({
       </nav>
 
       {/* Dòng thông báo số lượng sản phẩm đang xem */}
-      <div className="text-muted" style={{ fontSize: '12px' }}>
+      <div className="text-muted small">
         Hiển thị <strong>{startItem} - {endItem}</strong> trong tổng số <strong>{totalItems}</strong> sản phẩm
       </div>
     </div>

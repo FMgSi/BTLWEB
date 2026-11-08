@@ -213,23 +213,67 @@
                 <!-- Phân trang -->
                 @if (Model.TotalPages > 1)
                 {
+                    int curPage = Model.CurrentPage;
+                    int totPages = Model.TotalPages;
+                    var pagesToShow = new List<object>();
+                    if (totPages <= 7)
+                    {
+                        for (int i = 1; i <= totPages; i++) { pagesToShow.Add(i); }
+                    }
+                    else
+                    {
+                        if (curPage <= 4)
+                        {
+                            pagesToShow.AddRange(new object[] { 1, 2, 3, 4, 5, "...", totPages });
+                        }
+                        else if (curPage >= totPages - 3)
+                        {
+                            pagesToShow.AddRange(new object[] { 1, "...", totPages - 4, totPages - 3, totPages - 2, totPages - 1, totPages });
+                        }
+                        else
+                        {
+                            pagesToShow.AddRange(new object[] { 1, "...", curPage - 1, curPage, curPage + 1, "...", totPages });
+                        }
+                    }
+
                     <nav aria-label="Page navigation" class="d-flex justify-content-center my-4">
-                        <ul class="pagination pagination-sm">
-                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
-                                <a class="page-link" href="/Catalog?@(BuildQueryString(Model, newPage: Model.CurrentPage - 1))">
+                        <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
+                            <li class="admin-page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="btn btn-sm btn-light border @(!Model.HasPreviousPage ? "disabled opacity-50" : "text-dark")" 
+                                   href="@(!Model.HasPreviousPage ? "javascript:void(0)" : $"/Catalog?{BuildQueryString(Model, newPage: Model.CurrentPage - 1)}")"
+                                   title="Trang trước"
+                                   style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
                                     <i class="bi bi-chevron-left"></i> Trước
                                 </a>
                             </li>
 
-                            @for (int p = 1; p <= Model.TotalPages; p++)
+                            @foreach (var pageItem in pagesToShow)
                             {
-                                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
-                                    <a class="page-link" href="/Catalog?@(BuildQueryString(Model, newPage: p))">@p</a>
-                                </li>
+                                if (pageItem is string)
+                                {
+                                    <li class="admin-page-item disabled">
+                                        <span class="d-inline-flex align-items-center justify-content-center text-muted px-1" style="min-width: 24px; height: 34px; font-weight: bold; user-select: none;">...</span>
+                                    </li>
+                                }
+                                else
+                                {
+                                    int p = (int)pageItem;
+                                    <li class="admin-page-item">
+                                        <a class="btn btn-sm @(p == Model.CurrentPage ? "btn-dark text-white fw-bold shadow-sm" : "btn-light border text-dark")" 
+                                           href="/Catalog?@(BuildQueryString(Model, newPage: p))"
+                                           title="Trang @p"
+                                           style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                                            @p
+                                        </a>
+                                    </li>
+                                }
                             }
 
-                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
-                                <a class="page-link" href="/Catalog?@(BuildQueryString(Model, newPage: Model.CurrentPage + 1))">
+                            <li class="admin-page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="btn btn-sm btn-light border @(!Model.HasNextPage ? "disabled opacity-50" : "text-dark")" 
+                                   href="@(!Model.HasNextPage ? "javascript:void(0)" : $"/Catalog?{BuildQueryString(Model, newPage: Model.CurrentPage + 1)}")"
+                                   title="Trang tiếp theo"
+                                   style="min-width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
                                     Sau <i class="bi bi-chevron-right"></i>
                                 </a>
                             </li>
