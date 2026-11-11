@@ -8,10 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Controllers;
 
-/// <summary>
-/// Controller Quản trị Thể loại / Phân khúc Laptop (Categories)
-/// Triển khai đầy đủ CRUD theo chuẩn mô hình được học trong LapTrinhWeb (TvcLesson08Df)
-/// </summary>
 [Authorize(Roles = "Admin,Staff")]
 public class CategoriesController : Controller
 {
@@ -22,7 +18,6 @@ public class CategoriesController : Controller
         _context = context;
     }
 
-    // GET: Categories
     public async Task<IActionResult> Index()
     {
         var categories = await _context.Categories
@@ -32,7 +27,6 @@ public class CategoriesController : Controller
         return View(categories);
     }
 
-    // GET: Categories/Details/5
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)
@@ -52,13 +46,11 @@ public class CategoriesController : Controller
         return View(category);
     }
 
-    // GET: Categories/Create
     public IActionResult Create()
     {
         return View();
     }
 
-    // POST: Categories/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("CategoryId,CategoryName,Description")] Category category)
@@ -73,7 +65,6 @@ public class CategoriesController : Controller
         return View(category);
     }
 
-    // GET: Categories/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -89,7 +80,6 @@ public class CategoriesController : Controller
         return View(category);
     }
 
-    // POST: Categories/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, [Bind("CategoryId,CategoryName,Description")] Category category)
@@ -123,7 +113,6 @@ public class CategoriesController : Controller
         return View(category);
     }
 
-    // GET: Categories/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -143,7 +132,6 @@ public class CategoriesController : Controller
         return View(category);
     }
 
-    // POST: Categories/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)

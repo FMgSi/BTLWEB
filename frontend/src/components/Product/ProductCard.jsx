@@ -1,8 +1,6 @@
 import { formatVND } from '../../utils/formatters';
 
-export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
-
-
+export default function ProductCard({ item, onSelectProduct }) {
   const handleClickDetail = (e) => {
     if (onSelectProduct && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
       e.preventDefault();
@@ -13,14 +11,12 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
   return (
     <div className="card h-100 product-card p-2 position-relative d-flex flex-column justify-content-between">
       <div>
-        {/* Badge giảm giá / Mới */}
         {item.badge && (
           <span className={`badge ${item.badgeColor || 'bg-danger'} badge-custom position-absolute top-0 start-0 m-2`}>
             {item.badge}
           </span>
         )}
 
-        {/* Ảnh sản phẩm bọc trong link chi tiết */}
         <a 
           href={`/product/${item.id}`} 
           onClick={handleClickDetail}
@@ -38,7 +34,6 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
           />
         </a>
 
-        {/* Tên và thông số */}
         <div className="p-1">
           <a 
             href={`/product/${item.id}`} 
@@ -53,7 +48,6 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
         </div>
       </div>
 
-      {/* Giá tiền và 3 Icon liên kết */}
       <div className="p-1 pt-0">
         <div className="mb-2">
           <span className="text-pc-red fw-bold d-block" style={{ fontSize: '14px', letterSpacing: '-0.3px' }}>
@@ -68,9 +62,7 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
           )}
         </div>
 
-        {/* Cụm 3 icon có gắn link chuyển trang */}
         <div className="d-flex align-items-center gap-2 pt-2 border-top">
-          {/* 1. Nút thêm vào giỏ hàng */}
           <button
             type="button"
             className="card-action-link bg-transparent border-0"
@@ -86,7 +78,6 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
             <i className="bi bi-cart3"></i>
           </button>
 
-          {/* 2. Nút thêm vào mục yêu thích */}
           <a
             href={`/wishlist?add=${item.id}`}
             className="card-action-link"
@@ -99,7 +90,6 @@ export default function ProductCard({ item, onSelectProduct, onAddToCart }) {
             <i className="bi bi-heart"></i>
           </a>
 
-          {/* 3. Nút xem chi tiết / so sánh */}
           <a
             href={`/product/${item.id}`}
             onClick={handleClickDetail}

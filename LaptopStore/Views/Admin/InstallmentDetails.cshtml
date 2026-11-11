@@ -53,9 +53,8 @@
     </div>
 }
 
-<!-- THÔNG TIN TỔNG QUAN HỢP ĐỒNG -->
 <div class="row g-4 mb-4">
-    <!-- Cột 1: Thông tin khách hàng & Giao nhận -->
+    
     <div class="col-lg-4">
         <div class="admin-card h-100 p-4">
             <h5 class="fs-6 fw-bold mb-3 border-bottom pb-2">
@@ -80,7 +79,7 @@
         </div>
     </div>
 
-    <!-- Cột 2: Điều khoản trả góp & Tài chính -->
+    
     <div class="col-lg-8">
         <div class="admin-card h-100 p-4">
             <h5 class="fs-6 fw-bold mb-3 border-bottom pb-2">
@@ -131,7 +130,6 @@
     </div>
 </div>
 
-<!-- BẢNG LỊCH CÁC KỲ TRẢ GÓP -->
 <div class="admin-card mb-4">
     <div class="admin-card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title-text mb-0">
@@ -226,7 +224,7 @@
                         </td>
                     </tr>
 
-                    <!-- MODAL THU TIỀN KỲ -->
+                    
                     @if (s.Status != "Đã thanh toán" && s.IsCurrentDue)
                     {
                         <div class="modal fade" id="modal-collect-@s.PeriodNumber" tabindex="-1" aria-hidden="true">
@@ -290,7 +288,6 @@
     </div>
 </div>
 
-<!-- LỊCH SỬ CÁC LẦN THU TIỀN VÀ BIÊN NHẬN -->
 <div class="admin-card">
     <div class="admin-card-header">
         <h5 class="card-title-text mb-0">
@@ -354,7 +351,6 @@
     </div>
 </div>
 
-<!-- MODAL DUYỆT TIỀN TRẢ TRƯỚC 30% TỪ TRANG CHI TIẾT -->
 @if (Model.Status == "Chờ trả trước")
 {
     <div class="modal fade" id="modal-activate" tabindex="-1" aria-hidden="true">

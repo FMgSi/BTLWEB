@@ -46,7 +46,6 @@
     </div>
 }
 
-<!-- THÔNG TIN TỔNG QUAN LAPTOP -->
 <div class="card shadow-sm border-0 rounded-3 mb-4">
     <div class="card-body p-3">
         <div class="row align-items-center g-3">
@@ -77,7 +76,6 @@
 </div>
 
 <div class="row g-4">
-    <!-- FORM THÊM MỚI PHIÊN BẢN -->
     <div class="col-lg-4">
         <div class="card shadow-sm border-0 rounded-3 h-100">
             <div class="card-header bg-primary text-white py-3">
@@ -90,7 +88,6 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="ProductId" value="@Model.ProductId" />
 
-                    <!-- Chọn Màu Sắc -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Màu sắc <span class="text-danger">*</span></label>
                         <select name="ColorId" class="form-select" required>
@@ -105,7 +102,6 @@
                         </div>
                     </div>
 
-                    <!-- RAM & Storage (Dropdown chuẩn hóa) -->
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label fw-semibold small">RAM <span class="text-danger">*</span></label>
@@ -156,14 +152,12 @@
                         </div>
                     </div>
 
-                    <!-- Số lượng tồn ban đầu -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Số lượng tồn kho ban đầu <span class="text-danger">*</span></label>
                         <input type="number" name="StockQuantity" class="form-control" value="1" min="0" required />
                         <div class="form-text small">Số máy màu/cấu hình này hiện có trong kho hàng</div>
                     </div>
 
-                    <!-- Giá bán riêng (nếu khác giá gốc) -->
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label fw-semibold small">Giá niêm yết (₫)</label>
@@ -175,7 +169,6 @@
                         </div>
                     </div>
 
-                    <!-- Mã SKU tùy chỉnh -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Mã SKU (Tùy chọn)</label>
                         <input type="text" name="SKU" class="form-control font-monospace" placeholder="Tự sinh nếu để trống" />
@@ -189,7 +182,6 @@
         </div>
     </div>
 
-    <!-- BẢNG DANH SÁCH PHIÊN BẢN -->
     <div class="col-lg-8">
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
@@ -243,7 +235,6 @@
                                         }
                                     </td>
                                     <td>
-                                        <!-- Form điều chỉnh tồn kho trực tiếp -->
                                         <form asp-action="AdjustVariantStock" method="post" class="d-flex gap-1 align-items-center">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="VariantId" value="@v.VariantId" />

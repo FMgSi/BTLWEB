@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - LAPTOP WORLD ADMIN</title>
 
-    <!-- Bootstrap 5 & Icons -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
-    <!-- Admin Modern Theme -->
+    
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
 
-    <!-- Chart.js -->
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="admin-body-horizontal">
@@ -21,12 +21,12 @@
         var currentAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLower();
     }
 
-    <!-- ==================== THANH TASKBAR & ĐIỀU HƯỚNG THEO KIỂU NGANG ==================== -->
+    
     <header class="admin-horizontal-header sticky-top">
         <div class="container-fluid px-3 px-lg-4">
-            <!-- HÀNG TRÊN: LOGO, TÌM KIẾM, THÔNG BÁO & USER PROFILE -->
+            
             <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
-                <!-- Logo & Brand -->
+                
                 <div class="d-flex align-items-center gap-3">
                     <a href="/Admin/Orders" class="d-flex align-items-center gap-2 text-decoration-none">
                         <div class="brand-icon-box">
@@ -39,15 +39,15 @@
                     </a>
                 </div>
 
-                <!-- Global Search Input -->
+                
                 <div class="topbar-search-wrap d-none d-md-block" style="width: 360px;">
                     <i class="bi bi-search topbar-search-icon"></i>
                     <input type="text" class="topbar-search-input" id="globalAdminSearch" placeholder="Tìm kiếm sản phẩm, đơn hàng, khách hàng..." />
                 </div>
 
-                <!-- Topbar Actions (Thông báo & Tài khoản) -->
+                
                 <div class="d-flex align-items-center gap-2">
-                    <!-- Notification Dropdown -->
+                    
                     <div class="dropdown">
                         <div class="btn-action-tool py-1 px-2" data-bs-toggle="dropdown" aria-expanded="false" id="topbarNotificationBtn" role="button" style="cursor: pointer;">
                             <i class="bi bi-bell text-secondary"></i>
@@ -76,7 +76,7 @@
                         </div>
                     </div>
 
-                    <!-- User Profile Dropdown -->
+                    
                     <div class="dropdown">
                         <div class="btn-action-tool py-1 px-2 gap-2" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
                             <div class="topbar-user-avatar" style="width: 24px; height: 24px; font-size: 0.75rem;">
@@ -96,9 +96,9 @@
                 </div>
             </div>
 
-            <!-- HÀNG DƯỚI: THANH TASKBAR ĐIỀU HƯỚNG THEO KIỂU NGANG -->
+            
             <nav class="horizontal-taskbar-nav py-1">
-                <!-- 1. Quản lý sản phẩm (Nhấn để chuyển sang /Product, rê chuột hoặc bấm mũi tên để mở menu) -->
+                
                 <div class="nav-taskbar-group dropdown d-inline-flex align-items-center">
                     <a href="/Product" class="nav-taskbar-item @(currentCtrl == "product" || currentCtrl == "categories" || currentCtrl == "brands" || currentCtrl == "colors" ? "active" : "") pe-1" title="Nhấn để vào Danh sách sản phẩm">
                         <i class="bi bi-laptop me-1"></i> Quản lý sản phẩm
@@ -117,17 +117,17 @@
                     </ul>
                 </div>
 
-                <!-- 2. Quản lý đơn hàng -->
+                
                 <a href="/Admin/Orders" class="nav-taskbar-item @(currentCtrl == "admin" && currentAction == "orders" ? "active" : "")">
                     <i class="bi bi-box-seam me-1"></i> Quản lý đơn hàng
                 </a>
 
-                <!-- 3. Quản lý trả góp -->
+                
                 <a href="/Admin/Installments" class="nav-taskbar-item @(currentCtrl == "admin" && (currentAction == "installments" || currentAction == "installmentdetails") ? "active" : "")">
                     <i class="bi bi-credit-card-2-front me-1"></i> Quản lý trả góp
                 </a>
 
-                <!-- 4. Dịch vụ & Bảo hành (Nhấn để chuyển sang /Admin/ServiceTickets, rê chuột hoặc bấm mũi tên để mở menu) -->
+                
                 <div class="nav-taskbar-group dropdown d-inline-flex align-items-center">
                     <a href="/Admin/ServiceTickets" class="nav-taskbar-item @(currentCtrl == "admin" && (currentAction.StartsWith("service") || currentAction == "solddevices") ? "active" : "") pe-1" title="Nhấn để vào Phiếu tiếp nhận">
                         <i class="bi bi-tools me-1"></i> Dịch vụ & Bảo hành
@@ -143,12 +143,12 @@
                     </ul>
                 </div>
 
-                <!-- 5. Báo cáo thống kê -->
+                
                 <a href="/Admin/Reports" class="nav-taskbar-item @(currentCtrl == "admin" && currentAction == "reports" ? "active" : "")">
                     <i class="bi bi-bar-chart-line me-1"></i> Báo cáo thống kê
                 </a>
 
-                <!-- 6. Quản lý tài khoản -->
+                
                 <a href="/Admin/Customers" class="nav-taskbar-item @(currentCtrl == "admin" && (currentAction == "customers" || currentAction == "staff") ? "active" : "")">
                     <i class="bi bi-people me-1"></i> Quản lý tài khoản
                 </a>
@@ -156,7 +156,7 @@
         </div>
     </header>
 
-    <!-- ==================== KHÔNG GIAN NỘI DUNG CHÍNH (FULL WIDTH) ==================== -->
+    
     <div class="admin-main admin-main-horizontal">
         <main class="container-fluid px-3 px-lg-4 py-4 flex-grow-1">
             @RenderBody()
@@ -169,7 +169,7 @@
         </footer>
     </div>
 
-    <!-- Scripts -->
+    
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
@@ -196,7 +196,6 @@
 
                     let itemsHtml = '';
 
-                    // 1. Kỳ trả góp đến hạn hoặc quá hạn
                     if (data.installments && data.installments.length > 0) {
                         data.installments.forEach(item => {
                             const icon = item.badge === 'Quá hạn' ? 'bi-exclamation-triangle-fill text-danger' : 'bi-clock-history text-warning';
@@ -216,7 +215,6 @@
                         });
                     }
 
-                    // 2. Đơn hàng mới
                     if (data.orders && data.orders.length > 0) {
                         data.orders.forEach(item => {
                             const icon = item.badge === 'Chờ trả trước' ? 'bi-credit-card-2-front text-warning' : 'bi-bag-check-fill text-primary';
@@ -236,7 +234,6 @@
                         });
                     }
 
-                    // 3. Kho hàng
                     if (data.stocks && data.stocks.length > 0) {
                         data.stocks.forEach(item => {
                             itemsHtml += `

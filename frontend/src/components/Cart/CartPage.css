@@ -1,19 +1,14 @@
-/* Giao diện Giỏ hàng & Thanh toán */
-
 .cart-page-wrap {
   background-color: #f8fafc;
   min-height: 80vh;
   padding-bottom: 60px;
 }
-
-/* Container tập trung ở giữa */
 .cart-centered-container {
   max-width: 1040px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100%;
 }
-
 .cart-breadcrumb {
   font-size: 13px;
   color: #64748b;
@@ -23,24 +18,19 @@
   flex-wrap: wrap;
   gap: 6px 8px;
 }
-
 .cart-breadcrumb a {
   color: #64748b;
   text-decoration: none;
   transition: color 0.15s;
   white-space: nowrap;
 }
-
 .cart-breadcrumb a:hover {
   color: #e11b1e;
   text-decoration: underline;
 }
-
 .cart-breadcrumb span {
   white-space: nowrap;
 }
-
-/* Card bao bọc danh sách sản phẩm giỏ hàng */
 .cart-items-card {
   background: #ffffff;
   border-radius: 12px;
@@ -48,8 +38,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 20px 24px;
 }
-
-/* Thanh tiêu đề / Chọn tất cả */
 .cart-header-row {
   display: flex;
   align-items: center;
@@ -58,7 +46,6 @@
   border-bottom: 1px solid #f1f5f9;
   font-size: 14px;
 }
-
 .cart-check-all {
   display: inline-flex;
   align-items: center;
@@ -68,7 +55,6 @@
   cursor: pointer;
   user-select: none;
 }
-
 .cart-clear-btn {
   background: transparent;
   border: 1px solid #fecaca;
@@ -83,20 +69,15 @@
   gap: 6px;
   transition: all 0.2s ease;
 }
-
 .cart-clear-btn:hover {
   background: #fee2e2;
   color: #b91c1c;
   border-color: #fca5a5;
 }
-
-/* Danh sách các mặt hàng trong giỏ */
 .cart-items-list {
   display: flex;
   flex-direction: column;
 }
-
-/* Từng dòng sản phẩm */
 .cart-item-row {
   display: flex;
   align-items: center;
@@ -106,13 +87,10 @@
   position: relative;
   transition: background-color 0.15s ease;
 }
-
 .cart-item-row:last-child {
   border-bottom: none;
   padding-bottom: 4px;
 }
-
-/* Checkbox chuẩn */
 .cart-checkbox {
   width: 19px;
   height: 19px;
@@ -121,8 +99,6 @@
   flex-shrink: 0;
   border-radius: 4px;
 }
-
-/* Ảnh đại diện sản phẩm */
 .cart-item-thumb {
   width: 88px;
   height: 88px;
@@ -138,19 +114,15 @@
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
-
 .cart-item-thumb:hover {
   transform: scale(1.03);
   border-color: #cbd5e1;
 }
-
 .cart-item-thumb img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
-
-/* Khối thông tin tên & cấu hình */
 .cart-item-info {
   flex: 1;
   min-width: 0;
@@ -158,7 +130,6 @@
   flex-direction: column;
   gap: 6px;
 }
-
 .cart-item-title {
   font-size: 15px;
   font-weight: 600;
@@ -172,12 +143,9 @@
   overflow: hidden;
   transition: color 0.15s;
 }
-
 .cart-item-title:hover {
   color: #e11b1e;
 }
-
-/* Nhãn cấu hình RAM / Ổ cứng */
 .cart-item-spec-tag {
   display: inline-flex;
   align-items: center;
@@ -190,28 +158,22 @@
   width: fit-content;
   border: 1px solid #e2e8f0;
 }
-
-/* Dòng giá đơn vị */
 .cart-item-price-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
   margin-top: 2px;
 }
-
 .cart-price-current {
   font-size: 16px;
   font-weight: 700;
   color: #e11b1e;
 }
-
 .cart-price-original {
   font-size: 13px;
   color: #94a3b8;
   text-decoration: line-through;
 }
-
-/* Khối hành động: Bộ số lượng, thành tiền, nút xóa */
 .cart-item-actions {
   display: flex;
   align-items: center;
@@ -219,8 +181,6 @@
   flex-shrink: 0;
   margin-left: auto;
 }
-
-/* Bộ điều khiển tăng giảm số lượng [-] [1] [+] */
 .cart-qty-ctrl {
   display: inline-flex;
   align-items: center;
@@ -230,7 +190,6 @@
   background: #ffffff;
   height: 34px;
 }
-
 .cart-qty-btn {
   width: 34px;
   height: 34px;
@@ -246,17 +205,14 @@
   transition: all 0.15s;
   user-select: none;
 }
-
 .cart-qty-btn:hover:not(:disabled) {
   background: #e2e8f0;
   color: #0f172a;
 }
-
 .cart-qty-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
-
 .cart-qty-val {
   min-width: 40px;
   height: 34px;
@@ -271,8 +227,6 @@
   align-items: center;
   justify-content: center;
 }
-
-/* Thành tiền mặt hàng */
 .cart-item-total {
   font-size: 16px;
   font-weight: 700;
@@ -280,8 +234,6 @@
   min-width: 115px;
   text-align: right;
 }
-
-/* Nút xóa mặt hàng */
 .cart-remove-btn {
   background: transparent;
   border: none;
@@ -295,16 +247,10 @@
   align-items: center;
   justify-content: center;
 }
-
 .cart-remove-btn:hover {
   color: #ef4444;
   background: #fee2e2;
 }
-
-/* =========================================================================
-   Card Tóm Tắt Đơn Hàng Bên Phải (Summary Card)
-   ========================================================================= */
-
 .cart-summary-card {
   background: #ffffff;
   border-radius: 12px;
@@ -314,7 +260,6 @@
   position: sticky;
   top: 85px;
 }
-
 .cart-summary-title {
   font-size: 17px;
   font-weight: 700;
@@ -323,7 +268,6 @@
   padding-bottom: 14px;
   border-bottom: 1px solid #f1f5f9;
 }
-
 .cart-summary-line {
   display: flex;
   justify-content: space-between;
@@ -332,7 +276,6 @@
   font-size: 14px;
   color: #64748b;
 }
-
 .cart-summary-total {
   display: flex;
   justify-content: space-between;
@@ -341,19 +284,16 @@
   margin-top: 16px;
   border-top: 1px dashed #cbd5e1;
 }
-
 .cart-summary-total-label {
   font-size: 15px;
   font-weight: 700;
   color: #0f172a;
 }
-
 .cart-summary-total-price {
   font-size: 24px;
   font-weight: 800;
   color: #e11b1e;
 }
-
 .cart-checkout-btn {
   width: 100%;
   height: 50px;
@@ -372,20 +312,16 @@
   gap: 8px;
   box-shadow: 0 4px 14px rgba(225, 27, 30, 0.25);
 }
-
 .cart-checkout-btn:hover:not(:disabled) {
   background-color: #c8101e;
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(225, 27, 30, 0.35);
 }
-
 .cart-checkout-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
 }
-
-/* Khối chính sách cam kết nhỏ dưới nút mua */
 .cart-reassurance-box {
   margin-top: 20px;
   padding-top: 16px;
@@ -394,7 +330,6 @@
   flex-direction: column;
   gap: 10px;
 }
-
 .cart-reassurance-item {
   display: flex;
   align-items: center;
@@ -402,17 +337,11 @@
   font-size: 12px;
   color: #64748b;
 }
-
 .cart-reassurance-item i {
   color: #10b981;
   font-size: 15px;
   flex-shrink: 0;
 }
-
-/* =========================================================================
-   Trạng thái Giỏ hàng trống
-   ========================================================================= */
-
 .cart-empty-box {
   text-align: center;
   padding: 60px 20px;
@@ -420,13 +349,11 @@
   border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
-
 .cart-empty-icon {
   font-size: 64px;
   color: #cbd5e1;
   margin-bottom: 16px;
 }
-
 .cart-empty-btn {
   display: inline-flex;
   align-items: center;
@@ -442,23 +369,16 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-
 .cart-empty-btn:hover {
   background-color: #c8101e;
   color: #ffffff;
 }
-
-/* =========================================================================
-   Responsive Mobile
-   ========================================================================= */
-
 @media (max-width: 768px) {
   .cart-item-row {
     flex-wrap: wrap;
     gap: 12px;
     align-items: flex-start;
   }
-
   .cart-item-actions {
     width: 100%;
     margin-left: 0;
@@ -466,17 +386,11 @@
     justify-content: space-between;
     margin-top: 6px;
   }
-
   .cart-item-total {
     text-align: left;
     min-width: auto;
   }
 }
-
-/* =========================================================================
-   Giao diện Shopee Style Giỏ hàng & Thanh toán (PDF Hình 1 & Hình 2)
-   ========================================================================= */
-
 .shopee-address-card {
   background: #ffffff;
   border-radius: 4px;
@@ -484,7 +398,6 @@
   position: relative;
   overflow: hidden;
 }
-
 .shopee-address-ribbon {
   height: 3px;
   width: 100%;
@@ -492,7 +405,6 @@
   background-size: 116px 3px;
   background-image: repeating-linear-gradient(45deg, #6fa6d6, #6fa6d6 33px, transparent 0, transparent 41px, #f18d9b 0, #f18d9b 74px, transparent 0, transparent 82px);
 }
-
 .shopee-table-header {
   background: #ffffff;
   border-radius: 4px;
@@ -501,7 +413,6 @@
   font-size: 14px;
   color: #757575;
 }
-
 .shopee-cart-footer {
   position: sticky;
   bottom: 0;
@@ -513,7 +424,6 @@
   border-radius: 4px;
   margin-top: 24px;
 }
-
 .shopee-btn-buy {
   background-color: var(--pc-red, #e11b1e);
   color: #ffffff;
@@ -525,19 +435,16 @@
   transition: all 0.2s ease;
   cursor: pointer;
 }
-
 .shopee-btn-buy:hover:not(:disabled) {
   background-color: var(--pc-red-hover, #c8101e);
   color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(225, 27, 30, 0.25);
 }
-
 .shopee-btn-buy:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .shopee-voucher-ticket {
   border: 1px dashed #ee4d2d;
   background: #fff5f1;
@@ -545,12 +452,10 @@
   position: relative;
   transition: all 0.2s;
 }
-
 .shopee-voucher-ticket:hover {
   background: #ffebe5;
   box-shadow: 0 2px 10px rgba(238, 77, 45, 0.15);
 }
-
 .shopee-tier-pill {
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
@@ -558,19 +463,16 @@
   transition: all 0.2s;
   background: #ffffff;
 }
-
 .shopee-tier-pill.active {
   border-color: #10b981;
   background-color: #f0fdf4;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
 }
-
 .shopee-tier-pill.inactive {
   opacity: 0.72;
   background-color: #f8fafc;
   border-color: #e2e8f0;
 }
-
 .shopee-payment-option {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -578,18 +480,14 @@
   transition: all 0.2s;
   background: #ffffff;
 }
-
 .shopee-payment-option:hover {
   border-color: #cbd5e1;
 }
-
 .shopee-payment-option.active {
   border-color: #ee4d2d;
   background-color: #fff8f6;
   box-shadow: 0 0 0 1px #ee4d2d;
 }
-
-/* Responsive cho Giỏ hàng & Thanh toán */
 @media (max-width: 767.98px) {
   .cart-page-wrap {
     padding-top: 1rem !important;
@@ -622,10 +520,8 @@
     padding: 8px !important;
   }
 }
-
 @media (max-width: 575.98px) {
   .shopee-cart-footer .fs-5 {
     font-size: 16px !important;
   }
 }
-

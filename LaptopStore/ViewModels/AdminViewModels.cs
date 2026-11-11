@@ -11,7 +11,6 @@ public class AdminDashboardViewModel
     public double SalesGrowth { get; set; } = 18.0;
     public int LowStockCount { get; set; } = 15;
 
-    // Các chỉ số nghiệp vụ trả góp
     public int WaitingInstallmentPrepayCount { get; set; } = 0;
     public int ActiveInstallmentContractsCount { get; set; } = 0;
     public decimal TotalInstallmentDebt { get; set; } = 0;
@@ -29,7 +28,7 @@ public class RecentOrderDto
     public string ProductName { get; set; } = string.Empty;
     public string OrderDate { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
-    public string Status { get; set; } = string.Empty; // "Đã thanh toán", "Đang xử lý", "Đã xác nhận", "Hoàn thành"
+    public string Status { get; set; } = string.Empty; 
     public string StatusBadgeClass { get; set; } = string.Empty;
 }
 
@@ -64,7 +63,7 @@ public class CustomerDto
     public string Email { get; set; } = string.Empty;
     public int TotalOrders { get; set; }
     public decimal TotalSpent { get; set; }
-    public string MembershipTier { get; set; } = string.Empty; // "Kim cương", "Vàng", "Bạc", "Đồng"
+    public string MembershipTier { get; set; } = string.Empty; 
     public string TierBadgeClass { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 }
@@ -77,7 +76,7 @@ public class StaffDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
-    public string Role { get; set; } = "Staff"; // "Admin", "Staff"
+    public string Role { get; set; } = "Staff"; 
     public string RoleDisplay => Role switch
     {
         "Admin" => "Quản trị viên",
@@ -111,7 +110,7 @@ public class UpdateStaffInput
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
-    public string? Password { get; set; } // để trống nếu không đổi mật khẩu
+    public string? Password { get; set; } 
     public string Role { get; set; } = "Staff";
     public bool IsActive { get; set; } = true;
 }
@@ -122,7 +121,7 @@ public class DiscountDto
     public string Code { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string DiscountType { get; set; } = string.Empty; // "Percentage" | "FixedAmount"
+    public string DiscountType { get; set; } = string.Empty; 
     public string DiscountTypeDisplay => DiscountType == "Percentage" || DiscountType == "Giảm theo %" ? "Giảm theo %" : "Giảm số tiền";
     public decimal DiscountValue { get; set; }
     public decimal? MaxDiscountAmount { get; set; }
@@ -134,46 +133,40 @@ public class DiscountDto
     public string ApplicableScope { get; set; } = "All";
     public bool IsActive { get; set; } = true;
 
-    // Display helpers for MVC Views
     public string DiscountValueText { get; set; } = string.Empty;
     public string ConditionText { get; set; } = string.Empty;
     public string UsageText { get; set; } = string.Empty;
     public string ExpiryText { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty; // "Đang hoạt động", "Hết hạn", "Hết lượt dùng", "Đã ngừng", "Chưa bắt đầu"
+    public string Status { get; set; } = string.Empty; 
     public string StatusBadgeClass { get; set; } = string.Empty;
     public bool CanDelete => UsedCount == 0;
 }
 
 public class SystemSettingsViewModel
 {
-    // Cửa hàng
+    
     public string StoreName { get; set; } = "LAPTOP WORLD VIỆT NAM";
     public string Hotline { get; set; } = "1900 8888";
     public string SupportEmail { get; set; } = "hotro@laptopworld.vn";
     public string StoreAddress { get; set; } = "Số 123 Đường Cầu Giấy, Quận Cầu Giấy, TP. Hà Nội";
     public string TaxId { get; set; } = "0109887766";
 
-    // COD
     public bool EnableCod { get; set; } = true;
 
-    // VNPAY
     public bool EnableVnPay { get; set; } = true;
     public string VnPayTmnCode { get; set; } = "LAPTOPW1";
     public string VnPayHashKey { get; set; } = "RAOCTARVBMNCKHYZXWUQJDEFKSOQPZMA";
     public string VnPayUrl { get; set; } = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-    // VietQR
     public string VietQrBankName { get; set; } = "MB Bank (Ngân hàng Quân Đội)";
     public string VietQrAccountNumber { get; set; } = "098877665544";
     public string VietQrAccountHolder { get; set; } = "LAPTOP WORLD VIỆT NAM";
 
-    // MoMo
     public bool EnableMoMo { get; set; } = false;
     public string MoMoPartnerCode { get; set; } = "MOMOBKUN20180529";
     public string MoMoAccessKey { get; set; } = "klm05TvNBzhg7h7j";
     public string MoMoSecretKey { get; set; } = "at67qH6mk8w5Y1nAyMoTvMWACxb8iYr8";
 
-    // ZaloPay
     public bool EnableZaloPay { get; set; } = false;
     public string ZaloPayAppId { get; set; } = "2554";
     public string ZaloPayKey1 { get; set; } = "sdngKKJv5gah2838vhf83";

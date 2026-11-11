@@ -6,7 +6,7 @@
 }
 
 <div class="container">
-    <!-- Breadcrumb -->
+    
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="/Catalog" class="text-decoration-none">Trang chủ</a></li>
@@ -16,9 +16,9 @@
         </ol>
     </nav>
 
-    <!-- Khối Thông tin chính của Laptop -->
+    
     <div class="row g-4 mb-5">
-        <!-- Cột trái: Ảnh sản phẩm và Thư viện ảnh -->
+        
         <div class="col-12 col-lg-6">
             <div class="detail-gallery-main shadow-sm mb-3">
                 <img id="mainProductImg" 
@@ -43,7 +43,7 @@
             }
         </div>
 
-        <!-- Cột phải: Giá, Cấu hình nổi bật và Đặt mua -->
+        
         <div class="col-12 col-lg-6">
             <div class="bg-white p-4 rounded-3 border shadow-sm">
                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -67,7 +67,7 @@
 
                 <h1 class="h4 fw-bold text-dark mb-3">@Model.Name</h1>
 
-                <!-- Hộp giá -->
+                
                 <div class="detail-price-box mb-4">
                     <div class="d-flex align-items-baseline gap-3">
                         <span class="fs-2 fw-extrabold text-danger" id="detailDisplayPrice">@Model.Price.ToString("N0")đ</span>
@@ -82,7 +82,7 @@
                     </div>
                 </div>
 
-                <!-- Cấu hình tóm tắt -->
+                
                 @if (Model.Specification != null)
                 {
                     <div class="row g-2 mb-3">
@@ -101,7 +101,7 @@
                     </div>
                 }
 
-                <!-- CHỌN PHIÊN BẢN & MÀU SẮC (PRODUCT VARIANTS) -->
+                
                 @if (Model.Variants != null && Model.Variants.Any())
                 {
                     <div class="mb-4 p-3 bg-light rounded-3 border">
@@ -112,21 +112,21 @@
                             <span id="selectedColorNameBadge" class="badge bg-primary"></span>
                         </div>
                         
-                        <!-- Danh sách Màu sắc Swatches -->
+                        
                         <div class="d-flex flex-wrap gap-2 mb-3" id="colorSelectorWrap"></div>
 
-                        <!-- Cấu hình RAM & SSD tương ứng với màu -->
+                        
                         <label class="form-label fw-bold text-dark small text-uppercase mb-1">
                             <i class="bi bi-cpu text-primary me-1"></i> 2. Cấu hình có sẵn:
                         </label>
                         <div class="d-flex flex-wrap gap-2 mb-2" id="configSelectorWrap"></div>
 
-                        <!-- Trạng thái tồn kho của màu/cấu hình đã chọn -->
+                        
                         <div id="variantStockInfo" class="mt-2 pt-2 border-top small"></div>
                     </div>
                 }
 
-                <!-- Nút hành động đặt hàng -->
+                
                 <div id="orderActionButtonsWrap" class="mb-3">
                     <div class="row g-2">
                         @if (Model.StockQuantity > 0)
@@ -155,7 +155,7 @@
                     </div>
                 </div>
 
-                <!-- Thông tin khuyến mãi bổ sung -->
+                
                 <div class="p-3 border rounded bg-light-subtle small">
                     <div class="fw-bold mb-2 text-primary"><i class="bi bi-gift-fill me-1"></i> Quà tặng & Ưu đãi đặc quyền:</div>
                     <ul class="mb-0 ps-3 text-muted">
@@ -169,9 +169,9 @@
         </div>
     </div>
 
-    <!-- Bảng thông số kỹ thuật chi tiết & Mô tả sản phẩm -->
+    
     <div class="row g-4 mb-5">
-        <!-- Bảng chi tiết cấu hình -->
+        
         <div class="col-12 col-lg-7">
             <div class="bg-white p-4 rounded-3 border shadow-sm">
                 <h2 class="h5 fw-bold mb-3 border-bottom pb-2">
@@ -224,7 +224,7 @@
             </div>
         </div>
 
-        <!-- Mô tả đánh giá sản phẩm -->
+        
         <div class="col-12 col-lg-5">
             <div class="bg-white p-4 rounded-3 border shadow-sm">
                 <h2 class="h5 fw-bold mb-3 border-bottom pb-2">
@@ -244,7 +244,7 @@
         </div>
     </div>
 
-    <!-- Sản phẩm tương tự / Cùng thương hiệu -->
+    
     @if (related.Any())
     {
         <div class="mb-5">
@@ -281,7 +281,6 @@
     }
 </div>
 
-<!-- MODAL ĐẶT HÀNG TRẢ THẲNG & TRẢ GÓP (MỐC 1) -->
 <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-3">
@@ -292,7 +291,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4" id="orderModalBody">
-                <!-- Chọn hình thức mua -->
+                
                 <div class="mb-4">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-2">1. Chọn hình thức mua hàng</label>
                     <div class="row g-2">
@@ -315,7 +314,7 @@
                     </div>
                 </div>
 
-                <!-- Khung cấu hình trả góp nếu chọn Trả góp -->
+                
                 <div id="installmentConfigBox" class="p-3 rounded-3 border bg-light-subtle mb-4" style="display: none;">
                     <label class="form-label fw-bold small text-primary text-uppercase mb-2">
                         <i class="bi bi-calendar-range me-1"></i> 2. Chọn kỳ hạn trả góp (Lãi suất 0%)
@@ -327,7 +326,7 @@
                         <button type="button" class="btn btn-outline-secondary term-btn flex-fill" data-term="12" onclick="selectTerm(12)">12 tháng</button>
                     </div>
 
-                    <!-- Bảng tóm tắt tài chính -->
+                    
                     <div class="row g-2 text-center small mb-3">
                         <div class="col-4">
                             <div class="p-2 bg-white rounded border">
@@ -352,16 +351,16 @@
                         </div>
                     </div>
 
-                    <!-- Lịch trả dự kiến -->
+                    
                     <div class="small">
                         <div class="fw-semibold text-muted mb-1"><i class="bi bi-info-circle me-1"></i> Lịch thanh toán dự kiến:</div>
                         <div id="schedulePreviewTable" class="table-responsive bg-white rounded border" style="max-height: 160px; overflow-y: auto;">
-                            <!-- Đổ dữ liệu từ JS -->
+                            
                         </div>
                     </div>
                 </div>
 
-                <!-- Form thông tin khách hàng -->
+                
                 <form id="orderForm" onsubmit="submitCustomerOrder(event)">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-2">3. Thông tin người nhận hàng</label>
                     <div class="row g-3 mb-3">
@@ -383,7 +382,7 @@
                         </div>
                     </div>
 
-                    <!-- Phương thức thanh toán khoản trả ngay -->
+                    
                     <div class="mb-4">
                         <label class="form-label fw-bold small text-muted text-uppercase mb-2">4. Phương thức thanh toán khoản trả ngay</label>
                         <div class="form-check p-3 border rounded mb-2">
@@ -424,7 +423,6 @@
         return num.toLocaleString('vi-VN') + 'đ';
     }
 
-    // Khởi tạo bộ chọn màu sắc và cấu hình
     function initVariantSelector() {
         if (!VARIANTS || VARIANTS.length === 0) return;
 
@@ -447,7 +445,6 @@
         colorSelectorWrap.innerHTML = '';
         const colors = Array.from(colorMap.values());
 
-        // Ưu tiên chọn màu đầu tiên có hàng, nếu không thì chọn màu đầu tiên
         let defaultColor = colors.find(c => c.variants.some(v => v.StockQuantity > 0)) || colors[0];
         selectedColorId = defaultColor.colorId;
 
@@ -495,7 +492,6 @@
         configWrap.innerHTML = '';
         if (!variants || variants.length === 0) return;
 
-        // Chọn biến thể đầu tiên còn hàng, hoặc biến thể đầu tiên
         let chosen = variants.find(v => v.StockQuantity > 0) || variants[0];
         selectedVariant = chosen;
 
@@ -543,12 +539,10 @@
         const colorBadge = document.getElementById('selectedColorNameBadge');
         if (colorBadge) colorBadge.textContent = variant.ColorName;
 
-        // Cập nhật giá theo biến thể
         TOTAL_PRICE = (variant.EffectivePrice > 0) ? variant.EffectivePrice : @Model.Price;
         const displayPriceEl = document.getElementById('detailDisplayPrice');
         if (displayPriceEl) displayPriceEl.textContent = formatVND(TOTAL_PRICE);
 
-        // Cập nhật ảnh chính theo biến thể / màu sắc
         const genericImg = '@(string.IsNullOrEmpty(Model.Image) ? "/images/products/placeholder.png" : Model.Image)';
         let variantImg = (variant.ImageUrl && variant.ImageUrl !== genericImg) ? variant.ImageUrl : null;
         if (!variantImg && variant.ColorId && VARIANTS) {
@@ -560,7 +554,6 @@
             mainImg.src = variantImg || genericImg;
         }
 
-        // Cập nhật tình trạng kho của biến thể
         const stockInfo = document.getElementById('variantStockInfo');
         const stockBadgeWrap = document.getElementById('stockBadgeWrap');
         const buyFullBtn = document.getElementById('btnBuyFull');
@@ -604,7 +597,6 @@
             }
         }
 
-        // Cập nhật tính toán trả góp
         if (selectedMode === 'Installment') {
             selectTerm(selectedTerm);
         }
@@ -654,8 +646,6 @@
             }
         });
 
-        // Tính toán nghiệp vụ trả góp chuẩn Mốc 1:
-        // Trả trước đúng 30% làm tròn đến đồng
         const prepayAmount = Math.round(TOTAL_PRICE * 0.30);
         const financedAmount = TOTAL_PRICE - prepayAmount;
         const basePeriodAmount = Math.floor(financedAmount / term);
@@ -666,7 +656,6 @@
         document.getElementById('summaryMonthly').textContent = formatVND(basePeriodAmount);
         document.getElementById('summaryTermText').textContent = `${term} kỳ hạn (lãi 0%)`;
 
-        // Render lịch dự kiến
         const today = new Date();
         let tableHtml = `<table class="table table-sm table-borderless mb-0 align-middle">
             <thead class="table-light"><tr><th class="ps-2">Kỳ</th><th>Hạn dự kiến</th><th class="text-end pe-2">Số tiền</th></tr></thead><tbody>`;
@@ -737,7 +726,6 @@
                 return;
             }
 
-            // Đặt hàng thành công: hiển thị thông báo kết quả
             renderOrderSuccess(data.orderCode, payMethod, selectedMode, selectedTerm, phone, specText);
         } catch (err) {
             alert('Lỗi kết nối máy chủ: ' + err.message);

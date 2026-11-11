@@ -5,12 +5,11 @@ namespace LaptopStore.ViewModels;
 
 public class AdminReportsViewModel
 {
-    // 1. BỘ LỌC THỜI GIAN
-    public string Period { get; set; } = "month"; // "today", "7days", "month", "custom"
+    
+    public string Period { get; set; } = "month"; 
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
 
-    // 2. BÁO CÁO BÁN HÀNG
     public int TotalOrders { get; set; }
     public int NewOrders { get; set; }
     public int ProcessingOrders { get; set; }
@@ -20,18 +19,15 @@ public class AdminReportsViewModel
     public decimal ActualCashCollected { get; set; }
     public decimal InstallmentCashCollected { get; set; }
 
-    // 3. BÁO CÁO SẢN PHẨM
     public List<TopSellingProductDto> TopSellingProducts { get; set; } = new();
     public List<LowStockProductDto> LowStockProducts { get; set; } = new();
 
-    // 4. BÁO CÁO DỊCH VỤ SỬA CHỮA & BẢO HÀNH
     public int TotalReceivedTickets { get; set; }
     public int HandedOverTickets { get; set; }
     public int AwaitingQuoteTickets { get; set; }
     public int ProcessingTickets { get; set; }
     public double AverageProcessingHours { get; set; }
 
-    // 5. DỮ LIỆU BIỂU ĐỒ DOANH THU
     public List<string> ChartLabels { get; set; } = new();
     public List<decimal> ChartValues { get; set; } = new();
 }
@@ -54,4 +50,3 @@ public class LowStockProductDto
     public int StockQuantity { get; set; }
     public decimal Price { get; set; }
 }
-

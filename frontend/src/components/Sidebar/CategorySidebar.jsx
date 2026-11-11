@@ -1,6 +1,3 @@
-import React from 'react';
-
-// Danh sách 5 phân loại laptop hiển thị đồng nhất trên Sidebar trang chủ và Toolbar sản phẩm
 const LAPTOP_CATEGORIES = [
   { id: 'student', label: 'Laptop Sinh Viên', icon: 'bi-mortarboard-fill', tag: 'Laptop Sinh Viên' },
   { id: 'office', label: 'Laptop Văn Phòng', icon: 'bi-briefcase-fill', tag: 'Laptop Văn Phòng' },

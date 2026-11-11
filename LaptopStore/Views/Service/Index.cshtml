@@ -8,7 +8,7 @@
 }
 
 <div class="container py-4">
-    <!-- 1. HERO BANNER -->
+    
     <div class="bg-white rounded-3 shadow-sm p-4 mb-4 border">
         <div class="row align-items-center g-3">
             <div class="col-lg-8">
@@ -46,9 +46,7 @@
         </div>
     }
 
-
-
-    <!-- 3. NAVIGATION TABS -->
+    
     <div class="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
         <a href="/service?tab=request" class="btn btn-sm px-4 py-2 fw-bold rounded-2 @(Model.ActiveTab == "request" ? "btn-danger text-white" : "btn-light text-secondary")">
             <i class="bi bi-send-plus me-1"></i> 1. Gửi yêu cầu tiếp nhận
@@ -64,7 +62,7 @@
         </a>
     </div>
 
-    <!-- TAB 1: GỬI YÊU CẦU TIẾP NHẬN -->
+    
     @if (Model.ActiveTab == "request")
     {
         <div class="row g-4">
@@ -74,7 +72,7 @@
                         <i class="bi bi-clipboard2-check text-danger me-2"></i>Đăng ký phiếu tiếp nhận máy trực tuyến
                     </h5>
 
-                    <!-- Chọn luồng: Bảo hành (máy đã mua) hoặc Sửa chữa dịch vụ -->
+                    
                     <ul class="nav nav-pills mb-3 gap-2" id="requestTypeTab" role="tablist">
                         <li class="nav-item">
                             <button class="nav-link active fw-bold btn-sm" id="warranty-tab" data-bs-toggle="pill" data-bs-target="#warranty-content" type="button">
@@ -89,7 +87,7 @@
                     </ul>
 
                     <div class="tab-content" id="requestTypeContent">
-                        <!-- LUỒNG BẢO HÀNH -->
+                        
                         <div class="tab-pane fade show active" id="warranty-content">
                             <form asp-controller="Service" asp-action="SubmitWarranty" method="post">
                                 @Html.AntiForgeryToken()
@@ -152,7 +150,7 @@
                             </form>
                         </div>
 
-                        <!-- LUỒNG SỬA CHỮA -->
+                        
                         <div class="tab-pane fade" id="repair-content">
                             <form asp-controller="Service" asp-action="SubmitRepair" method="post">
                                 @Html.AntiForgeryToken()
@@ -219,7 +217,7 @@
                 </div>
             </div>
 
-            <!-- QUY TRÌNH TIẾP NHẬN BÊN PHẢI -->
+            
             <div class="col-lg-4">
                 <div class="bg-white rounded-3 p-3 shadow-sm border mb-3">
                     <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
@@ -250,12 +248,12 @@
         </div>
     }
 
-    <!-- TAB 2: THEO DÕI TIẾN ĐỘ PHIẾU -->
+    
     @if (Model.ActiveTab == "lookup")
     {
         <div class="row justify-content-center">
             <div class="col-lg-9">
-                <!-- FORM TRA CỨU -->
+                
                 <div class="bg-white rounded-3 p-4 shadow-sm border mb-4">
                     <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
                         <i class="bi bi-search text-danger me-2"></i>Tra cứu tiến độ & Duyệt báo giá trực tuyến
@@ -285,7 +283,7 @@
                     }
                 </div>
 
-                <!-- KẾT QUẢ TRA CỨU -->
+                
                 @if (Model.LookupResult != null)
                 {
                     var t = Model.LookupResult;
@@ -322,7 +320,7 @@
                             </div>
                         </div>
 
-                        <!-- BÁO GIÁ LINH KIỆN (NẾU CÓ) -->
+                        
                         @if (t.Quotes != null && t.Quotes.Any())
                         {
                             <div class="card border-warning mb-4 shadow-sm">
@@ -367,7 +365,7 @@
                             </div>
                         }
 
-                        <!-- LỊCH SỬ THAO TÁC / TIMELINE -->
+                        
                         @if (t.Histories != null && t.Histories.Any())
                         {
                             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history text-danger me-1"></i> Nhật ký xử lý thiết bị</h6>
@@ -389,7 +387,7 @@
         </div>
     }
 
-    <!-- TAB 3: BẢNG GIÁ DỊCH VỤ THAM KHẢO -->
+    
     @if (Model.ActiveTab == "catalog")
     {
         <div class="row g-3">
@@ -428,7 +426,7 @@
         </div>
     }
 
-    <!-- TAB 4: MÁY ĐÃ MUA & HẠN BH -->
+    
     @if (Model.ActiveTab == "my-devices")
     {
         @if (Model.MyDevices.Any())

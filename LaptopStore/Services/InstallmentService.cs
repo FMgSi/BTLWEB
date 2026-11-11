@@ -14,10 +14,6 @@ public class InstallmentService : IInstallmentService
         _db = db;
     }
 
-    /// <summary>
-    /// Tính toán phương án trả góp: 30% trả trước, chia đều các kỳ, dồn phần lẻ chênh lệch vào kỳ cuối
-    /// Đảm bảo tổng tiền trả trước + tổng các kỳ luôn khớp chính xác 100% đến từng đồng.
-    /// </summary>
     public InstallmentPlanDto CalculatePlan(decimal totalAmount, int termMonths, DateTime? startDate = null)
     {
         if (termMonths != 3 && termMonths != 6 && termMonths != 9 && termMonths != 12)
@@ -26,14 +22,12 @@ public class InstallmentService : IInstallmentService
         }
 
         const decimal prepayPercent = 30.00m;
-        // Trả trước đúng 30% trên tổng tiền cuối cùng của đơn, làm tròn đến đồng
+        
         decimal prepayAmount = Math.Round(totalAmount * (prepayPercent / 100m), 0, MidpointRounding.AwayFromZero);
         decimal financedAmount = totalAmount - prepayAmount;
 
-        // Số tiền mỗi kỳ cơ bản (làm tròn xuống đến đồng)
         decimal basePeriodAmount = Math.Floor(financedAmount / termMonths);
 
-        // Kỳ cuối nhận phần dư làm tròn (dồn chênh lệch để tổng khớp đúng financedAmount)
         decimal lastPeriodAmount = financedAmount - (basePeriodAmount * (termMonths - 1));
 
         var baseDate = startDate ?? DateTime.UtcNow;
@@ -211,7 +205,6 @@ public class InstallmentService : IInstallmentService
                     return (false, "Hợp đồng trả góp đã bị hủy, không thể kích hoạt.", null);
                 }
 
-                // Chặn ghi nhận trùng (Idempotent check)
                 if (contract.Status != "Chờ trả trước")
                 {
                     return (false, $"Hợp đồng đã ở trạng thái '{contract.Status}', không cần kích hoạt lại.", MapToDetailDto(contract));
@@ -223,7 +216,6 @@ public class InstallmentService : IInstallmentService
                     return (false, "Không tìm thấy đơn hàng liên kết với hợp đồng.", null);
                 }
 
-                // Cập nhật hoặc ghi nhận giao dịch thanh toán khoản tiền trả trước 30%
                 var existingPrepayPayment = order.Payments.FirstOrDefault(p => p.PaymentType == "Prepay");
                 if (existingPrepayPayment != null)
                 {
@@ -250,7 +242,6 @@ public class InstallmentService : IInstallmentService
                     });
                 }
 
-                // Kích hoạt hợp đồng
                 contract.Status = "Đang trả góp";
                 contract.ActivatedAt = DateTime.UtcNow;
                 if (!string.IsNullOrWhiteSpace(note))
@@ -258,13 +249,11 @@ public class InstallmentService : IInstallmentService
                     contract.Notes = (string.IsNullOrWhiteSpace(contract.Notes) ? "" : contract.Notes + " | ") + note;
                 }
 
-                // Chốt lịch các kỳ chính thức: kỳ 1 đến hạn sau 1 tháng kể từ ngày kích hoạt
                 foreach (var schedule in contract.Schedules.OrderBy(s => s.PeriodNumber))
                 {
                     schedule.DueDate = contract.ActivatedAt.Value.AddMonths(schedule.PeriodNumber);
                 }
 
-                // Cập nhật trạng thái thanh toán của Đơn hàng thành "Đang trả góp"
                 order.PaymentStatus = "Đang trả góp";
                 order.UpdatedAt = DateTime.UtcNow;
 
@@ -321,13 +310,11 @@ public class InstallmentService : IInstallmentService
                     return (false, $"Không tìm thấy kỳ trả góp số {periodNumber}.", null);
                 }
 
-                // Chặn ghi nhận trùng (Idempotency check)
                 if (schedule.Status == "Đã thanh toán")
                 {
                     return (false, $"Kỳ số {periodNumber} đã được thanh toán trước đó vào lúc {schedule.PaidAt:dd/MM/yyyy HH:mm}. Thao tác thu trùng bị chặn.", MapToScheduleDto(schedule));
                 }
 
-                // Kiểm tra thứ tự tuần tự: kỳ trước đó phải được thanh toán trước
                 var previousUnpaid = contract.Schedules
                     .Where(s => s.PeriodNumber < periodNumber && s.Status != "Đã thanh toán")
                     .OrderBy(s => s.PeriodNumber)
@@ -344,7 +331,6 @@ public class InstallmentService : IInstallmentService
                     return (false, "Không tìm thấy đơn hàng tương ứng.", null);
                 }
 
-                // Ghi nhận giao dịch vào bảng Payments
                 var payment = new Payment
                 {
                     OrderId = order.OrderId,
@@ -361,7 +347,6 @@ public class InstallmentService : IInstallmentService
                 _db.Payments.Add(payment);
                 await _db.SaveChangesAsync();
 
-                // Cập nhật trạng thái kỳ
                 schedule.Status = "Đã thanh toán";
                 schedule.PaidAmount = schedule.Amount;
                 schedule.PaidAt = DateTime.UtcNow;
@@ -370,7 +355,6 @@ public class InstallmentService : IInstallmentService
 
                 payment.ScheduleId = schedule.ScheduleId;
 
-                // Kiểm tra xem tất cả các kỳ đã được thanh toán chưa
                 bool allSchedulesPaid = contract.Schedules.All(s => s.PeriodNumber == periodNumber || s.Status == "Đã thanh toán");
 
                 if (allSchedulesPaid)
@@ -473,7 +457,6 @@ public class InstallmentService : IInstallmentService
             .Select(MapToScheduleDto)
             .ToList();
 
-        // Xác định kỳ kế tiếp cần thu
         var nextPeriod = schedulesDto.FirstOrDefault(s => s.Status != "Đã thanh toán");
         if (nextPeriod != null)
         {

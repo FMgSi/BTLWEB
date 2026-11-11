@@ -4,7 +4,6 @@ public class CatalogViewModel
 {
     public PagedResult<ProductApiDto> Products { get; set; } = new();
 
-    // Các tham số lọc hiện tại
     public string? Search { get; set; }
     public string? Brand { get; set; }
     public string? Category { get; set; }
@@ -13,11 +12,9 @@ public class CatalogViewModel
     public decimal? MaxPrice { get; set; }
     public string SortBy { get; set; } = "newest";
 
-    // Danh sách các Hãng và Danh mục để hiển thị lên bộ lọc
     public List<string> AvailableBrands { get; set; } = new();
     public List<string> AvailableCategories { get; set; } = new();
 
-    // Tiện ích tính toán phân trang
     public int CurrentPage => Products.Page;
     public int PageSize => Products.PageSize;
     public int TotalItems => Products.TotalItems;

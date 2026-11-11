@@ -32,10 +32,9 @@
     </div>
 }
 
-<!-- FILTER BAR CARD (CĂN LỀ TRÁI GỌN GÀNG) -->
 <div class="admin-card mb-3 p-3 shadow-sm border">
     <div class="d-flex flex-wrap align-items-end gap-2 justify-content-start">
-        <!-- Thương hiệu -->
+        
         <div style="width: 180px; max-width: 100%;">
             <label class="form-label-dark small fw-bold mb-1">Thương hiệu</label>
             <select id="filterBrand" class="form-select-dark" onchange="triggerFilter()">
@@ -60,7 +59,7 @@
             </select>
         </div>
 
-        <!-- Phân khúc -->
+        
         <div style="width: 190px; max-width: 100%;">
             <label class="form-label-dark small fw-bold mb-1">Phân khúc</label>
             <select id="filterCategory" class="form-select-dark" onchange="triggerFilter()">
@@ -85,7 +84,7 @@
             </select>
         </div>
 
-        <!-- Trạng thái -->
+        
         <div style="width: 160px; max-width: 100%;">
             <label class="form-label-dark small fw-bold mb-1">Trạng thái kho</label>
             <select id="filterStatus" class="form-select-dark" onchange="triggerFilter()">
@@ -96,7 +95,7 @@
             </select>
         </div>
 
-        <!-- Khoảng giá -->
+        
         <div style="width: 160px; max-width: 100%;">
             <label class="form-label-dark small fw-bold mb-1">Khoảng giá</label>
             <select id="filterPrice" class="form-select-dark" onchange="triggerFilter()">
@@ -107,7 +106,7 @@
             </select>
         </div>
 
-        <!-- Tìm kiếm từ khóa -->
+        
         <div style="width: 280px; max-width: 100%;">
             <label class="form-label-dark small fw-bold mb-1">Tìm kiếm</label>
             <div class="position-relative">
@@ -117,7 +116,7 @@
             </div>
         </div>
 
-        <!-- Nút Làm mới -->
+        
         <div>
             <label class="form-label-dark small fw-bold mb-1 invisible d-block">&nbsp;</label>
             <button type="button" class="btn-action-tool d-inline-flex align-items-center gap-1 text-nowrap" onclick="resetProductFilters()" title="Làm mới bộ lọc và danh sách">
@@ -127,7 +126,6 @@
     </div>
 </div>
 
-<!-- PRODUCT TABLE CONTAINER (AJAX RELOADABLE) -->
 <div class="admin-card">
     <div class="admin-card-header">
         <h5 class="card-title-text">

@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react';
 import { formatVND } from '../../utils/formatters';
 import './ProductDetail.css';
-import { PRODUCT_DATA } from '../../data/mockData';
 
 export default function ProductDetail({ productId, onBack, onSelectProduct, allProducts = [], onAddToCart, onBuyNow }) {
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
 
-  // States quản lý Gallery ảnh & Tự động chuyển ảnh mỗi 10s
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // States lựa chọn Màu sắc & Biến thể (Variants)
   const [selectedColorId, setSelectedColorId] = useState(null);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
 
-  // States lựa chọn cấu hình RAM và Ổ cứng
   const [selectedRamIndex, setSelectedRamIndex] = useState(0);
   const [selectedStorageIndex, setSelectedStorageIndex] = useState(0);
 
@@ -24,9 +20,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
-
-
-  // Trigger toast thông báo
   const triggerToast = (msg) => {
     setToastMessage(msg);
     setShowToast(true);
@@ -35,7 +28,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     }, 3500);
   };
 
-  // 1. Tải thông tin sản phẩm từ DB qua API /api/products/{id}
   useEffect(() => {
     let isMounted = true;
 
@@ -51,7 +43,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
             ? data.images
             : [data.image || data.thumbnailUrl || '/images/default.png'];
 
-          // Đảm bảo luôn có nhiều góc chụp để trình chiếu slide
           if (imgs.length <= 1) {
             const isGaming = (data.category || '').toLowerCase().includes('gaming');
             imgs = [
@@ -116,7 +107,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     };
   }, [productId]);
 
-  // Quản lý biến thể màu sắc và cấu hình
   const hasVariants = Boolean(product?.variants && product.variants.length > 0);
   const variants = product?.variants ?? [];
   const colorsById = new Map();
@@ -135,7 +125,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   const activeVariant = variantsForCurrentColor.find((v) => v.variantId === selectedVariantId)
     ?? variantsForCurrentColor[0] ?? null;
 
-  // Bộ 4 ảnh của sản phẩm (không phân chia theo màu sắc, một sản phẩm chỉ có 4 ảnh dù cho có bao nhiêu biến thể)
   const productImages = (product?.images && product.images.length > 0)
     ? product.images.slice(0, 4)
     : [product?.image || product?.thumbnailUrl || '/images/default.png'];
@@ -146,19 +135,16 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   const safeImageIndex = selectedImageIndex < activeGallery.length ? selectedImageIndex : 0;
   const currentImg = activeGallery[safeImageIndex] || activeGallery[0] || genericImg;
 
-  // Hàm bấm nút mũi tên lùi ảnh trước
   const handlePrevImage = () => {
     if (!activeGallery || activeGallery.length <= 1) return;
     setSelectedImageIndex((prev) => (prev === 0 ? activeGallery.length - 1 : prev - 1));
   };
 
-  // Hàm bấm nút mũi tên tiến ảnh kế
   const handleNextImage = () => {
     if (!activeGallery || activeGallery.length <= 1) return;
     setSelectedImageIndex((prev) => (prev + 1) % activeGallery.length);
   };
 
-  // 2. Tự động chuyển ảnh mỗi 10 giây (10s auto-slide)
   useEffect(() => {
     if (!activeGallery || activeGallery.length <= 1 || isPaused) return;
 
@@ -204,16 +190,13 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
   }
 
   const spec = product.specification || {};
-  // Cấu hình cơ bản từ Database
   const baseRamGB = spec.ramGB || 16;
   const baseStorageGB = spec.storageGB || 512;
 
-  // Danh sách tùy chọn RAM kèm chi phí phụ thu
   const ramOptions = [
     { label: `${baseRamGB} GB (Cấu hình chuẩn)`, extra: 0, ramGB: baseRamGB, isBase: true }
   ];
 
-  // Danh sách tùy chọn Ổ cứng chuẩn của máy từ CSDL
   const storageOptions = [
     { 
       label: `${baseStorageGB >= 1000 ? (baseStorageGB / 1000) + ' TB' : baseStorageGB + ' GB'} SSD (Cấu hình chuẩn)`, 
@@ -223,7 +206,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     }
   ];
 
-  // Xử lý đổi màu: ưu tiên giữ RAM/SSD nếu màu mới có cấu hình tương đương và reset về ảnh số 1 của màu đó
   const handleSelectColor = (newColorId) => {
     setSelectedColorId(newColorId);
     setSelectedImageIndex(0);
@@ -241,13 +223,11 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     }
   };
 
-  // Tồn kho và giá động theo biến thể
   const currentStock = hasVariants
     ? (activeVariant?.stockQuantity ?? 0)
     : product.stockQuantity;
   const isOutOfStock = currentStock <= 0;
 
-  // Tính toán giá động theo cấu hình đang chọn
   const activeRamOpt = ramOptions[selectedRamIndex] || ramOptions[0];
   const activeStorageOpt = storageOptions[selectedStorageIndex] || storageOptions[0];
   const totalExtra = (activeRamOpt?.extra || 0) + (activeStorageOpt?.extra || 0);
@@ -267,14 +247,12 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
     ? Math.round((1 - displayPrice / displayOriginalPrice) * 100)
     : 0;
 
-  // Lấy danh sách sản phẩm liên quan
   const relatedList = allProducts
     .filter((p) => p.id !== product.id)
     .slice(0, 4);
 
   return (
     <div className="product-detail-container site-container py-3">
-      {/* Toast thông báo mua hàng */}
       {showToast && (
         <div 
           className="position-fixed top-0 end-0 p-3" 
@@ -296,7 +274,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
         </div>
       )}
 
-      {/* 1. Breadcrumb & Nút Quay lại chuẩn FPT Shop */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
         <nav aria-label="breadcrumb" className="breadcrumb-nav">
           <ol className="breadcrumb mb-0">
@@ -323,7 +300,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
         </button>
       </div>
 
-      {/* 2. Tiêu đề sản phẩm & Đánh giá sao */}
       <div className="mb-3">
         <h1 className="fw-bold fs-4 text-dark mb-2 lh-sm">
           {product.name}
@@ -351,11 +327,8 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
         </div>
       </div>
 
-      {/* 3. Bố cục chính 2 cột chuẩn phong cách FPT Shop */}
       <div className="row g-4">
-        {/* CỘT TRÁI: Bộ sưu tập ảnh, Cam kết vàng, Bài viết đánh giá chi tiết */}
         <div className="col-12 col-lg-7">
-          {/* Khung ảnh chính lớn có nút mũi tên Next/Prev và Tự động chuyển mỗi 10s */}
           <div 
             className="detail-main-image-card mb-3 position-relative"
             onMouseEnter={() => setIsPaused(true)}
@@ -370,7 +343,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               <i className="bi bi-shield-check me-1 text-warning"></i>Chính hãng 100%
             </span>
 
-            {/* Nút mũi tên lùi ảnh (Prev) - Hiển thị khi thư viện của màu có nhiều hơn 1 ảnh */}
             {activeGallery && activeGallery.length > 1 && (
               <button 
                 type="button" 
@@ -382,7 +354,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </button>
             )}
 
-            {/* Ảnh hiển thị chính */}
             <img
               key={currentImg}
               src={currentImg}
@@ -394,7 +365,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               }}
             />
 
-            {/* Nút mũi tên tiến ảnh (Next) - Hiển thị khi thư viện của màu có nhiều hơn 1 ảnh */}
             {activeGallery && activeGallery.length > 1 && (
               <button 
                 type="button" 
@@ -406,18 +376,15 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </button>
             )}
 
-            {/* Badge chỉ số thứ tự ảnh */}
             {activeGallery && activeGallery.length > 1 && (
               <span className="detail-image-counter">{safeImageIndex + 1} / {activeGallery.length}</span>
             )}
 
-            {/* Chú thích bộ ảnh sản phẩm */}
             <span className="badge bg-light text-secondary border position-absolute bottom-0 start-0 m-3 px-2 py-1 z-3 shadow-sm" style={{ fontSize: '11px' }}>
               <i className="bi bi-images me-1 text-primary"></i>Bộ ảnh sản phẩm ({activeGallery.length} ảnh)
             </span>
           </div>
 
-          {/* Dải ảnh thu nhỏ của màu đang chọn (1 - 4 ảnh) */}
           {activeGallery && activeGallery.length > 1 && (
             <div className="d-flex gap-2 overflow-auto pb-2 mb-3">
               {activeGallery.map((imgUrl, idx) => (
@@ -435,7 +402,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
             </div>
           )}
 
-          {/* Cam kết vàng */}
           <div className="card border-0 shadow-sm p-3 mb-4 rounded-3 bg-white">
             <h6 className="fw-bold mb-3 d-flex align-items-center gap-2 text-danger">
               <i className="bi bi-patch-check-fill"></i>
@@ -492,7 +458,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
             </div>
           </div>
 
-          {/* Bài viết đánh giá chi tiết chuẩn FPT Shop */}
           <div className="fpt-article-card mb-4 position-relative">
             <h5 className="fw-bold text-dark mb-3 pb-2 border-bottom d-flex align-items-center gap-2">
               <i className="bi bi-file-text-fill text-danger"></i>
@@ -539,7 +504,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                 Viên pin dung lượng lớn cho phép bạn làm việc suốt nhiều giờ liên tục mà không cần lo lắng về việc tìm kiếm ổ cắm sạc. Hệ điều hành <strong>{spec.os || 'Windows 11 Home'}</strong> bản quyền cài sẵn đảm bảo an toàn dữ liệu và liên tục nhận được các bản vá bảo mật mới nhất.
               </p>
 
-              {/* Gradient mờ khi thu gọn */}
               {!isArticleExpanded && (
                 <div 
                   style={{
@@ -554,7 +518,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               )}
             </div>
 
-            {/* Nút Xem thêm / Thu gọn */}
             <div className="text-center mt-3 pt-2">
               <button 
                 onClick={() => setIsArticleExpanded(!isArticleExpanded)} 
@@ -566,7 +529,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
             </div>
           </div>
 
-          {/* Đánh giá từ khách hàng */}
           <div className="fpt-reviews-box mb-4">
             <h5 className="fw-bold text-dark mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
               <i className="bi bi-chat-square-quote-fill text-danger"></i>
@@ -667,10 +629,8 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
           </div>
         </div>
 
-        {/* CỘT PHẢI: Bảng giá FPT, Khuyến mãi, Nút MUA NGAY, Bảng Thông số kỹ thuật */}
         <div className="col-12 col-lg-5">
           <div className="sticky-top" style={{ top: '20px', zIndex: 10 }}>
-            {/* 1. Hộp Giá và Tiết kiệm (Động theo cấu hình chọn) */}
             <div className="fpt-price-box mb-3">
               <div className="d-flex align-items-baseline gap-3 mb-1">
                 <span className="fpt-current-price">
@@ -696,9 +656,7 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               )}
             </div>
 
-            {/* 2. Tùy chọn Màu sắc & Cấu hình (Variants) */}
             <div className="bg-white border rounded-3 p-3 mb-3 shadow-sm">
-              {/* Lựa chọn Màu sắc */}
               {hasVariants && availableColors.length > 0 && (
                 <div className="mb-3 pb-3 border-bottom">
                   <div className="d-flex justify-content-between align-items-center mb-2">
@@ -741,7 +699,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                 </div>
               )}
 
-              {/* Lựa chọn Cấu hình */}
               {hasVariants ? (
                 <div>
                   <div className="d-flex justify-content-between align-items-center mb-2">
@@ -778,7 +735,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                   </div>
                 </div>
               ) : (
-                /* Fallback cho sản phẩm cũ không quản lý theo biến thể */
                 <div>
                   <div className="mb-3">
                     <div className="d-flex justify-content-between align-items-center mb-1">
@@ -824,7 +780,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
                 </div>
               )}
 
-              {/* Thông tin tình trạng tồn kho của phiên bản đang chọn */}
               <div className="mt-3 pt-2 border-top small d-flex align-items-center justify-content-between">
                 <span>
                   {isOutOfStock ? (
@@ -840,7 +795,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </div>
             </div>
 
-            {/* 3. Khung Khuyến mãi đặc trưng FPT Shop viền đỏ */}
             <div className="fpt-promo-card mb-3">
               <div className="fpt-promo-header">
                 <i className="bi bi-gift-fill fs-5"></i>
@@ -874,7 +828,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </div>
             </div>
 
-            {/* 4. Cụm nút hành động Mua Hàng */}
             <div className="mb-3">
               <button 
                 type="button" 
@@ -949,7 +902,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </button>
             </div>
 
-            {/* 5. Bảng Thông số kỹ thuật chi tiết (Cập nhật theo cấu hình chọn) */}
             <div className="specs-table-card mb-3">
               <div className="specs-table-header">
                 <span className="d-flex align-items-center gap-2">
@@ -1019,7 +971,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
               </table>
             </div>
 
-            {/* 6. Hộp Tư vấn miễn phí */}
             <div className="bg-light border rounded-3 p-3 text-center">
               <div className="fw-semibold text-dark small mb-1">
                 <i className="bi bi-telephone-fill text-danger me-1"></i>
@@ -1034,7 +985,6 @@ export default function ProductDetail({ productId, onBack, onSelectProduct, allP
         </div>
       </div>
 
-      {/* 4. Sản phẩm tương tự / Cùng phân khúc */}
       {relatedList.length > 0 && (
         <div className="mt-5 pt-3 border-top">
           <div className="d-flex align-items-center justify-content-between mb-3">

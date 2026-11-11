@@ -23,31 +23,16 @@ public class CreateOrderRequest
     public string? Notes { get; set; }
 
     [Required]
-    public string PaymentMethod { get; set; } = "COD"; // "COD", "VietQR", "Banking", "VNPAY"
+    public string PaymentMethod { get; set; } = "COD"; 
 
-    /// <summary>
-    /// Hình thức mua hàng: "Full" (Trả toàn bộ), "Installment" (Trả góp)
-    /// </summary>
     public string PurchaseMode { get; set; } = "Full";
 
-    /// <summary>
-    /// Kỳ hạn trả góp nếu chọn trả góp: 3, 6, 9 hoặc 12 tháng
-    /// </summary>
     public int? TermMonths { get; set; }
 
-    /// <summary>
-    /// Khóa idempotency từ client chống tạo đơn hàng trùng lặp
-    /// </summary>
     public string? IdempotencyKey { get; set; }
 
-    /// <summary>
-    /// Mã giảm giá / Voucher khách hàng chọn áp dụng (nếu có)
-    /// </summary>
     public string? DiscountCode { get; set; }
 
-    /// <summary>
-    /// Hạng thành viên của khách hàng: "Silver" (Bạc - 5%), "Gold" (Vàng - 10%)
-    /// </summary>
     public string? MemberTier { get; set; }
 
     [Required]
@@ -60,14 +45,8 @@ public class CreateOrderItemRequest
     [Required]
     public int ProductId { get; set; }
 
-    /// <summary>
-    /// ID phiên bản cụ thể (Màu + RAM + SSD). Bắt buộc đối với các đơn hàng mới.
-    /// </summary>
     public int? VariantId { get; set; }
 
-    /// <summary>
-    /// Tên màu đã chọn (vd: "Bạc", "Đen")
-    /// </summary>
     public string? ColorName { get; set; }
 
     [Range(1, 100, ErrorMessage = "Số lượng mỗi sản phẩm từ 1 đến 100")]

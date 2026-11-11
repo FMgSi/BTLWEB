@@ -18,7 +18,6 @@
     </div>
 </div>
 
-<!-- LỰA CHỌN MỤC KHÁCH HÀNG HOẶC NHÂN VIÊN -->
 <div class="d-flex align-items-center gap-2 mb-3">
     <a href="/Admin/Customers" class="btn btn-sm btn-light border text-dark" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
         Khách hàng (@ViewBag.CustomerCount)
@@ -28,11 +27,9 @@
     </a>
 </div>
 
-<!-- FILTER CARD -->
 <div class="admin-card mb-3">
     <form method="get" action="/Admin/Staff" id="filterForm">
         <div class="row g-3 align-items-center">
-            <!-- Search Input & Nút Làm Mới -->
             <div class="col-lg-6 col-md-12">
                 <div class="d-flex align-items-center gap-2">
                     <div class="position-relative flex-grow-1">
@@ -46,7 +43,6 @@
                 </div>
             </div>
 
-            <!-- Trạng thái hoạt động -->
             <div class="col-lg-6 col-md-12">
                 <div class="d-flex align-items-center gap-2">
                     <span class="text-secondary small fw-semibold text-nowrap">Trạng thái:</span>
@@ -62,12 +58,9 @@
     </form>
 </div>
 
-<!-- STAFF TABLE CARD -->
 <div class="admin-card">
     <div class="admin-card-header">
-        <h5 class="card-title-text">
-            Bảng dữ liệu nhân viên
-        </h5>
+        <h5 class="card-title-text">Bảng dữ liệu nhân viên</h5>
         <span class="text-muted small">Cập nhật theo thời gian thực</span>
     </div>
 
@@ -121,13 +114,11 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
-                                    <!-- Nút Sửa -->
                                     <button type="button" class="btn btn-sm btn-action-edit" title="Sửa thông tin nhân viên" 
                                             onclick="openEditStaff(@s.UserId)">
                                         <i class="bi bi-pencil-square"></i> Sửa
                                     </button>
 
-                                    <!-- Nút Khóa / Mở khóa -->
                                     @if (!isSelf)
                                     {
                                         <button type="button" class="btn btn-sm @(s.IsActive ? "btn-action-delete" : "btn-action-edit")" 
@@ -137,7 +128,6 @@
                                             <span id="btn-lock-text-@s.UserId">@(s.IsActive ? "Khóa" : "Mở")</span>
                                         </button>
 
-                                        <!-- Nút Xóa -->
                                         <button type="button" class="btn btn-sm btn-action-delete" title="Xóa tài khoản nhân viên"
                                                 onclick="deleteStaff(@s.UserId, '@s.FullName')">
                                             <i class="bi bi-trash3"></i>
@@ -161,7 +151,6 @@
         </table>
     </div>
 
-    <!-- PAGINATION -->
     @if ((ViewBag.TotalPages ?? 1) > 1)
     {
         int curPage = ViewBag.CurrentPage ?? 1;
@@ -244,12 +233,10 @@
     }
 </div>
 
-<!-- FORM CHỨA CSRF TOKEN -->
 <form id="antiForgeryForm" style="display:none;">
     @Html.AntiForgeryToken()
 </form>
 
-<!-- MODAL THÊM NHÂN VIÊN MỚI -->
 <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
@@ -300,7 +287,6 @@
     </div>
 </div>
 
-<!-- MODAL SỬA THÔNG TIN NHÂN VIÊN -->
 <div class="modal fade" id="editStaffModal" tabindex="-1" aria-labelledby="editStaffModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
@@ -365,7 +351,6 @@
                 || '';
         }
 
-        // Thêm nhân viên mới bằng AJAX
         function submitAddStaff(e) {
             e.preventDefault();
             const form = document.getElementById('addStaffForm');
@@ -405,7 +390,6 @@
             });
         }
 
-        // Mở modal sửa nhân viên và load dữ liệu
         function openEditStaff(id) {
             fetch(`/Admin/GetStaffJson?id=${id}`)
             .then(res => res.json())
@@ -432,7 +416,6 @@
             });
         }
 
-        // Lưu thay đổi khi sửa nhân viên
         function submitEditStaff(e) {
             e.preventDefault();
             const form = document.getElementById('editStaffForm');
@@ -472,7 +455,6 @@
             });
         }
 
-        // Khóa / Mở khóa nhân viên
         function toggleStaffLock(id) {
             const token = getToken();
             const formData = new URLSearchParams();
@@ -492,7 +474,6 @@
                 if (data.success) {
                     const badge = document.getElementById(`staff-status-badge-${id}`);
                     const btn = document.getElementById(`btn-lock-staff-${id}`);
-                    const btnText = document.getElementById(`btn-lock-text-${id}`);
 
                     if (data.isActive) {
                         if (badge) {
@@ -523,7 +504,6 @@
             });
         }
 
-        // Xóa nhân viên
         function deleteStaff(id, name) {
             if (!confirm(`Bạn có chắc chắn muốn xóa tài khoản nhân viên "${name}" không?`)) {
                 return;
@@ -558,4 +538,3 @@
         }
     </script>
 }
-

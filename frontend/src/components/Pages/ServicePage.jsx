@@ -4,13 +4,11 @@ import { formatVND } from '../../utils/formatters';
 export default function ServicePage({ currentUser, initialTab = 'request', onGoHome, showToast, preSelectedDeviceId }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'request' | 'lookup' | 'catalog' | 'my-devices'
 
-  // Catalog state
   const [catalog, setCatalog] = useState([]);
   const [catalogFilter, setCatalogFilter] = useState('all'); // 'all' | 'repair' | 'warranty'
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [catalogError, setCatalogError] = useState('');
 
-  // Request form state
   const [requestType, setRequestType] = useState('warranty'); // 'warranty' | 'repair'
   const [deviceSource, setDeviceSource] = useState('Purchased'); // 'Purchased' | 'External'
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -18,7 +16,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   const [externalModel, setExternalModel] = useState('');
   const [externalSerial, setExternalSerial] = useState('');
 
-  // Autocomplete Model máy trong phiếu đăng ký
   const [modelSuggestions, setModelSuggestions] = useState([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -37,14 +34,12 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   const [createdTicket, setCreatedTicket] = useState(null);
   const [formError, setFormError] = useState('');
 
-  // My devices state
   const [myDevices, setMyDevices] = useState([]);
   const [phoneForDevices, setPhoneForDevices] = useState(currentUser?.phoneNumber || '');
   const [deviceSearchTerm, setDeviceSearchTerm] = useState('');
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesError, setDevicesError] = useState('');
 
-  // Lookup state
   const [lookupCode, setLookupCode] = useState('');
   const [lookupPhone, setLookupPhone] = useState('');
   const [lookupResult, setLookupResult] = useState(null);
@@ -52,12 +47,10 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isDecidingQuote, setIsDecidingQuote] = useState(false);
 
-  // My Tickets for logged-in user
   const [myTickets, setMyTickets] = useState([]);
   const [isLoadingMyTickets, setIsLoadingMyTickets] = useState(false);
   const [myTicketsError, setMyTicketsError] = useState('');
 
-  // Hàm tải danh sách gợi ý Model máy qua API Backend với debounce 250ms
   const fetchModelSuggestions = (query) => {
     const reqId = ++modelLatestRequestIdRef.current;
     setIsLoadingSuggestions(true);
@@ -142,7 +135,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   };
 
-  // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (modelDropdownWrapperRef.current && !modelDropdownWrapperRef.current.contains(e.target)) {
@@ -153,7 +145,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 1. Đọc tham số URL khi mount trang hoặc khi chuyển hướng từ nơi khác
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -185,7 +176,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     } catch {}
   }, []);
 
-  // 2. Tải danh mục dịch vụ từ Backend API
   const loadCatalog = () => {
     setIsLoadingCatalog(true);
     setCatalogError('');
@@ -209,7 +199,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     loadCatalog();
   }, []);
 
-  // 3. Tải danh sách máy đã mua khi chuyển sang tab my-devices hoặc request
   const loadMyDevices = (query = '') => {
     setIsLoadingDevices(true);
     setDevicesError('');
@@ -247,7 +236,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
       .finally(() => setIsLoadingDevices(false));
   };
 
-  // Tự động đồng bộ và nạp dữ liệu khi currentUser thay đổi
   useEffect(() => {
     if (currentUser) {
       if (currentUser.fullName && !customerName) setCustomerName(currentUser.fullName);
@@ -258,7 +246,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   }, [currentUser]);
 
-  // Tự động chọn thiết bị đầu tiên khi nạp danh sách máy của tài khoản
   useEffect(() => {
     if (myDevices.length > 0) {
       if (!selectedDeviceId || !myDevices.some((d) => d.deviceId.toString() === selectedDeviceId)) {
@@ -279,7 +266,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   }, [activeTab]);
 
-  // 4. Tải danh sách phiếu của khách hàng
   const loadMyTickets = (phone = '') => {
     setIsLoadingMyTickets(true);
     setMyTicketsError('');
@@ -317,7 +303,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   };
 
-  // Chọn một dịch vụ từ Catalog và chuyển sang Tab Gửi yêu cầu
   const handleSelectServiceFromCatalog = (service) => {
     setSelectedServiceId(service.serviceId.toString());
     if (service.serviceType === 'Bảo hành') {
@@ -330,7 +315,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Chọn máy từ tab My Devices và chuyển sang gửi yêu cầu bảo hành
   const handleSelectDeviceForWarranty = (device) => {
     setSelectedDeviceId(device.deviceId.toString());
     setRequestType('warranty');
@@ -341,7 +325,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Xử lý gửi phiếu yêu cầu
   const handleSubmitTicket = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -420,7 +403,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   };
 
-  // Tra cứu phiếu dịch vụ
   const handleLookupTicket = async (e) => {
     if (e) e.preventDefault();
     setLookupError('');
@@ -449,7 +431,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   };
 
-  // Khách hàng phản hồi duyệt hoặc từ chối báo giá
   const handleCustomerDecision = async (quoteId, decision) => {
     if (!window.confirm(`Bạn có chắc chắn muốn [${decision.toUpperCase()}] báo giá này?`)) {
       return;
@@ -472,7 +453,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
         alert(data.message || 'Không thể cập nhật quyết định báo giá.');
       } else {
         if (showToast) showToast(`Đã ghi nhận quyết định: ${decision}!`);
-        // Tải lại phiếu để cập nhật trạng thái mới nhất
         handleLookupTicket();
       }
     } catch (err) {
@@ -482,7 +462,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     }
   };
 
-  // Lọc catalog
   const filteredCatalog = catalog.filter((item) => {
     if (catalogFilter === 'repair') return item.serviceType === 'Sửa chữa';
     if (catalogFilter === 'warranty') return item.serviceType === 'Bảo hành';
@@ -492,7 +471,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
   return (
     <div className="bg-light py-4" style={{ minHeight: '80vh' }}>
       <div className="site-container">
-        {/* BANNER HEADER */}
         <div className="bg-white rounded-3 shadow-sm p-4 mb-4 border">
           <div className="row align-items-center g-3">
             <div className="col-lg-8">
@@ -514,9 +492,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
           </div>
         </div>
 
-
-
-        {/* NAV TABS */}
         <div className="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
           <button
             type="button"
@@ -551,7 +526,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
           </button>
         </div>
 
-        {/* TAB 1: BẢNG GIÁ DỊCH VỤ */}
         {activeTab === 'catalog' && (
           <div>
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -660,7 +634,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
           </div>
         )}
 
-        {/* TAB 2: GỬI YÊU CẦU TIẾP NHẬN */}
         {activeTab === 'request' && (
           <div className="row g-4">
             <div className="col-lg-8">
@@ -725,7 +698,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </div>
                     )}
 
-                    {/* Chọn hình thức: Bảo hành vs Sửa chữa */}
                     <div className="mb-3">
                       <label className="form-label small fw-bold text-dark d-block">Loại dịch vụ quý khách cần:</label>
                       <div className="row g-2">
@@ -771,7 +743,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </div>
                     </div>
 
-                    {/* Nếu là Sửa chữa: Cho chọn máy đã mua hoặc máy ngoài */}
                     {requestType === 'repair' && (
                       <div className="mb-3 p-3 bg-light rounded-3 border">
                         <label className="form-label small fw-bold text-dark d-block mb-2">Nguồn gốc thiết bị:</label>
@@ -800,7 +771,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </div>
                     )}
 
-                    {/* CHỌN MÁY ĐÃ MUA - TÌM THEO SĐT HOẶC MÃ ĐƠN HÀNG */}
                     {deviceSource === 'Purchased' ? (
                       <div className="mb-3 p-3 bg-light rounded-3 border">
                         <label className="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-2">
@@ -815,7 +785,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                           )}
                         </label>
 
-                        {/* Thanh tìm kiếm nhanh máy đã mua theo SĐT hoặc Mã đơn hàng */}
                         <div className="input-group input-group-sm mb-2">
                           <span className="input-group-text bg-white text-muted">
                             <i className="bi bi-search"></i>
@@ -854,7 +823,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                           </button>
                         </div>
 
-                        {/* Danh sách máy đã mua / Dropdown chọn */}
                         {myDevices.length > 0 ? (
                           <div>
                             <select
@@ -883,7 +851,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                               ))}
                             </select>
 
-                            {/* Card xem chi tiết máy đã chọn */}
                             {selectedDeviceId && (() => {
                               const dev = myDevices.find((d) => d.deviceId.toString() === selectedDeviceId);
                               if (!dev) return null;
@@ -934,7 +901,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                         )}
                       </div>
                     ) : (
-                      /* NHẬP THÔNG TIN MÁY NGOÀI */
                       <div className="row g-2 mb-3 align-items-start">
                         <div className="col-sm-7 position-relative" ref={modelDropdownWrapperRef}>
                           <label className="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-1" style={{ minHeight: '22px' }}>
@@ -976,7 +942,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                             )}
                           </div>
 
-                          {/* Dropdown gợi ý Model máy */}
                           {showModelDropdown && (
                             <div 
                               className="position-absolute start-0 end-0 mt-1 bg-white border rounded shadow-lg overflow-hidden"
@@ -1021,7 +986,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                                 </div>
                               )}
 
-                              {/* Lựa chọn Dùng tên máy vừa nhập */}
                               {externalModel && externalModel.trim().length > 0 && (
                                 <div
                                   className={`p-2 border-top d-flex align-items-center justify-content-between ${
@@ -1056,7 +1020,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </div>
                     )}
 
-                    {/* CHỌN HẠNG MỤC DỊCH VỤ TRONG CATALOG */}
                     <div className="mb-3">
                       <label className="form-label small fw-bold text-dark">Hạng mục dịch vụ yêu cầu (Tùy chọn)</label>
                       <select
@@ -1073,7 +1036,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       </select>
                     </div>
 
-                    {/* MÔ TẢ LỖI */}
                     <div className="mb-3">
                       <label className="form-label small fw-bold text-dark">
                         Mô tả triệu chứng hư hỏng / yêu cầu xử lý <span className="text-danger">*</span>
@@ -1088,7 +1050,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       ></textarea>
                     </div>
 
-                    {/* PHỤ KIỆN GỬI KÈM */}
                     <div className="mb-3">
                       <label className="form-label small fw-bold text-dark">Phụ kiện mang theo kèm máy</label>
                       <input
@@ -1100,7 +1061,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                       />
                     </div>
 
-                    {/* THÔNG TIN KHÁCH HÀNG */}
                     <h6 className="fw-bold text-dark border-top pt-3 mb-2 small text-uppercase">
                       Thông tin liên hệ người gửi máy
                     </h6>
@@ -1174,7 +1134,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
               </div>
             </div>
 
-            {/* QUY TRÌNH HƯỚNG DẪN BÊN PHẢI */}
             <div className="col-lg-4">
               <div className="bg-white rounded-3 p-3 shadow-sm border mb-3">
                 <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
@@ -1227,11 +1186,9 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
           </div>
         )}
 
-        {/* TAB 3: THEO DÕI TIẾN ĐỘ PHIẾU */}
         {activeTab === 'lookup' && (
           <div className="row justify-content-center">
             <div className="col-lg-9">
-              {/* DANH SÁCH PHIẾU CỦA BẠN NẾU CÓ */}
               {myTickets.length > 0 && (
                 <div className="bg-white rounded-3 p-4 shadow-sm border mb-4">
                   <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
@@ -1272,7 +1229,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                 </div>
               )}
 
-              {/* FORM TRA CỨU */}
               <div className="bg-white rounded-3 p-4 shadow-sm border mb-4">
                 <h5 className="fw-bold text-dark border-bottom pb-2 mb-3">
                   <i className="bi bi-search text-danger me-2"></i>Tra cứu tiến độ & Duyệt báo giá trực tuyến
@@ -1313,7 +1269,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                 )}
               </div>
 
-              {/* KẾT QUẢ TRA CỨU PHIẾU */}
               {lookupResult && (
                 <div className="bg-white rounded-3 p-4 shadow-sm border">
                   <div className="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3">
@@ -1331,7 +1286,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                     </div>
                   </div>
 
-                  {/* THÔNG TIN THIẾT BỊ & KHÁCH */}
                   <div className="row g-3 mb-4">
                     <div className="col-md-6">
                       <div className="p-3 bg-light rounded border small">
@@ -1355,7 +1309,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                     </div>
                   </div>
 
-                    {/* BOX DUYỆT BÁO GIÁ CHO KHÁCH (NẾU CÓ BÁO GIÁ CHỜ DUYỆT) */}
                   {lookupResult.quotes && lookupResult.quotes.some((q) => q.customerDecision === 'Chờ duyệt') && (
                     <div className="alert alert-warning border border-warning p-4 mb-4 rounded-3">
                       <h5 className="fw-bold text-dark mb-2">
@@ -1396,7 +1349,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
                     </div>
                   )}
 
-                  {/* TIMELINE TIẾN ĐỘ */}
                   <h6 className="fw-bold text-dark border-bottom pb-2 mb-3">
                     <i className="bi bi-clock-history text-danger me-2"></i>Nhật ký hành trình xử lý
                   </h6>
@@ -1422,7 +1374,6 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
           </div>
         )}
 
-        {/* TAB 4: MÁY ĐÃ MUA & BẢO HÀNH */}
         {activeTab === 'my-devices' && (
           <div className="bg-white rounded-3 p-4 shadow-sm border">
             <div className="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3">
@@ -1539,4 +1490,3 @@ export default function ServicePage({ currentUser, initialTab = 'request', onGoH
     </div>
   );
 }
-

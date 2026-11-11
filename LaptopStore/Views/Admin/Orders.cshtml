@@ -32,7 +32,6 @@
     </div>
 }
 
-<!-- FILTER BAR (CĂN LỀ TRÁI GỌN GÀNG) -->
 <div class="admin-card mb-4 p-3 shadow-sm border">
     <form method="get" asp-action="Orders" class="d-flex flex-wrap align-items-center gap-2">
         <div class="position-relative" style="width: 340px; max-width: 100%;">
@@ -199,7 +198,7 @@
                             </td>
                         </tr>
 
-                        <!-- MODAL GÁN SỐ SERIAL CHO CÁC MÁY TRONG ĐƠN HÀNG -->
+                        
                         <div class="modal fade" id="modal-serial-@o.OrderId" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
@@ -254,7 +253,7 @@
                             </div>
                         </div>
 
-                        <!-- MODAL CẬP NHẬT TRẠNG THÁI CHO TỪNG ĐƠN HÀNG -->
+                        
                         <div class="modal fade" id="modal-order-@o.OrderId" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-3">
@@ -324,7 +323,7 @@
         </table>
     </div>
 
-    <!-- PHÂN TRANG ĐƠN HÀNG -->
+    
     @if ((ViewBag.TotalPages ?? 1) > 1)
     {
         int curPage = ViewBag.CurrentPage ?? 1;

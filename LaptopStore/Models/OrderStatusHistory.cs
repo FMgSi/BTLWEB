@@ -3,9 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LaptopStore.Models;
 
-/// <summary>
-/// Đại diện cho lịch sử thay đổi trạng thái của Đơn hàng (Audit Trail / Status History)
-/// </summary>
 public class OrderStatusHistory
 {
     [Key]

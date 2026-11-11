@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 
 export default function CellphoneSArticleSection() {
-  // Trạng thái thu gọn/mở rộng hộp Nội dung chính (TOC)
   const [isTocOpen, setIsTocOpen] = useState(true);
 
-  // Trạng thái Xem thêm / Thu gọn bài viết tổng thể
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Hàm cuộn mượt đến mục được bấm trong mục lục
   const handleScrollTo = (e, targetId) => {
     e.preventDefault();
     setIsExpanded(true); // Tự động mở rộng nội dung khi người dùng click vào mục lục
@@ -21,14 +18,11 @@ export default function CellphoneSArticleSection() {
 
   return (
     <div className="bg-white rounded-3 border p-4 mb-4 shadow-sm" style={{ fontSize: '14px', lineHeight: '1.65' }}>
-      {/* 1. Đoạn văn giới thiệu mở đầu chuẩn CellphoneS */}
       <p className="mb-3 text-secondary text-justify">
         <strong className="text-dark">Máy tính laptop</strong> là thiết bị công nghệ được rất nhiều người dùng yêu thích và chọn lựa nhờ vào tính tiện lợi, đáp ứng tốt nhu cầu học tập, làm việc và giải trí của nhiều người dùng. Hiện nay, các thương hiệu máy tính xách tay không ngừng cải tiến sản phẩm để mang lại một dòng laptop mini giá rẻ mỏng nhẹ, có hiệu năng mạnh mẽ, thời lượng pin tốt đặc biệt là có một giá thành vô cùng hợp lý.
       </p>
 
-      {/* 2. Khung Nội dung chính (Table of Contents - Chuẩn giao diện trong ảnh CellphoneS) */}
       <div className="border rounded-3 overflow-hidden mb-4" style={{ backgroundColor: '#f8fafc' }}>
-        {/* Thanh tiêu đề có nút toggle chevron */}
         <div 
           className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom user-select-none"
           style={{ backgroundColor: '#eaedf1', cursor: 'pointer' }}
@@ -43,7 +37,6 @@ export default function CellphoneSArticleSection() {
           ></i>
         </div>
 
-        {/* Danh sách mục lục phân cấp */}
         {isTocOpen && (
           <div className="p-3" style={{ backgroundColor: '#f1f5f9' }}>
             <ol className="ps-3 mb-0 text-dark" style={{ listStyleType: 'none', margin: 0, paddingLeft: 0 }}>
@@ -172,7 +165,6 @@ export default function CellphoneSArticleSection() {
         )}
       </div>
 
-      {/* 3. Phần nội dung chi tiết bài viết (Kèm giới hạn chiều cao & Nút Xem thêm / Thu gọn) */}
       <div 
         className="position-relative overflow-hidden" 
         style={{ 
@@ -180,7 +172,6 @@ export default function CellphoneSArticleSection() {
           transition: 'max-height 0.4s ease' 
         }}
       >
-        {/* Section 1 */}
         <section id="laptop-may-tinh-xach-tay-la-gi" className="mb-4">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             1. Laptop (máy tính xách tay) là gì?
@@ -190,7 +181,6 @@ export default function CellphoneSArticleSection() {
           </p>
         </section>
 
-        {/* Section 2 */}
         <section id="gia-laptop-bao-nhieu-tien" className="mb-4">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             2. Giá laptop bao nhiêu tiền?
@@ -199,7 +189,6 @@ export default function CellphoneSArticleSection() {
             Tại thị trường Việt Nam hiện nay, mức giá laptop vô cùng đa dạng, dao động từ khoảng <strong>8 triệu đồng</strong> cho các model phổ thông cơ bản đến trên <strong>100 triệu đồng</strong> cho các dòng máy trạm và gaming cao cấp. Dưới đây là các bảng tổng hợp giá tham khảo chi tiết:
           </p>
 
-          {/* 2.1 Bảng giá theo nhu cầu */}
           <div id="bang-gia-theo-nhu-cau" className="mb-3">
             <h6 className="fw-bold text-dark">2.1. Bảng giá laptop theo nhu cầu sử dụng</h6>
             <div className="table-responsive">
@@ -242,7 +231,6 @@ export default function CellphoneSArticleSection() {
             </div>
           </div>
 
-          {/* 2.2 Bảng giá theo thương hiệu */}
           <div id="bang-gia-theo-thuong-hieu" className="mb-3">
             <h6 className="fw-bold text-dark">2.2. Bảng giá laptop theo thương hiệu</h6>
             <p className="text-secondary small">
@@ -250,7 +238,6 @@ export default function CellphoneSArticleSection() {
             </p>
           </div>
 
-          {/* 2.3 Bảng giá theo phân khúc */}
           <div id="bang-gia-theo-phan-khuc" className="mb-3">
             <h6 className="fw-bold text-dark">2.3. Bảng giá laptop theo phân khúc</h6>
             <ul className="text-secondary ps-3">
@@ -261,7 +248,6 @@ export default function CellphoneSArticleSection() {
             </ul>
           </div>
 
-          {/* 2.4 Cập nhật giá các mẫu laptop mới */}
           <div id="cap-nhat-gia-laptop-moi" className="mb-3">
             <h6 className="fw-bold text-dark">2.4. Cập nhật giá các mẫu laptop mới 2026</h6>
             <p className="text-secondary small">
@@ -270,7 +256,6 @@ export default function CellphoneSArticleSection() {
           </div>
         </section>
 
-        {/* Section 3 */}
         <section id="laptop-phuc-vu-cong-viec" className="mb-4">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             3. Laptop - Phục vụ công việc, học tập, giải trí
@@ -280,7 +265,6 @@ export default function CellphoneSArticleSection() {
           </p>
         </section>
 
-        {/* Section 4 */}
         <section id="loi-ich-khi-su-dung" className="mb-4">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             4. Lợi ích khi sử dụng máy tính laptop là gì?
@@ -313,7 +297,6 @@ export default function CellphoneSArticleSection() {
           </div>
         </section>
 
-        {/* Section 5 */}
         <section id="thong-so-ky-thuat-can-biet" className="mb-4">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             5. Một số thông số kỹ thuật cần biết về laptop
@@ -362,7 +345,6 @@ export default function CellphoneSArticleSection() {
           </div>
         </section>
 
-        {/* Section 6 */}
         <section id="cac-loai-laptop-pho-bien" className="mb-4">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             6. Các loại máy tính laptop phổ biến
@@ -387,7 +369,6 @@ export default function CellphoneSArticleSection() {
           </div>
         </section>
 
-        {/* Section 7 */}
         <section id="tieu-chi-chon-mua" className="mb-3">
           <h3 className="fw-bold text-dark fs-5 mb-2 border-start border-4 border-danger ps-2">
             7. Các tiêu chí chọn mua laptop chất lượng vượt trội
@@ -404,7 +385,6 @@ export default function CellphoneSArticleSection() {
           </div>
         </section>
 
-        {/* Lớp phủ mờ Gradient khi đang ở trạng thái thu gọn (CellphoneS Style) */}
         {!isExpanded && (
           <div 
             className="position-absolute bottom-0 start-0 w-100" 
@@ -417,7 +397,6 @@ export default function CellphoneSArticleSection() {
         )}
       </div>
 
-      {/* 4. Nút bấm Xem thêm nội dung / Thu gọn chuẩn CellphoneS */}
       <div className="text-center mt-3 pt-2 border-top">
         <button
           type="button"

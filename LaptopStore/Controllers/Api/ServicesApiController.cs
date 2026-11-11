@@ -15,10 +15,6 @@ public class ServicesApiController : ControllerBase
         _warrantyService = warrantyService;
     }
 
-    /// <summary>
-    /// GET /api/services/catalog?type=repair | warranty
-    /// Lấy danh mục dịch vụ Sửa chữa & Bảo hành từ CSDL
-    /// </summary>
     [HttpGet("catalog")]
     public async Task<IActionResult> GetCatalog([FromQuery] string? type)
     {
@@ -26,10 +22,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, items });
     }
 
-    /// <summary>
-    /// GET /api/services/my-devices?phoneNumber=0987654321&orderCode=PC20261028-1001&userId=3
-    /// Lấy danh sách máy khách hàng đã mua và đã nhận để chọn bảo hành
-    /// </summary>
     [HttpGet("my-devices")]
     public async Task<IActionResult> GetMyDevices([FromQuery] string? phoneNumber, [FromQuery] string? orderCode, [FromQuery] int? userId)
     {
@@ -45,7 +37,7 @@ public class ServicesApiController : ControllerBase
             }
             catch
             {
-                // Bỏ qua nếu Session chưa cấu hình
+                
             }
         }
 
@@ -53,10 +45,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, devices });
     }
 
-    /// <summary>
-    /// GET /api/services/my-tickets?phoneNumber=0987654321&userId=3
-    /// Lấy danh sách phiếu bảo hành & sửa chữa của khách hàng
-    /// </summary>
     [HttpGet("my-tickets")]
     public async Task<IActionResult> GetMyTickets([FromQuery] string? phoneNumber, [FromQuery] int? userId)
     {
@@ -77,10 +65,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, tickets });
     }
 
-    /// <summary>
-    /// GET /api/services/device-by-serial/{serial}
-    /// Tra cứu chi tiết một máy theo số Serial
-    /// </summary>
     [HttpGet("device-by-serial/{serial}")]
     public async Task<IActionResult> GetDeviceBySerial(string serial)
     {
@@ -92,10 +76,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, device });
     }
 
-    /// <summary>
-    /// POST /api/services/warranty-ticket
-    /// Tiếp nhận yêu cầu bảo hành cho máy đã mua từ cửa hàng
-    /// </summary>
     [HttpPost("warranty-ticket")]
     public async Task<IActionResult> CreateWarrantyTicket([FromBody] CreateWarrantyTicketRequest request)
     {
@@ -125,10 +105,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, message = result.Message, ticket = result.Ticket });
     }
 
-    /// <summary>
-    /// POST /api/services/repair-ticket
-    /// Tiếp nhận yêu cầu sửa chữa cho máy đã mua hoặc máy mua ngoài
-    /// </summary>
     [HttpPost("repair-ticket")]
     public async Task<IActionResult> CreateRepairTicket([FromBody] CreateRepairTicketRequest request)
     {
@@ -158,10 +134,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, message = result.Message, ticket = result.Ticket });
     }
 
-    /// <summary>
-    /// GET /api/services/ticket/{code}?phone=0987654321
-    /// Tra cứu chi tiết phiếu và timeline xử lý theo mã phiếu và số điện thoại
-    /// </summary>
     [HttpGet("ticket/{code}")]
     public async Task<IActionResult> GetTicket(string code, [FromQuery] string? phone)
     {
@@ -174,10 +146,6 @@ public class ServicesApiController : ControllerBase
         return Ok(new { success = true, ticket });
     }
 
-    /// <summary>
-    /// POST /api/services/quote-decision
-    /// Khách hàng duyệt hoặc từ chối báo giá sửa chữa
-    /// </summary>
     [HttpPost("quote-decision")]
     public async Task<IActionResult> SubmitQuoteDecision([FromBody] CustomerDecisionRequest request)
     {

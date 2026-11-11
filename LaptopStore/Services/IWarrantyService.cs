@@ -28,4 +28,3 @@ public interface IWarrantyService
     Task<(bool Success, string Message)> AssignSerialsToOrderAsync(int orderId, List<OrderItemSerialsInput> items, string staffName);
     Task<List<SoldDeviceDto>> GetAllSoldDevicesAsync(string? search = null);
 }
-

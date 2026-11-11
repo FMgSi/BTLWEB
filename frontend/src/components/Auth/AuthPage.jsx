@@ -4,31 +4,26 @@ import './AuthPage.css';
 export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome }) {
   const [mode, setMode] = useState(initialMode); // 'login' hoặc 'register'
 
-  // Form states cho Đăng nhập
   const [loginInput, setLoginInput] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Form states cho Đăng ký
   const [regUsername, setRegUsername] = useState('');
   const [regFullName, setRegFullName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
-  // UI states
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Chuyển đổi giữa Đăng nhập và Đăng ký
   const switchMode = (newMode) => {
     setMode(newMode);
     setErrorMessage('');
     setSuccessMessage('');
   };
 
-  // 1. Xử lý Đăng nhập
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -46,7 +41,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
     setIsLoading(true);
 
     try {
-      // Gửi yêu cầu đăng nhập lên API ASP.NET Core
       const response = await fetch('/api/auth/login', {
         credentials: 'include',
         method: 'POST',
@@ -75,7 +69,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
     }
   };
 
-  // 2. Xử lý Đăng ký
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -105,7 +98,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
     setIsLoading(true);
 
     try {
-      // Gửi yêu cầu đăng ký lên API ASP.NET Core
       const response = await fetch('/api/auth/register', {
         credentials: 'include',
         method: 'POST',
@@ -139,7 +131,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
   return (
     <div className="auth-page-wrapper">
       <div className="auth-card">
-        {/* Nút quay lại trang chủ */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <button
             type="button"
@@ -152,14 +143,10 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
           <span className="badge bg-light text-secondary border">PCSTORE AUTH</span>
         </div>
 
-        {/* =========================================================================
-            GIAO DIỆN FORM ĐĂNG NHẬP (SIGN IN) - DÀNH CHO KHÁCH HÀNG
-        ========================================================================= */}
         {mode === 'login' ? (
           <div>
             <h1 className="auth-title">Đăng nhập</h1>
 
-            {/* Thông báo lỗi hoặc thành công */}
             {errorMessage && (
               <div className="auth-alert auth-alert-error">
                 <i className="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
@@ -174,7 +161,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
             )}
 
             <form onSubmit={handleLoginSubmit}>
-              {/* E-Mail / Username */}
               <div className="auth-form-group">
                 <label className="auth-label">
                   E-Mail hoặc Tên đăng nhập<span className="required-star">*</span>
@@ -191,7 +177,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 </div>
               </div>
 
-              {/* Password */}
               <div className="auth-form-group">
                 <label className="auth-label">
                   Mật khẩu<span className="required-star">*</span>
@@ -215,7 +200,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 className="auth-submit-btn"
@@ -231,7 +215,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 )}
               </button>
 
-              {/* Forgot Password */}
               <a
                 href="#forgot"
                 className="auth-forgot-link"
@@ -243,7 +226,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 Quên mật khẩu?
               </a>
 
-              {/* Dòng chuyển sang Đăng ký */}
               <p className="auth-switch-text mt-3 mb-0">
                 Bạn chưa có tài khoản?
                 <button
@@ -257,13 +239,9 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
             </form>
           </div>
         ) : (
-          /* =========================================================================
-             GIAO DIỆN FORM ĐĂNG KÝ (SIGN UP) - DÀNH CHO KHÁCH HÀNG MỚI
-          ========================================================================= */
           <div>
             <h1 className="auth-title">Tạo tài khoản</h1>
 
-            {/* Thông báo */}
             {errorMessage && (
               <div className="auth-alert auth-alert-error">
                 <i className="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
@@ -278,7 +256,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
             )}
 
             <form onSubmit={handleRegisterSubmit}>
-              {/* Username */}
               <div className="auth-form-group">
                 <label className="auth-label">
                   Tên người dùng (Username)<span className="required-star">*</span>
@@ -296,7 +273,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 <span className="auth-field-hint">4-20 ký tự: chữ cái (a-z), chữ số (0-9) và dấu gạch dưới</span>
               </div>
 
-              {/* Full Name */}
               <div className="auth-form-group">
                 <label className="auth-label">Họ và tên</label>
                 <div className="auth-input-wrap">
@@ -310,7 +286,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 </div>
               </div>
 
-              {/* Email */}
               <div className="auth-form-group">
                 <label className="auth-label">
                   Địa chỉ E-Mail<span className="required-star">*</span>
@@ -326,7 +301,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 </div>
               </div>
 
-              {/* Password */}
               <div className="auth-form-group">
                 <label className="auth-label">
                   Mật khẩu<span className="required-star">*</span>
@@ -351,7 +325,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 <span className="auth-field-hint">Mật khẩu sẽ được mã hóa băm bảo mật SHA256 an toàn</span>
               </div>
 
-              {/* Confirm Password */}
               <div className="auth-form-group">
                 <label className="auth-label">
                   Xác nhận mật khẩu<span className="required-star">*</span>
@@ -367,7 +340,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 className="auth-submit-btn"
@@ -383,7 +355,6 @@ export default function AuthPage({ initialMode = 'login', onSuccess, onGoHome })
                 )}
               </button>
 
-              {/* Dòng chuyển sang Đăng nhập */}
               <p className="auth-switch-text mt-3 mb-0">
                 Bạn đã có tài khoản?
                 <button

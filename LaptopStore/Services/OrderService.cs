@@ -25,7 +25,6 @@ public class OrderService : IOrderService
             return (false, "Giỏ hàng rỗng, không thể tạo đơn hàng.", null);
         }
 
-        // Chống tạo đơn trùng lặp (Idempotent Request Handling)
         if (!string.IsNullOrWhiteSpace(req.IdempotencyKey))
         {
             var existingOrder = await _db.Orders
@@ -40,7 +39,6 @@ public class OrderService : IOrderService
             }
         }
 
-        // Bọc trong CreateExecutionStrategy để tương thích hoàn toàn với cấu hình EnableRetryOnFailure của SQL Server
         var strategy = _db.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync<(bool Success, string Message, OrderResponseDto? Order)>(async () =>
         {
@@ -64,7 +62,6 @@ public class OrderService : IOrderService
                         .ToDictionaryAsync(v => v.VariantId);
                 }
 
-                // Tập hợp các sản phẩm đã có phiên bản đang hoạt động (dùng để chặn mua thiếu VariantId)
                 var productsWithVariants = await _db.ProductVariants
                     .AsNoTracking()
                     .Where(v => productIds.Contains(v.ProductId) && v.IsActive)
@@ -131,7 +128,6 @@ public class OrderService : IOrderService
                             return (false, $"Phiên bản '{variant.SKU}' ({variant.Color?.Name}) hiện đã ngừng kinh doanh.", null);
                         }
 
-                        // CHỐNG BÁN VƯỢT TỒN KHO TRÊN PHIÊN BẢN (MÀU SẮC + CẤU HÌNH CONCURRENCY SAFE):
                         int variantRowsAffected;
                         if (_db.Database.IsRelational())
                         {
@@ -162,7 +158,6 @@ public class OrderService : IOrderService
                             return (false, $"Sản phẩm '{product.ProductName}' - Màu {cName} (RAM {variant.RamGB}GB/SSD {variant.StorageGB}GB) không đủ tồn kho (chỉ còn {currentStock} máy). Vui lòng điều chỉnh giỏ hàng!", null);
                         }
 
-                        // Đồng thời trừ tổng tồn kho trên Product (kiểm tra chặt chẽ số dòng bị ảnh hưởng):
                         int productRowsAffected;
                         if (_db.Database.IsRelational())
                         {
@@ -187,7 +182,7 @@ public class OrderService : IOrderService
 
                         if (productRowsAffected == 0)
                         {
-                            // Nếu kho tổng Product không đủ (dữ liệu kho bị lệch), hoàn lại variant đã trừ và rollback
+                            
                             if (_db.Database.IsRelational())
                             {
                                 await _db.ProductVariants
@@ -221,14 +216,13 @@ public class OrderService : IOrderService
                     }
                     else
                     {
-                        // Kiểm tra nghiệp vụ: Mẫu laptop đã có phiên bản màu sắc thì BẮT BUỘC khách phải chọn phiên bản
+                        
                         if (productsWithVariantsSet.Contains(itemReq.ProductId))
                         {
                             await RollbackAsync();
                             return (false, $"Sản phẩm '{product.ProductName}' có nhiều phiên bản màu sắc và cấu hình. Vui lòng chọn phiên bản cụ thể trước khi đặt hàng!", null);
                         }
 
-                        // FALLBACK: Đơn hàng theo sản phẩm gốc (chỉ dành cho sản phẩm cũ chưa chuyển đổi sang phiên bản)
                         int rowsAffected;
                         if (_db.Database.IsRelational())
                         {
@@ -238,7 +232,7 @@ public class OrderService : IOrderService
                         }
                         else
                         {
-                            // Fallback cho môi trường test InMemory (không hỗ trợ ExecuteUpdateAsync quan hệ)
+                            
                             if (product.StockQuantity >= itemReq.Quantity)
                             {
                                 product.StockQuantity -= itemReq.Quantity;
@@ -284,7 +278,6 @@ public class OrderService : IOrderService
                     });
                 }
 
-                // Sinh mã đơn hàng duy nhất: PC + YYMMDD + số ngẫu nhiên 4 chữ số
                 string orderCode;
                 int attempts = 0;
                 do
@@ -293,7 +286,6 @@ public class OrderService : IOrderService
                     attempts++;
                 } while (await _db.Orders.AnyAsync(o => o.OrderCode == orderCode) && attempts < 10);
 
-                // 4. Kiểm tra và áp dụng ưu đãi Hạng thành viên (Tự động xác minh theo lịch sử chi tiêu thực tế của tài khoản)
                 decimal memberDiscountAmount = 0;
                 string verifiedTier = "Đồng";
                 decimal memberDiscountRate = 0m;
@@ -316,7 +308,6 @@ public class OrderService : IOrderService
                         memberDiscountRate = 0.05m;
                     }
 
-                    // Tự động cập nhật SĐT cho User nếu chưa có
                     var currentUser = await _db.Users.FindAsync(userId.Value);
                     if (currentUser != null && string.IsNullOrEmpty(currentUser.PhoneNumber) && !string.IsNullOrWhiteSpace(req.PhoneNumber))
                     {
@@ -343,7 +334,6 @@ public class OrderService : IOrderService
                     }
                 }
 
-                // Fallback nếu tài khoản chưa có lịch sử đơn hoàn thành nhưng request có gửi hạng (hỗ trợ tương thích ngược & test cases)
                 if (memberDiscountRate == 0m && !string.IsNullOrWhiteSpace(req.MemberTier))
                 {
                     string reqTier = req.MemberTier.Trim().ToLowerInvariant();
@@ -364,7 +354,6 @@ public class OrderService : IOrderService
                     memberDiscountAmount = Math.Round(subTotal * memberDiscountRate);
                 }
 
-                // 5. Kiểm tra và áp dụng mã giảm giá / Voucher (nếu có)
                 decimal voucherDiscountAmount = 0;
                 string? appliedDiscountCode = null;
 
@@ -383,7 +372,6 @@ public class OrderService : IOrderService
                     voucherDiscountAmount = calcDiscount;
                     appliedDiscountCode = discountEntity.Code;
 
-                    // Tăng số lượt đã sử dụng của voucher trong CSDL
                     discountEntity.UsedCount += 1;
                 }
 
@@ -398,7 +386,7 @@ public class OrderService : IOrderService
                 InstallmentPlanDto? plan = null;
                 if (isInstallment)
                 {
-                    // Phương án trả góp và hạn mức trả trước 30% được tính chính xác trên tổng tiền cuối cùng (sau khi trừ voucher)
+                    
                     plan = _installmentService.CalculatePlan(finalTotal, termMonths);
                 }
 
@@ -454,7 +442,6 @@ public class OrderService : IOrderService
                         Note = prepayNote
                     });
 
-                    // Tạo hợp đồng trả góp cùng trong transaction với đơn hàng và trừ kho
                     var contract = new InstallmentContract
                     {
                         ContractCode = $"HDTG{DateTime.Now:yyMMdd}-{orderCode.Substring(orderCode.Length - 4)}",
@@ -509,7 +496,6 @@ public class OrderService : IOrderService
                 _db.Orders.Add(order);
                 await _db.SaveChangesAsync();
 
-                // Chuẩn bị DTO ngay sau khi SaveChangesAsync cấp khóa chính OrderId và trước khi commit
                 var resDto = MapToResponseDto(order);
 
                 await tx.CommitAsync();
@@ -636,7 +622,6 @@ public class OrderService : IOrderService
                     return (true, $"Đơn hàng hiện tại đã ở trạng thái '{newStatus}'.");
                 }
 
-                // 1. Kiểm tra trạng thái đơn hàng (Cho phép Quản trị viên linh hoạt cập nhật luồng xử lý)
                 var allStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "Chờ xác nhận", "Mới", "Chờ duyệt", "Đang xử lý", "Đã xác nhận", "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã hủy"
@@ -660,8 +645,6 @@ public class OrderService : IOrderService
                     return (false, $"Không thể chuyển trạng thái từ '{oldStatus}' sang '{newStatus}'. Luồng xử lý đơn hàng không cho phép thao tác này.");
                 }
 
-                // CHỐNG CONCURRENCY KHI HỦY ĐƠN:
-                // Cập nhật trạng thái có điều kiện trực tiếp tại CSDL để ngăn chặn hai request hủy đồng thời cùng hoàn kho
                 if (_db.Database.IsRelational())
                 {
                     var queryToUpdate = _db.Orders.Where(o => o.OrderId == orderId && o.OrderStatus == oldStatus);
@@ -684,7 +667,6 @@ public class OrderService : IOrderService
                 order.OrderStatus = newStatus;
                 order.UpdatedAt = DateTime.UtcNow;
 
-                // 2. Đồng bộ trạng thái thanh toán và bảng Payments
                 bool isInstallmentOrder = order.PurchaseMode.Equals("Installment", StringComparison.OrdinalIgnoreCase);
 
                 if (newStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
@@ -695,8 +677,6 @@ public class OrderService : IOrderService
                         order.InstallmentContract.Status = "Đã hủy";
                     }
 
-                    // Hoàn lại số lượng tồn kho chính xác một lần duy nhất bằng UPDATE nguyên tử
-                    // Hoàn trả đúng phiên bản (Màu sắc + Cấu hình) nếu đơn có liên kết VariantId, đồng thời cập nhật Product
                     foreach (var item in order.OrderItems)
                     {
                         if (item.VariantId.HasValue)
@@ -753,7 +733,6 @@ public class OrderService : IOrderService
                         latestPayment.Note = $"Đơn hàng bị hủy: {note ?? "Hủy bởi quản trị viên"}";
                     }
 
-                    // Cảnh báo hoàn tiền nếu đơn trả góp hoặc đơn trả thẳng đã thực thu tiền
                     var totalCollected = order.Payments.Where(p => p.PaymentStatus == "Thành công").Sum(p => p.Amount);
                     if (totalCollected > 0)
                     {
@@ -763,9 +742,7 @@ public class OrderService : IOrderService
                 }
                 else if (isInstallmentOrder)
                 {
-                    // Đối với đơn hàng trả góp: Giao máy xong (Đang giao / Hoàn thành) vẫn có thể còn nợ 70%.
-                    // Giao hàng KHÔNG làm thay đổi dư nợ và KHÔNG tự động đánh dấu đã thanh toán toàn bộ.
-                    // Chỉ cập nhật trạng thái thanh toán từ số tiền thực thu / tiến độ hợp đồng.
+                    
                     if (order.InstallmentContract != null)
                     {
                         if (order.InstallmentContract.Status == "Đã tất toán")
@@ -785,7 +762,7 @@ public class OrderService : IOrderService
                 else if (newStatus.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase) ||
                          newStatus.Equals("Đã thanh toán", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Đơn trả thẳng thông thường (PurchaseMode == "Full")
+                    
                     order.PaymentStatus = "Đã thanh toán";
                     var latestPayment = order.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
                     if (latestPayment != null)
@@ -829,10 +806,6 @@ public class OrderService : IOrderService
         });
     }
 
-    /// <summary>
-    /// Khách hàng xóa đơn hàng khi cửa hàng chưa xác minh (Chờ xác nhận, Đang xử lý, Mới, Chờ duyệt)
-    /// Tự động hoàn lại số lượng tồn kho của từng phiên bản/sản phẩm và xóa bỏ đơn hàng an toàn
-    /// </summary>
     public async Task<(bool Success, string Message)> CancelOrDeleteOrderAsync(int orderId, int? userId = null, string? phone = null)
     {
         var order = await _db.Orders
@@ -845,7 +818,6 @@ public class OrderService : IOrderService
             return (false, "Không tìm thấy đơn hàng cần xóa.");
         }
 
-        // Kiểm tra quyền sở hữu đơn hàng
         bool isOwner = false;
         if (userId.HasValue && order.UserId == userId.Value)
         {
@@ -879,8 +851,6 @@ public class OrderService : IOrderService
             return (false, "Bạn không có quyền xóa đơn hàng này.");
         }
 
-        // Kiểm tra trạng thái: Cửa hàng chưa xác minh
-        // Các trạng thái đã xác minh: "Đã xác nhận", "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã giao"
         var verifiedStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Đã xác nhận", "Đang giao", "Đang giao hàng", "Hoàn thành", "Đã giao"
@@ -897,7 +867,7 @@ public class OrderService : IOrderService
             using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
-                // 1. Hoàn lại tồn kho cho ProductVariants và Products (nếu đơn chưa bị hủy trước đó)
+                
                 if (!order.OrderStatus.Equals("Đã hủy", StringComparison.OrdinalIgnoreCase))
                 {
                     foreach (var item in order.OrderItems)
@@ -919,8 +889,6 @@ public class OrderService : IOrderService
                     }
                 }
 
-                // 2. Phá vỡ tham chiếu vòng giữa InstallmentSchedules và Payments trước khi xóa
-                // Tránh lỗi EF Core: circular dependency between InstallmentSchedule.PaymentId and Payment.ScheduleId
                 if (order.InstallmentContract != null)
                 {
                     var schedules = await _db.InstallmentSchedules
@@ -942,7 +910,6 @@ public class OrderService : IOrderService
 
                 await _db.SaveChangesAsync();
 
-                // 3. Xóa các thực thể phụ thuộc
                 if (order.InstallmentContract != null)
                 {
                     var schedules = await _db.InstallmentSchedules
@@ -987,7 +954,6 @@ public class OrderService : IOrderService
             .Include(p => p.Category)
             .ToListAsync();
 
-        // 1. Doanh thu tháng hiện tại (Chỉ tính các đơn không bị hủy và đã thanh toán / hoàn thành)
         var monthlyPaidOrders = orders
             .Where(o => o.OrderStatus != "Đã hủy" &&
                         (o.PaymentStatus == "Đã thanh toán" || o.OrderStatus == "Hoàn thành") &&
@@ -997,7 +963,6 @@ public class OrderService : IOrderService
 
         decimal monthlyRevenue = monthlyPaidOrders.Sum(o => o.TotalAmount);
 
-        // Doanh thu tháng trước để tính tốc độ tăng trưởng
         var lastMonth = now.AddMonths(-1);
         var lastMonthPaidOrders = orders
             .Where(o => o.OrderStatus != "Đã hủy" &&
@@ -1010,20 +975,16 @@ public class OrderService : IOrderService
             ? Math.Round((double)((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue * 100), 1)
             : (monthlyRevenue > 0 ? 100.0 : 0.0);
 
-        // 2. Tổng số đơn hàng trong tháng
         var monthlyOrdersCount = orders
             .Count(o => o.CreatedAt.Month == now.Month && o.CreatedAt.Year == now.Year);
 
-        // 3. Số laptop bán được thực tế trong tháng (loại bỏ đơn hủy)
         var monthlyLaptopsSold = orders
             .Where(o => o.OrderStatus != "Đã hủy" && o.CreatedAt.Month == now.Month && o.CreatedAt.Year == now.Year)
             .SelectMany(o => o.OrderItems)
             .Sum(i => i.Quantity);
 
-        // 4. Số sản phẩm sắp hết hàng (<= 5 máy)
         int lowStockCount = products.Count(p => p.StockQuantity <= 5);
 
-        // 5. Danh sách đơn hàng mới nhất
         var recentOrdersDto = orders
             .OrderByDescending(o => o.OrderId)
             .Take(6)
@@ -1039,7 +1000,6 @@ public class OrderService : IOrderService
             })
             .ToList();
 
-        // 6. Top sản phẩm bán chạy nhất tính từ chi tiết đơn hàng thực tế
         var nonCancelledOrderItems = orders
             .Where(o => o.OrderStatus != "Đã hủy")
             .SelectMany(o => o.OrderItems)

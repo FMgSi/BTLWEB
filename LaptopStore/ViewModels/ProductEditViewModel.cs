@@ -44,7 +44,6 @@ public class ProductEditViewModel : IValidatableObject
     [Display(Name = "Tải ảnh sản phẩm")]
     public IFormFile? UploadedImage { get; set; }
 
-    // Cấu hình chi tiết (Hardware Specs)
     [Display(Name = "Vi xử lý (CPU)")]
     public string? CPU { get; set; }
 
@@ -85,69 +84,30 @@ public class ProductEditViewModel : IValidatableObject
     [Display(Name = "Hệ điều hành")]
     public string? OS { get; set; }
 
-    /// <summary>
-    /// ID màu đang được chọn để quản lý ảnh trong giao diện Chỉnh sửa
-    /// </summary>
     public int? SelectedColorId { get; set; }
 
-    /// <summary>
-    /// URL ảnh hiện tại ở Ô 1 (Ảnh đại diện sản phẩm)
-    /// </summary>
     public string? Slot1Url { get; set; }
 
-    /// <summary>
-    /// URL ảnh hiện tại ở Ô 2 (Ảnh phụ 1)
-    /// </summary>
     public string? Slot2Url { get; set; }
 
-    /// <summary>
-    /// URL ảnh hiện tại ở Ô 3 (Ảnh phụ 2)
-    /// </summary>
     public string? Slot3Url { get; set; }
 
-    /// <summary>
-    /// URL ảnh hiện tại ở Ô 4 (Ảnh phụ 3)
-    /// </summary>
     public string? Slot4Url { get; set; }
 
-    /// <summary>
-    /// File ảnh tải lên cho Ô 1 (Ảnh đại diện của màu - Bắt buộc / Ưu tiên)
-    /// </summary>
     public IFormFile? Slot1Image { get; set; }
 
-    /// <summary>
-    /// File ảnh tải lên cho Ô 2 (Ảnh phụ 1 của màu)
-    /// </summary>
     public IFormFile? Slot2Image { get; set; }
 
-    /// <summary>
-    /// File ảnh tải lên cho Ô 3 (Ảnh phụ 2 của màu)
-    /// </summary>
     public IFormFile? Slot3Image { get; set; }
 
-    /// <summary>
-    /// File ảnh tải lên cho Ô 4 (Ảnh phụ 3 của màu)
-    /// </summary>
     public IFormFile? Slot4Image { get; set; }
 
-    /// <summary>
-    /// Cờ xóa ảnh ở Ô 2
-    /// </summary>
     public bool DeleteSlot2 { get; set; }
 
-    /// <summary>
-    /// Cờ xóa ảnh ở Ô 3
-    /// </summary>
     public bool DeleteSlot3 { get; set; }
 
-    /// <summary>
-    /// Cờ xóa ảnh ở Ô 4
-    /// </summary>
     public bool DeleteSlot4 { get; set; }
 
-    /// <summary>
-    /// Danh sách màu và 4 slot ảnh của từng màu để hiển thị trong View
-    /// </summary>
     public List<ProductColorImagesViewModel> ColorImagesList { get; set; } = new();
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -206,9 +166,6 @@ public class ProductEditViewModel : IValidatableObject
     }
 }
 
-/// <summary>
-/// ViewModel chứa 4 ô ảnh cho một màu sắc của sản phẩm
-/// </summary>
 public class ProductColorImagesViewModel
 {
     public int ColorId { get; set; }

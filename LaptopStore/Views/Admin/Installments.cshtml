@@ -35,7 +35,6 @@
     </div>
 }
 
-<!-- 3 THẺ CHỈ SỐ NGHIỆP VỤ TRẢ GÓP -->
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="admin-card p-3 shadow-sm border rounded-3 bg-white h-100">
@@ -75,7 +74,6 @@
     </div>
 </div>
 
-<!-- THANH LỌC VÀ TÌM KIẾM (CĂN LỀ TRÁI GỌN GÀNG) -->
 <div class="admin-card mb-4 p-3 shadow-sm border">
     <form method="get" asp-action="Installments" class="d-flex flex-wrap align-items-center gap-2">
         <div class="position-relative" style="width: 340px; max-width: 100%;">
@@ -101,7 +99,6 @@
     </form>
 </div>
 
-<!-- BẢNG DANH SÁCH HỢP ĐỒNG TRẢ GÓP -->
 <div class="admin-card">
     <div class="admin-card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title-text mb-0">
@@ -185,7 +182,7 @@
                             </td>
                         </tr>
 
-                        <!-- MODAL DUYỆT NHANH KHOẢN TRẢ TRƯỚC -->
+                        
                         @if (c.Status == "Chờ trả trước")
                         {
                             <div class="modal fade" id="modal-activate-@c.ContractId" tabindex="-1" aria-hidden="true">
@@ -258,7 +255,7 @@
         </table>
     </div>
 
-    <!-- PHÂN TRANG HỢP ĐỒNG TRẢ GÓP -->
+    
     @if ((ViewBag.TotalPages ?? 1) > 1)
     {
         int curPage = ViewBag.CurrentPage ?? 1;

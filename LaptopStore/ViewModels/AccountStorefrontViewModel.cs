@@ -25,4 +25,3 @@ public class AccountStorefrontViewModel
     public OrderResponseDto? GuestOrderResult { get; set; }
     public string? GuestLookupError { get; set; }
 }
-

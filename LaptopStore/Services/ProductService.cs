@@ -40,7 +40,6 @@ public class ProductService : IProductService
             .Where(p => p.IsActive)
             .AsQueryable();
 
-        // 1. Tìm kiếm theo từ khóa
         if (!string.IsNullOrWhiteSpace(q))
         {
             var kw = q.Trim().ToLower();
@@ -53,7 +52,6 @@ public class ProductService : IProductService
             );
         }
 
-        // 2. Lọc theo Tag / Danh mục
         if (!string.IsNullOrEmpty(tag) && tag != "Tất cả sản phẩm")
         {
             var cleanTag = tag.Trim().ToLower();
@@ -87,7 +85,6 @@ public class ProductService : IProductService
             }
         }
 
-        // 3. Lọc theo Thương hiệu
         if (!string.IsNullOrEmpty(brands))
         {
             var brandList = brands.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -99,7 +96,6 @@ public class ProductService : IProductService
             }
         }
 
-        // 4. Lọc theo Màn hình
         if (!string.IsNullOrEmpty(sizes))
         {
             var sizeList = sizes.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -112,7 +108,6 @@ public class ProductService : IProductService
             }
         }
 
-        // 5. Lọc theo CPU
         if (!string.IsNullOrEmpty(cpus))
         {
             var cpuList = cpus.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -125,7 +120,6 @@ public class ProductService : IProductService
             }
         }
 
-        // 6. Lọc theo RAM
         if (!string.IsNullOrEmpty(rams))
         {
             var ramValues = rams.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -139,7 +133,6 @@ public class ProductService : IProductService
             }
         }
 
-        // 7. Lọc theo Giá
         if (!string.IsNullOrEmpty(priceRange) && priceRange != "all")
         {
             switch (priceRange)
@@ -169,7 +162,6 @@ public class ProductService : IProductService
                 query = query.Where(p => (p.DiscountPrice ?? p.Price) <= maxPrice.Value);
         }
 
-        // 8. Sắp xếp
         query = sortBy switch
         {
             "price_asc" => query.OrderBy(p => p.DiscountPrice ?? p.Price),
@@ -273,7 +265,6 @@ public class ProductService : IProductService
             discountPercent = (int)Math.Round((1 - (p.DiscountPrice.Value / p.Price)) * 100);
         }
 
-        // Bộ 4 ảnh của sản phẩm (không phân chia theo màu sắc, tối đa 4 ảnh cho mỗi sản phẩm)
         var imageList = p.Images
             .OrderBy(img => img.DisplayOrder)
             .Select(img => img.ImageUrl)
@@ -313,7 +304,7 @@ public class ProductService : IProductService
                     DiscountPrice = v.DiscountPrice,
                     EffectivePrice = v.EffectivePrice,
                     ImageUrl = imageList.FirstOrDefault() ?? v.ImageUrl ?? p.ThumbnailUrl,
-                    Images = imageList, // Mỗi sản phẩm dùng chung bộ 4 ảnh dù cho có bao nhiêu biến thể
+                    Images = imageList, 
                     IsActive = v.IsActive
                 };
             }).ToList();
@@ -473,7 +464,6 @@ public class ProductService : IProductService
                     IsActive = true
                 };
 
-                // Phân tích RAM và Storage (ưu tiên dropdown chuẩn RamGB/StorageGB, tương thích ngược với chuỗi)
                 int ramGb = vm.RamGB ?? 16;
                 int storageGb = vm.StorageGB ?? 512;
                 string storageType = !string.IsNullOrWhiteSpace(vm.StorageType) ? vm.StorageType : "SSD NVMe";
@@ -503,7 +493,6 @@ public class ProductService : IProductService
                 _db.Products.Add(product);
                 await _db.SaveChangesAsync();
 
-                // Xác định màu sắc khởi tạo
                 int? colorId = vm.SelectedColorId;
                 if (!colorId.HasValue || colorId.Value <= 0)
                 {
@@ -511,7 +500,6 @@ public class ProductService : IProductService
                     if (defaultColor != null) colorId = defaultColor.ColorId;
                 }
 
-                // Lưu tối đa 4 ô ảnh cố định của sản phẩm (không phân chia theo màu sắc)
                 async Task SaveSlotAsync(int slot, IFormFile? file, string? preSavedUrl = null)
                 {
                     string? url = preSavedUrl;
@@ -536,7 +524,6 @@ public class ProductService : IProductService
                 await SaveSlotAsync(3, vm.Slot3Image);
                 await SaveSlotAsync(4, vm.Slot4Image);
 
-                // Tạo biến thể ban đầu tương ứng với màu đã chọn
                 if (colorId.HasValue && colorId.Value > 0)
                 {
                     var initialVariant = new ProductVariant
@@ -589,7 +576,6 @@ public class ProductService : IProductService
                     p.ThumbnailUrl = newImg;
                 }
 
-                // Xử lý tối đa 4 ô ảnh độc lập cho sản phẩm (DisplayOrder 1..4, không phân chia theo màu sắc)
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
                 async Task HandleProductSlotAsync(int slot, IFormFile? file, bool delete)
@@ -622,7 +608,6 @@ public class ProductService : IProductService
                                 p.Images.Add(newImg);
                             }
 
-                            // Nếu là ô 1 (Ảnh đại diện), luôn cập nhật ThumbnailUrl của laptop
                             if (slot == 1)
                             {
                                 p.ThumbnailUrl = newUrl;
@@ -641,7 +626,6 @@ public class ProductService : IProductService
                 await HandleProductSlotAsync(3, vm.Slot3Image, vm.DeleteSlot3);
                 await HandleProductSlotAsync(4, vm.Slot4Image, vm.DeleteSlot4);
 
-                // Loại bỏ bất kỳ ảnh dư thừa nào ngoài 4 ô (DisplayOrder 1..4) và dọn dẹp trùng lặp slot
                 for (int s = 1; s <= 4; s++)
                 {
                     var slotImgs = p.Images.Where(img => img.DisplayOrder == s).ToList();
@@ -678,7 +662,6 @@ public class ProductService : IProductService
                 p.StockQuantity = vm.StockQuantity;
                 p.Description = vm.Description;
 
-                // Phân tích RAM và Storage (ưu tiên dropdown chuẩn RamGB/StorageGB, tương thích ngược với chuỗi)
                 int ramGb = vm.RamGB ?? 16;
                 int storageGb = vm.StorageGB ?? 512;
                 string storageType = !string.IsNullOrWhiteSpace(vm.StorageType) ? vm.StorageType : "SSD NVMe";
@@ -741,7 +724,6 @@ public class ProductService : IProductService
         var p = await _db.Products.FindAsync(id);
         if (p == null) return false;
 
-        // Kiểm tra ràng buộc toàn vẹn: Không xóa sản phẩm đã phát sinh chi tiết đơn hàng
         var hasOrders = await _db.OrderItems.AnyAsync(oi => oi.ProductId == id);
         if (hasOrders)
         {
@@ -771,7 +753,6 @@ public class ProductService : IProductService
 
         if (product == null) return new List<ProductColorImagesViewModel>();
 
-        // Lấy danh sách màu sắc thuộc sản phẩm (từ variants và images)
         var colorMap = new Dictionary<int, Color>();
         foreach (var v in product.Variants)
         {
@@ -791,7 +772,6 @@ public class ProductService : IProductService
             }
         }
 
-        // Nếu sản phẩm chưa có biến thể nào thì lấy toàn bộ màu active để nhân viên có thể tải trước ảnh
         if (!colorMap.Any())
         {
             var activeColors = await _db.Colors.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
@@ -912,7 +892,7 @@ public class ProductService : IProductService
             if (match.Success && int.TryParse(match.Value, out int parsedStorage))
             {
                 storageGb = parsedStorage;
-                if (storageGb <= 4) storageGb *= 1024; // 1TB, 2TB, 4TB
+                if (storageGb <= 4) storageGb *= 1024; 
             }
 
             if (storageStr.Contains("HDD", StringComparison.OrdinalIgnoreCase))

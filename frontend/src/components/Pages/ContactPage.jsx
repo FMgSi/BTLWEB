@@ -22,7 +22,6 @@ export default function ContactPage({ onGoHome }) {
 
   return (
     <div className="site-container py-3">
-      {/* 1. TOP BANNER LIÊN HỆ NỀN TỐI */}
       <div
         className="rounded-3 p-4 text-center text-white mb-4 shadow-sm"
         style={{
@@ -46,11 +45,8 @@ export default function ContactPage({ onGoHome }) {
         </p>
       </div>
 
-      {/* 2. KHU VỰC CHÍNH: THÔNG TIN LIÊN HỆ (TRÁI) & FORM HỖ TRỢ (PHẢI) */}
       <div className="row g-4 mb-4">
-        {/* CỘT TRÁI: THÔNG TIN LIÊN HỆ & SHOWROOM */}
         <div className="col-12 col-lg-5">
-          {/* Card 1: Thông tin liên hệ */}
           <div className="bg-white rounded-3 border p-4 shadow-sm mb-3">
             <h6 className="fw-bold text-danger mb-3 d-flex align-items-center gap-2">
               <i className="bi bi-geo-alt-fill"></i>
@@ -92,7 +88,6 @@ export default function ContactPage({ onGoHome }) {
             </div>
           </div>
 
-          {/* Card 2: Hệ thống Showroom */}
           <div className="bg-white rounded-3 border p-4 shadow-sm">
             <h6 className="fw-bold text-danger mb-3 d-flex align-items-center gap-2">
               <i className="bi bi-shop"></i>
@@ -122,7 +117,6 @@ export default function ContactPage({ onGoHome }) {
           </div>
         </div>
 
-        {/* CỘT PHẢI: FORM GỬI YÊU CẦU HỖ TRỢ */}
         <div className="col-12 col-lg-7">
           <div className="bg-white rounded-3 border p-4 shadow-sm h-100">
             <h6 className="fw-bold text-danger mb-3 d-flex align-items-center gap-2">
@@ -236,7 +230,6 @@ export default function ContactPage({ onGoHome }) {
         </div>
       </div>
 
-      {/* 3. BẢN ĐỒ VỊ TRÍ SHOWROOM */}
       <div className="bg-white rounded-3 border p-4 shadow-sm mb-4">
         <h6 className="fw-bold text-danger mb-3 d-flex align-items-center gap-2">
           <i className="bi bi-map-fill"></i>

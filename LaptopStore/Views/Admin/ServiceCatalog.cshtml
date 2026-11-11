@@ -31,62 +31,61 @@
     </div>
 }
 
-<!-- ==================== KHUNG CÔNG CỤ & FORM NHẬP LIỆU (THÊM, SỬA, XÓA, LƯU, HỦY, THOÁT) ==================== -->
 <div class="admin-card mb-4 shadow-sm border">
-    <!-- THANH CÔNG CỤ NÚT BẤM TRÊN CÙNG THEO MẪU CHUẨN: THAO TÁC / [ THÊM ] [ SỬA ] [ XÓA ] [ LƯU ] [ HỦY ] [ THOÁT ] -->
+    
     <div class="p-3 bg-white border-bottom">
         <div class="operation-label fw-bold mb-2 text-dark" style="font-size: 0.95rem;">Thao tác</div>
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- 1. NÚT THÊM -->
+            
             <button type="button" class="btn-action-tool" id="btnThem" onclick="onThemClick()">
                 Thêm
             </button>
 
-            <!-- 2. NÚT SỬA -->
+            
             <button type="button" class="btn-action-tool" id="btnSua" onclick="onSuaClick()" disabled>
                 Sửa
             </button>
 
-            <!-- 3. NÚT XÓA -->
+            
             <button type="button" class="btn-action-tool" id="btnXoa" onclick="onXoaClick()" disabled>
                 Xóa
             </button>
 
-            <!-- 4. NÚT LƯU -->
+            
             <button type="button" class="btn-action-tool" id="btnLuu" onclick="onLuuClick()" disabled>
                 Lưu
             </button>
 
-            <!-- 5. NÚT HỦY -->
+            
             <button type="button" class="btn-action-tool" id="btnHuy" onclick="onHuyClick()" disabled>
                 Hủy
             </button>
 
-            <!-- 6. NÚT THOÁT -->
+            
             <button type="button" class="btn-action-tool" id="btnThoat" onclick="onThoatClick()">
                 Thoát
             </button>
 
-            <!-- DÒNG TRẠNG THÁI / HƯỚNG DẪN THAO TÁC -->
+            
             <div class="ms-auto text-muted small" id="toolbarHint">
                 <i class="bi bi-info-circle me-1"></i> Nhấp chọn 1 dòng trong bảng để <strong>Sửa</strong> hoặc <strong>Xóa</strong>. Bấm <strong>Thêm</strong> để tạo dịch vụ mới.
             </div>
         </div>
     </div>
 
-    <!-- KHUNG NHẬP LIỆU THÔNG TIN DỊCH VỤ -->
+    
     <form id="serviceForm" method="post" asp-action="SaveServiceCatalog" class="p-3 bg-light">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ServiceId" id="inpServiceId" value="0" />
 
         <div class="row g-3 align-items-end">
-            <!-- Mã DV -->
+            
             <div class="col-lg-2 col-md-3 col-6">
                 <label class="form-label-dark small fw-bold mb-1">Mã dịch vụ <span class="text-danger">*</span></label>
                 <input type="text" name="ServiceCode" id="inpServiceCode" class="form-control-dark font-monospace fw-bold" placeholder="VD: DV-SC09" disabled required />
             </div>
 
-            <!-- Loại DV -->
+            
             <div class="col-lg-2 col-md-3 col-6">
                 <label class="form-label-dark small fw-bold mb-1">Loại dịch vụ <span class="text-danger">*</span></label>
                 <select name="ServiceType" id="inpServiceType" class="form-select-dark" disabled onchange="handleTypeChange()">
@@ -95,13 +94,13 @@
                 </select>
             </div>
 
-            <!-- Tên dịch vụ -->
+            
             <div class="col-lg-5 col-md-6 col-12">
                 <label class="form-label-dark small fw-bold mb-1">Tên dịch vụ <span class="text-danger">*</span></label>
                 <input type="text" name="ServiceName" id="inpServiceName" class="form-control-dark" placeholder="VD: Thay thế cụm bản lề Laptop Gaming..." disabled required />
             </div>
 
-            <!-- Trạng thái -->
+            
             <div class="col-lg-3 col-md-4 col-12">
                 <label class="form-label-dark small fw-bold mb-1">Trạng thái nhận</label>
                 <select name="IsActive" id="inpIsActive" class="form-select-dark" disabled>
@@ -110,25 +109,25 @@
                 </select>
             </div>
 
-            <!-- Giá tham khảo -->
+            
             <div class="col-lg-3 col-md-4 col-6">
                 <label class="form-label-dark small fw-bold mb-1">Giá tham khảo (VNĐ)</label>
                 <input type="number" name="EstimatedCost" id="inpEstimatedCost" class="form-control-dark" placeholder="0" min="0" step="10000" disabled />
             </div>
 
-            <!-- Thời gian dự kiến -->
+            
             <div class="col-lg-3 col-md-4 col-6">
                 <label class="form-label-dark small fw-bold mb-1">Thời gian dự kiến</label>
                 <input type="text" name="EstimatedTime" id="inpEstimatedTime" class="form-control-dark" placeholder="VD: 30 - 45 phút, 1 - 2 ngày" disabled />
             </div>
 
-            <!-- Bảo hành dịch vụ -->
+            
             <div class="col-lg-2 col-md-4 col-6">
                 <label class="form-label-dark small fw-bold mb-1">BH dịch vụ (tháng)</label>
                 <input type="number" name="ServiceWarrantyMonths" id="inpWarranty" class="form-control-dark" placeholder="0" min="0" max="60" disabled />
             </div>
 
-            <!-- Triệu chứng / Điều kiện -->
+            
             <div class="col-lg-4 col-md-8 col-12">
                 <label class="form-label-dark small fw-bold mb-1">Triệu chứng / Điều kiện áp dụng</label>
                 <input type="text" name="ApplicableConditions" id="inpConditions" class="form-control-dark" placeholder="VD: Máy nóng quạt kêu, bản lề bung gãy..." disabled />
@@ -137,13 +136,11 @@
     </form>
 </div>
 
-<!-- FORM ẨN DÙNG ĐỂ GỬI YÊU CẦU XÓA -->
 <form id="deleteForm" method="post" asp-action="DeleteServiceCatalog" class="d-none">
     @Html.AntiForgeryToken()
     <input type="hidden" name="id" id="deleteIdInput" value="0" />
 </form>
 
-<!-- ==================== BẢNG DANH SÁCH DỊCH VỤ ==================== -->
 <div class="admin-card shadow-sm border">
     <div class="admin-card-header d-flex justify-content-between align-items-center py-3 bg-white border-bottom">
         <h5 class="card-title-text mb-0 fw-bold">
@@ -259,7 +256,6 @@
 </div>
 
 <style>
-    /* Hiệu ứng khi một dòng trong bảng được chọn */
     .service-row.row-selected {
         background-color: #eff6ff !important;
         border-left: 4px solid #2563eb !important;
@@ -318,7 +314,6 @@
                 if (!ok) return;
             }
 
-            // Bỏ chọn dòng cũ
             if (selectedRow) {
                 selectedRow.classList.remove('row-selected');
             }
@@ -327,11 +322,9 @@
             selectedRow.classList.add('row-selected');
             currentMode = 'view';
 
-            // Đổ dữ liệu vào form (ở trạng thái disabled)
             populateFormFromRow(row);
             setInputsDisabled(true);
 
-            // Cập nhật trạng thái các nút
             document.getElementById('btnThem').disabled = false;
             document.getElementById('btnSua').disabled = false;
             document.getElementById('btnXoa').disabled = false;
@@ -360,7 +353,6 @@
             clearForm();
             setInputsDisabled(false);
 
-            // Gợi ý mã dịch vụ tiếp theo
             const tableRows = document.querySelectorAll('.service-row');
             let nextNum = tableRows.length + 1;
             document.getElementById('inpServiceCode').value = 'DV-SC' + (nextNum < 10 ? '0' + nextNum : nextNum);
@@ -446,7 +438,6 @@
                 return;
             }
 
-            // Submit form
             document.getElementById('serviceForm').submit();
         }
 

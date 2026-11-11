@@ -82,7 +82,6 @@ public class DiscountService : IDiscountService
             };
         }).ToList();
 
-        // Lọc theo trạng thái động
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
             if (status == "active")
@@ -99,7 +98,6 @@ public class DiscountService : IDiscountService
             }
         }
 
-        // Lọc theo loại giảm giá
         if (!string.IsNullOrWhiteSpace(discountType) && discountType != "all")
         {
             if (discountType == "percent")
@@ -241,7 +239,6 @@ public class DiscountService : IDiscountService
             return (false, $"Cần mua thêm {FormatVnd(needMore)} để dùng mã này (Đơn hàng tối thiểu {FormatVnd(discount.MinOrderAmount)}).", discount, 0);
         }
 
-        // Kiểm tra điều kiện phạm vi áp dụng (ApplicableScope)
         if (discount.ApplicableScope != "All" && items != null && items.Any())
         {
             var productIds = items.Select(i => i.ProductId).Distinct().ToList();
@@ -299,7 +296,6 @@ public class DiscountService : IDiscountService
             }
         }
 
-        // Kiểm tra khách mua lần đầu (FirstOrderOnly)
         if (discount.ApplicableScope == "FirstOrderOnly")
         {
             bool hasPreviousOrders = false;
@@ -320,7 +316,6 @@ public class DiscountService : IDiscountService
             }
         }
 
-        // Tính toán số tiền được giảm
         decimal calculatedDiscount;
         if (discount.DiscountType == "Percentage")
         {
@@ -400,7 +395,6 @@ public class DiscountService : IDiscountService
             return (false, "Không tìm thấy mã giảm giá.");
         }
 
-        // Kiểm tra an toàn nghiệp vụ: Nếu đã phát sinh đơn hàng, không xóa cứng để bảo vệ tính toàn vẹn dữ liệu
         if (discount.UsedCount > 0)
         {
             discount.IsActive = false;
@@ -443,4 +437,3 @@ public class DiscountService : IDiscountService
         return amount.ToString("#,##0", CultureInfo.GetCultureInfo("vi-VN")) + "đ";
     }
 }
-

@@ -16,10 +16,8 @@ export default function CartPage({
   showToast,
   onNavigate,
 }) {
-  // Điều hướng bước giao diện: false = Giỏ hàng (Hình 1), true = Thanh toán (Hình 2)
   const [isCheckoutStep, setIsCheckoutStep] = useState(false);
 
-  // Modals & States
   const [showQrModal, setShowQrModal] = useState(false);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
@@ -30,7 +28,6 @@ export default function CartPage({
   const [formError, setFormError] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState('');
 
-  // Địa chỉ nhận hàng
   const [savedAddress, setSavedAddress] = useState(() => {
     try {
       const saved = localStorage.getItem('pcstore_shipping_address');
@@ -50,27 +47,23 @@ export default function CartPage({
   const [isEditingAddress, setIsEditingAddress] = useState(!savedAddress?.address);
   const [orderNotes, setOrderNotes] = useState('');
 
-  // Phương thức thanh toán & hình thức mua
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [purchaseMode, setPurchaseMode] = useState('Full');
   const [termMonths, setTermMonths] = useState(6);
   const [serverInstallmentPlan, setServerInstallmentPlan] = useState(null);
 
-  // Voucher khuyến mãi
   const [availablePromotions, setAvailablePromotions] = useState([]);
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [voucherInputCode, setVoucherInputCode] = useState('');
   const [voucherError, setVoucherError] = useState('');
   const [isLoadingPromotions, setIsLoadingPromotions] = useState(false);
 
-  // Hạng thành viên
   const memberTier = useMemo(() => {
     const rawTier = currentUser?.tier || currentUser?.memberTier || '';
     if (rawTier.includes('Bạc') || rawTier.includes('Silver')) return 'Bạc';
     return 'Vàng';
   }, [currentUser]);
 
-  // Tải danh sách voucher từ API
   useEffect(() => {
     setIsLoadingPromotions(true);
     fetch('/api/promotions')
@@ -84,7 +77,6 @@ export default function CartPage({
       .finally(() => setIsLoadingPromotions(false));
   }, []);
 
-  // Thông tin tài khoản ngân hàng chính thức
   const STORE_BANK_ACCOUNT = {
     bankId: 'MB',
     bankName: 'MBBank (Ngân hàng Quân Đội)',
@@ -92,11 +84,9 @@ export default function CartPage({
     accountName: 'HE THONG LAPTOP WORLD',
   };
 
-  // Các sản phẩm được chọn để mua
   const checkedItems = cartItems.filter((i) => i.checked !== false);
   const isAllChecked = cartItems.length > 0 && checkedItems.length === cartItems.length;
 
-  // Tổng tiền hàng chưa giảm
   const totalPayable = checkedItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   const totalOriginal = checkedItems.reduce((sum, item) => {
     const orig = item.originalPrice && item.originalPrice > item.price ? item.originalPrice : item.price;
@@ -104,12 +94,10 @@ export default function CartPage({
   }, 0);
   const itemDiscountTotal = Math.max(0, totalOriginal - totalPayable);
 
-  // Tính ưu đãi thành viên: Bạc = 5%, Vàng/Kim Cương = 10%
   const memberDiscountRate = (memberTier === 'Vàng' || memberTier === 'Kim Cương') ? 0.10 : memberTier === 'Bạc' ? 0.05 : 0;
   const memberDiscountAmount = Math.round(totalPayable * memberDiscountRate);
   const afterMemberDiscount = Math.max(0, totalPayable - memberDiscountAmount);
 
-  // Tính voucher giảm giá
   let voucherDiscountAmount = 0;
   if (appliedVoucher) {
     if (appliedVoucher.discountType === 'Percentage') {
@@ -123,10 +111,8 @@ export default function CartPage({
   }
   voucherDiscountAmount = Math.min(voucherDiscountAmount, afterMemberDiscount);
 
-  // Số tiền cuối cùng cần thanh toán
   const finalPayable = Math.max(0, afterMemberDiscount - voucherDiscountAmount);
 
-  // Đồng bộ phương án trả góp từ Backend API dựa trên finalPayable
   useEffect(() => {
     if (purchaseMode !== 'Installment' || finalPayable < 1000000) {
       setServerInstallmentPlan(null);
@@ -154,7 +140,6 @@ export default function CartPage({
     };
   }, [purchaseMode, finalPayable, termMonths]);
 
-  // Trả trước và các kỳ
   const prepayAmount = serverInstallmentPlan
     ? serverInstallmentPlan.prepayAmount
     : Math.round(finalPayable * 0.30);
@@ -165,7 +150,6 @@ export default function CartPage({
     ? serverInstallmentPlan.monthlyInstallmentAmount
     : Math.floor(financedAmount / termMonths);
 
-  // Chuyển sang bước thanh toán
   const handleProceedToCheckout = () => {
     if (checkedItems.length === 0) {
       if (showToast) showToast('Vui lòng chọn ít nhất 1 sản phẩm để mua hàng!');
@@ -178,13 +162,12 @@ export default function CartPage({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Lưu địa chỉ giao hàng
   const handleSaveAddress = () => {
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
       setPhoneError('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ chi tiết!');
       return;
     }
-    const cleanPhone = customerPhone.replace(/[\s\-\.]/g, '');
+    const cleanPhone = customerPhone.replace(/[\s-.]/g, '');
     const vnPhoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
     if (!vnPhoneRegex.test(cleanPhone)) {
       setPhoneError('Số điện thoại không đúng định dạng (cần đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)');
@@ -198,14 +181,15 @@ export default function CartPage({
     };
     try {
       localStorage.setItem('pcstore_shipping_address', JSON.stringify(addrObj));
-    } catch {}
+    } catch {
+      return null;
+    }
     setSavedAddress(addrObj);
     setIsEditingAddress(false);
     setPhoneError('');
     if (showToast) showToast('✓ Đã lưu địa chỉ nhận hàng mặc định!');
   };
 
-  // Áp dụng Voucher
   const handleApplyVoucher = (v) => {
     if (!v) return;
     if (v.minOrderAmount && totalPayable < v.minOrderAmount) {
@@ -218,7 +202,6 @@ export default function CartPage({
     if (showToast) showToast(`✓ Đã áp dụng mã giảm giá: ${v.code}`);
   };
 
-  // Áp dụng Voucher gõ tay
   const handleApplyCustomVoucher = () => {
     if (!voucherInputCode.trim()) return;
     const code = voucherInputCode.trim().toUpperCase();
@@ -230,20 +213,17 @@ export default function CartPage({
     }
   };
 
-  // Xóa Voucher
   const handleRemoveVoucher = () => {
     setAppliedVoucher(null);
     setVoucherError('');
   };
 
-  // Sao chép thông tin
   const handleCopy = (text, key) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(''), 2000);
   };
 
-  // Gửi đơn hàng lên hệ thống
   const handleConfirmOrder = async (e) => {
     if (e) e.preventDefault();
 
@@ -260,7 +240,7 @@ export default function CartPage({
       return;
     }
 
-    const cleanPhone = customerPhone.replace(/[\s\-\.]/g, '');
+    const cleanPhone = customerPhone.replace(/[\s-.]/g, '');
     const vnPhoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
     if (!vnPhoneRegex.test(cleanPhone)) {
       setPhoneError('Số điện thoại không đúng định dạng (cần đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)');
@@ -274,13 +254,14 @@ export default function CartPage({
     setIsSubmitting(true);
 
     try {
-      // Tự động lưu địa chỉ vào localStorage để các đơn hàng sau tự nạp
       try {
         localStorage.setItem(
           'pcstore_shipping_address',
           JSON.stringify({ name: customerName.trim(), phone: cleanPhone, address: address })
         );
-      } catch {}
+      } catch {
+      return null;
+    }
 
       const orderPayload = {
         customerName: customerName.trim(),
@@ -394,7 +375,6 @@ export default function CartPage({
             : 'Chuyển khoản',
       };
 
-      // Xóa các sản phẩm đã mua khỏi giỏ hàng
       const purchasedKeys = checkedItems.map((item) => item.cartItemId || item.id);
       if (onRemovePurchasedItems) {
         onRemovePurchasedItems(purchasedKeys);
@@ -419,7 +399,6 @@ export default function CartPage({
     }
   };
 
-  // Đóng modal QR
   const handleCloseQrModal = () => {
     const code = pendingOrder?.orderId || '';
     const completed = pendingOrder;
@@ -445,7 +424,6 @@ export default function CartPage({
   return (
     <div className="cart-page-wrap py-4" style={{ backgroundColor: '#f5f5f5', minHeight: '85vh' }}>
       <div className="site-container cart-centered-container">
-        {/* Breadcrumb */}
         <div className="cart-breadcrumb mb-3">
           <a
             href="/"
@@ -474,7 +452,6 @@ export default function CartPage({
           )}
         </div>
 
-        {/* Đặt hàng thành công */}
         {orderSuccess ? (
           <div className="bg-white rounded-3 border p-5 text-center shadow-sm my-3 mx-auto" style={{ maxWidth: '640px' }}>
             <div className="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '64px', height: '64px' }}>
@@ -555,7 +532,6 @@ export default function CartPage({
             </div>
           </div>
         ) : cartItems.length === 0 ? (
-          /* Trạng thái giỏ rỗng */
           <div className="cart-empty-box my-4">
             <i className="bi bi-cart-x cart-empty-icon"></i>
             <h5 className="fw-bold text-dark mb-2">Giỏ hàng của bạn đang trống</h5>
@@ -565,9 +541,7 @@ export default function CartPage({
             </button>
           </div>
         ) : !isCheckoutStep ? (
-          /* Giao diện Giỏ hàng */
           <div>
-            {/* Header bảng giỏ hàng trên desktop */}
             <div className="shopee-table-header d-none d-md-flex align-items-center mb-3">
               <div style={{ width: '45%' }} className="d-flex align-items-center gap-3">
                 <input
@@ -584,7 +558,6 @@ export default function CartPage({
               <div style={{ width: '10%' }} className="text-center fw-semibold">Thao Tác</div>
             </div>
 
-            {/* Header rút gọn cho Mobile (< md) */}
             <div className="d-flex d-md-none justify-content-between align-items-center bg-white p-3 rounded-3 border shadow-sm mb-3">
               <label className="d-flex align-items-center gap-2 m-0 fw-semibold text-dark">
                 <input
@@ -608,7 +581,6 @@ export default function CartPage({
               </button>
             </div>
 
-            {/* Danh sách các sản phẩm trong giỏ hàng kiểu Shopee */}
             <div className="bg-white rounded-3 border shadow-sm p-3 mb-4">
               {cartItems.map((item) => {
                 const itemTotal = (item.price || 0) * (item.quantity || 1);
@@ -616,9 +588,7 @@ export default function CartPage({
 
                 return (
                   <div key={item.cartItemId || item.id} className="py-3 border-bottom">
-                    {/* Bố cục Desktop (>= md) */}
                     <div className="d-none d-md-flex align-items-center" style={{ gap: '15px' }}>
-                      {/* Checkbox & Thông tin sản phẩm */}
                       <div style={{ width: '45%' }} className="d-flex align-items-center gap-3">
                         <input
                           type="checkbox"
@@ -663,7 +633,6 @@ export default function CartPage({
                         </div>
                       </div>
 
-                      {/* Đơn giá */}
                       <div style={{ width: '15%' }} className="text-center">
                         <div className="fw-bold text-danger">{formatVND(item.price)}</div>
                         {item.originalPrice && item.originalPrice > item.price && (
@@ -673,7 +642,6 @@ export default function CartPage({
                         )}
                       </div>
 
-                      {/* Số lượng (+ / -) */}
                       <div style={{ width: '15%' }} className="d-flex justify-content-center">
                         <div className="cart-qty-ctrl">
                           <button
@@ -695,12 +663,10 @@ export default function CartPage({
                         </div>
                       </div>
 
-                      {/* Số tiền (Thành tiền của từng dòng) */}
                       <div style={{ width: '15%' }} className="text-center fw-bold text-danger fs-6">
                         {formatVND(itemTotal)}
                       </div>
 
-                      {/* Thao tác (Xóa) */}
                       <div style={{ width: '10%' }} className="text-center">
                         <button
                           type="button"
@@ -713,7 +679,6 @@ export default function CartPage({
                       </div>
                     </div>
 
-                    {/* Bố cục Mobile (< md) gọn gàng, trực quan */}
                     <div className="d-flex d-md-none flex-column gap-2">
                       <div className="d-flex align-items-start gap-2">
                         <input
@@ -790,7 +755,6 @@ export default function CartPage({
               })}
             </div>
 
-            {/* Thanh Shopee Sticky Footer tổng kết giỏ hàng */}
             <div className="shopee-cart-footer d-flex flex-wrap align-items-center justify-content-between gap-3">
               <div className="d-flex align-items-center gap-3">
                 <label className="d-flex align-items-center gap-2 m-0 fw-semibold text-dark" style={{ cursor: 'pointer' }}>
@@ -842,9 +806,7 @@ export default function CartPage({
             </div>
           </div>
         ) : (
-          /* Giao diện Thanh toán */
           <div>
-            {/* Quay lại giỏ hàng */}
             <div className="mb-3">
               <button
                 type="button"
@@ -855,7 +817,6 @@ export default function CartPage({
               </button>
             </div>
 
-            {/* Địa chỉ nhận hàng */}
             <div className="shopee-address-card p-3 p-md-4 mb-3 border">
               <div className="shopee-address-ribbon mb-3"></div>
               <div className="d-flex align-items-center justify-content-between mb-2">
@@ -875,7 +836,6 @@ export default function CartPage({
               </div>
 
               {isEditingAddress ? (
-                /* Form nhập hoặc chỉnh sửa địa chỉ */
                 <div className="bg-light p-3 rounded-3 border mt-2">
                   <div className="row g-2 mb-2">
                     <div className="col-md-6">
@@ -939,7 +899,6 @@ export default function CartPage({
                   </div>
                 </div>
               ) : (
-                /* Hiển thị địa chỉ đã lưu (tự động điền) */
                 <div className="d-flex flex-wrap align-items-center gap-3">
                   <strong className="text-dark">
                     {customerName} (+84) {customerPhone.replace(/^0/, '')}
@@ -952,7 +911,6 @@ export default function CartPage({
               )}
             </div>
 
-            {/* Danh sách sản phẩm đặt mua */}
             <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
               <div className="d-none d-md-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary small fw-semibold">
                 <span style={{ width: '50%' }}>Sản phẩm ({checkedItems.length})</span>
@@ -963,7 +921,6 @@ export default function CartPage({
 
               {checkedItems.map((item) => (
                 <div key={item.cartItemId || item.id} className="py-2 border-bottom">
-                  {/* Bố cục Desktop (>= md) */}
                   <div className="d-none d-md-flex align-items-center">
                     <div style={{ width: '50%' }} className="d-flex align-items-center gap-3">
                       <img
@@ -999,7 +956,6 @@ export default function CartPage({
                     </div>
                   </div>
 
-                  {/* Bố cục Mobile (< md): Cân đối tỉ lệ, chữ dài tự xuống dòng */}
                   <div className="d-flex d-md-none gap-2 align-items-start py-1">
                     <img
                       src={item.image || '/images/default.png'}
@@ -1038,7 +994,6 @@ export default function CartPage({
                 </div>
               ))}
 
-              {/* Lời nhắn cho người bán */}
               <div className="mt-3 pt-2 d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2 gap-sm-3">
                 <span className="small text-secondary fw-semibold flex-shrink-0">Lời nhắn:</span>
                 <input
@@ -1051,7 +1006,6 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* Ưu đãi Hạng Thành Viên */}
             <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
               <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -1074,7 +1028,6 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* Voucher khuyến mãi */}
             <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
               <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <div className="d-flex align-items-center gap-2">
@@ -1108,7 +1061,6 @@ export default function CartPage({
               </div>
             </div>
 
-            {/* Phương thức thanh toán */}
             <div className="bg-white rounded-3 border p-3 p-md-4 mb-3 shadow-sm">
               <h6 className="fw-bold text-dark mb-3">Phương thức thanh toán</h6>
 
@@ -1166,7 +1118,6 @@ export default function CartPage({
                 </div>
               </div>
 
-              {/* Kỳ hạn trả góp */}
               {purchaseMode === 'Installment' && (
                 <div className="bg-light p-3 rounded-3 border mt-3">
                   <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
@@ -1209,7 +1160,6 @@ export default function CartPage({
               )}
             </div>
 
-            {/* Chi tiết thanh toán & nút Đặt Hàng */}
             <div className="bg-white rounded-3 border p-3 p-md-4 shadow-sm">
               {formError && (
                 <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
@@ -1278,7 +1228,6 @@ export default function CartPage({
         )}
       </div>
 
-      {/* Modal chọn voucher */}
       {showVoucherModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1070 }}>
           <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '520px' }}>
@@ -1292,7 +1241,6 @@ export default function CartPage({
               </div>
 
               <div className="modal-body p-3">
-                {/* Ô nhập mã Voucher trực tiếp */}
                 <div className="input-group input-group-sm mb-3">
                   <input
                     type="text"
@@ -1311,7 +1259,6 @@ export default function CartPage({
 
                 <div className="small fw-bold text-secondary mb-2">Mã giảm giá đang có sẵn:</div>
 
-                {/* Danh sách các voucher săn được từ API */}
                 <div className="d-flex flex-column gap-2" style={{ maxHeight: '360px', overflowY: 'auto' }}>
                   {availablePromotions.length > 0 ? (
                     availablePromotions.map((p) => {
@@ -1371,7 +1318,6 @@ export default function CartPage({
         </div>
       )}
 
-      {/* Modal VietQR */}
       {showQrModal && pendingOrder && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1080 }}>
           <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '500px' }}>

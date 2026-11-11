@@ -38,13 +38,7 @@ public interface IProductService
 
     Task<bool> DeleteProductAsync(int id);
 
-    /// <summary>
-    /// Gợi ý tìm kiếm Model máy theo từ khóa phục vụ tra cứu tiếp nhận sửa chữa
-    /// </summary>
     Task<List<ModelSuggestionDto>> SuggestModelsAsync(string? query);
 
-    /// <summary>
-    /// Lấy danh sách ảnh 4 ô theo từng màu của một sản phẩm
-    /// </summary>
     Task<List<ProductColorImagesViewModel>> GetProductColorImagesAsync(int productId);
 }

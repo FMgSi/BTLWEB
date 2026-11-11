@@ -3,21 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Data;
 
-/// <summary>
-/// Lớp hỗ trợ tự động khởi tạo cơ sở dữ liệu và nạp dữ liệu mẫu ban đầu (Seeding Data an toàn)
-/// Đảm bảo KHÔNG BAO GIỜ xóa dữ liệu thật đã nhập khi khởi động lại ứng dụng
-/// </summary>
 public static class DbInitializer
 {
-    /// <summary>
-    /// Phương thức kiểm tra và khởi tạo Database an toàn
-    /// </summary>
+    
     public static void Initialize(AppDbContext context)
     {
-        // 1. Tự động tạo cơ sở dữ liệu SQL Server và toàn bộ 10 bảng theo metadata EF Core nếu chưa tồn tại
+        
         context.Database.EnsureCreated();
 
-        // Nâng cấp an toàn các cột mới nếu đang chạy trên CSDL SQL Server cũ
         if (context.Database.IsRelational())
         {
             try
@@ -301,7 +294,6 @@ public static class DbInitializer
                     END
                 ");
 
-                // Bước 2: Nâng cấp an toàn cho bảng ProductImages (thêm cột ColorId trong batch độc lập)
                 context.Database.ExecuteSqlRaw(@"
                     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ProductImages') AND name = 'ColorId')
                     BEGIN
@@ -309,7 +301,6 @@ public static class DbInitializer
                     END
                 ");
 
-                // Bước 3: Ràng buộc khóa ngoại và Index lọc ColorId với SET QUOTED_IDENTIFIER ON
                 context.Database.ExecuteSqlRaw(@"
                     SET QUOTED_IDENTIFIER ON;
                     SET ANSI_NULLS ON;
@@ -331,10 +322,8 @@ public static class DbInitializer
             }
         }
 
-        // 2. Nạp tài khoản mẫu nếu bảng Users còn trống
         SeedUsersIfEmpty(context);
 
-        // 3. KIỂM TRA SẢN PHẨM: Nếu đã có bất kỳ sản phẩm nào -> DỪNG NGAY, không nạp đè và không chạy script xóa!
         if (context.Products.Any())
         {
             SeedProductImagesIfEmpty(context);
@@ -348,7 +337,6 @@ public static class DbInitializer
             return;
         }
 
-        // 4. Nếu database HOÀN TOÀN TRỐNG (lần đầu setup đồ án), nạp dữ liệu từ file sql-init/init-db.sql (đã lọc bỏ DELETE/TRUNCATE)
         var possiblePaths = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "sql-init", "init-db.sql"),
@@ -364,7 +352,6 @@ public static class DbInitializer
                 context.Database.OpenConnection();
                 var rawSql = File.ReadAllText(sqlFile);
 
-                // Tách theo từ khóa GO (chuẩn SQL Server) hoặc dấu chấm phẩy
                 var batches = System.Text.RegularExpressions.Regex.Split(rawSql, @"^\s*GO\s*$", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
                 foreach (var batch in batches)
@@ -373,7 +360,6 @@ public static class DbInitializer
                     if (string.IsNullOrWhiteSpace(cleanBatch))
                         continue;
 
-                    // BẢO VỆ DỮ LIỆU: Bỏ qua hoàn toàn các câu lệnh DELETE / TRUNCATE / DROP / DATABASE LEVEL
                     if (cleanBatch.StartsWith("DELETE FROM", StringComparison.OrdinalIgnoreCase) ||
                         cleanBatch.StartsWith("TRUNCATE TABLE", StringComparison.OrdinalIgnoreCase) ||
                         cleanBatch.StartsWith("DROP TABLE", StringComparison.OrdinalIgnoreCase) ||
@@ -421,15 +407,12 @@ public static class DbInitializer
             }
         }
 
-        // 5. Fallback Seed nếu không tìm thấy file SQL
         SeedFallbackProducts(context);
         SeedProductImagesIfEmpty(context);
         SeedColorsIfEmpty(context);
         SeedVariantsIfEmpty(context);
         SeedOrdersIfEmpty(context);
     }
-
-
 
     private static void SeedFallbackProducts(AppDbContext context)
     {
@@ -578,7 +561,6 @@ public static class DbInitializer
                 }
             }
 
-            // Đồng bộ an toàn ảnh biến thể vào bảng ProductImages (Ô 1 - Ảnh đại diện của từng màu)
             var variantsWithImage = context.ProductVariants
                 .AsNoTracking()
                 .Where(v => !string.IsNullOrEmpty(v.ImageUrl) && v.ColorId > 0)
@@ -839,8 +821,7 @@ public static class DbInitializer
 
                 if (isDellDemo)
                 {
-                    // Nghiệp vụ cốt lõi theo kịch bản:
-                    // 1. Dell - Bạc - 16GB - 512GB: Tồn 1 (kế thừa giá máy: Price = null)
+                    
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -849,14 +830,13 @@ public static class DbInitializer
                         StorageGB = 512,
                         SKU = $"DELL-{prod.ProductId}-SLV-16-512",
                         StockQuantity = 1,
-                        Price = null, // Kế thừa giá gốc của sản phẩm
+                        Price = null, 
                         DiscountPrice = null,
                         ImageUrl = "/images/products/dell-inspiron-14-5430.png",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     });
 
-                    // 2. Dell - Đen - 16GB - 512GB: Tồn 2 (kế thừa giá máy: Price = null)
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -865,14 +845,13 @@ public static class DbInitializer
                         StorageGB = 512,
                         SKU = $"DELL-{prod.ProductId}-BLK-16-512",
                         StockQuantity = 2,
-                        Price = null, // Kế thừa giá gốc của sản phẩm
+                        Price = null, 
                         DiscountPrice = null,
                         ImageUrl = "/images/products/asus-tuf-gaming-f15-fx507zc4.png",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     });
 
-                    // 3. Dell - Đen - 32GB - 1TB: Tồn 0 (cấu hình cao giá riêng, kế thừa ảnh đen từ SKU 16-512)
                     variants.Add(new ProductVariant
                     {
                         ProductId = prod.ProductId,
@@ -888,12 +867,11 @@ public static class DbInitializer
                         CreatedAt = DateTime.UtcNow
                     });
 
-                    // Cập nhật tổng tồn kho của Dell = 1 + 2 + 0 = 3
                     prod.StockQuantity = 3;
                 }
                 else
                 {
-                    // Các laptop khác: Tạo 2 biến thể màu với thông số sẵn có, kế thừa giá sản phẩm
+                    
                     int halfStock = Math.Max(1, prod.StockQuantity / 2);
                     int remainingStock = Math.Max(0, prod.StockQuantity - halfStock);
 
@@ -978,7 +956,6 @@ public static class DbInitializer
         {
             if (context.SoldDevices.Any()) return;
 
-            // Tìm các đơn hàng để gắn số Serial mẫu cho máy đã giao/bán
             var completedOrders = context.Orders
                 .Include(o => o.OrderItems)
                 .Where(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã xác nhận" || o.OrderStatus == "Đang xử lý")
@@ -1114,7 +1091,7 @@ public static class DbInitializer
                     MaxDiscountAmount = 200000,
                     MinOrderAmount = 10000000,
                     StartDate = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
-                    EndDate = new DateTime(2026, 10, 31, 23, 59, 59, DateTimeKind.Utc), // Hết hạn ngày 31/10/2026
+                    EndDate = new DateTime(2026, 10, 31, 23, 59, 59, DateTimeKind.Utc), 
                     UsageLimit = 200,
                     UsedCount = 89,
                     ApplicableScope = "All",
@@ -1130,7 +1107,7 @@ public static class DbInitializer
                     MaxDiscountAmount = 1000000,
                     MinOrderAmount = 18000000,
                     StartDate = new DateTime(2026, 10, 10, 0, 0, 0, DateTimeKind.Utc),
-                    EndDate = new DateTime(2026, 10, 15, 23, 59, 59, DateTimeKind.Utc), // Đã hết hạn & hết lượt
+                    EndDate = new DateTime(2026, 10, 15, 23, 59, 59, DateTimeKind.Utc), 
                     UsageLimit = 10,
                     UsedCount = 10,
                     ApplicableScope = "GamingOnly",
@@ -1156,7 +1133,7 @@ public static class DbInitializer
             bool hasChanges = false;
             foreach (var user in users)
             {
-                // Tìm số điện thoại từ đơn hàng nếu user chưa có
+                
                 if (string.IsNullOrEmpty(user.PhoneNumber))
                 {
                     var orderPhone = context.Orders
@@ -1172,7 +1149,6 @@ public static class DbInitializer
                     }
                 }
 
-                // Tự động liên kết các đơn hàng cũ chưa có UserId
                 if (!string.IsNullOrEmpty(user.PhoneNumber) || !string.IsNullOrEmpty(user.Email) || !string.IsNullOrEmpty(user.FullName))
                 {
                     var unlinkedOrders = context.Orders

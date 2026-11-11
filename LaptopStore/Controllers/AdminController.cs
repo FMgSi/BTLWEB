@@ -13,10 +13,6 @@ using System.Text;
 
 namespace LaptopStore.Controllers;
 
-/// <summary>
-/// Controller Quản trị Trung tâm (Admin Portal)
-/// Được bảo vệ chặt chẽ bởi cơ chế Xác thực & Phân quyền Cookie Authentication [Authorize(Roles = "Admin,Staff")]
-/// </summary>
 [Authorize(Roles = "Admin,Staff")]
 public class AdminController : Controller
 {
@@ -46,9 +42,6 @@ public class AdminController : Controller
         _env = env;
     }
 
-    /// <summary>
-    /// Giao diện Đăng nhập Trang Quản trị (GET: /Admin/Login)
-    /// </summary>
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -62,9 +55,6 @@ public class AdminController : Controller
         return View();
     }
 
-    /// <summary>
-    /// Xử lý Đăng nhập Quản trị viên (POST: /Admin/Login)
-    /// </summary>
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -80,7 +70,6 @@ public class AdminController : Controller
 
         var normalizedInput = username.Trim().ToLower();
 
-        // 1. Tìm tài khoản trong database
         var user = await _db.Users.FirstOrDefaultAsync(u =>
             u.Username.ToLower() == normalizedInput || u.Email.ToLower() == normalizedInput);
 
@@ -102,7 +91,6 @@ public class AdminController : Controller
             return View();
         }
 
-        // 2. Thiết lập Claims và cấp Cookie đăng nhập
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
@@ -124,7 +112,6 @@ public class AdminController : Controller
             authProperties
         );
 
-        // Lưu thông tin vào Session để tương thích ngược
         HttpContext.Session.SetString("UserId", user.UserId.ToString());
         HttpContext.Session.SetString("Username", user.Username);
         HttpContext.Session.SetString("Role", user.Role);
@@ -137,9 +124,6 @@ public class AdminController : Controller
         return RedirectToAction("Index", "Product");
     }
 
-    /// <summary>
-    /// Đăng xuất khỏi Trang Quản trị (POST / GET: /Admin/Logout)
-    /// </summary>
     [HttpPost]
     [HttpGet]
     [AllowAnonymous]
@@ -150,9 +134,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Login));
     }
 
-    /// <summary>
-    /// Trang thông báo không có quyền truy cập (GET: /Admin/AccessDenied)
-    /// </summary>
     [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied()
@@ -160,28 +141,17 @@ public class AdminController : Controller
         return View();
     }
 
-    /// <summary>
-    /// GET: /Admin hoặc /Admin/Index -> chuyển hướng sang Quản lý sản phẩm
-    /// </summary>
     public IActionResult Index() => RedirectToAction("Index", "Product");
 
-    /// <summary>
-    /// Dashboard Thống kê thời gian thực từ Cơ sở dữ liệu
-    /// GET: /Admin/Dashboard
-    /// </summary>
     public async Task<IActionResult> Dashboard()
     {
         var model = await _orderService.GetDashboardStatsAsync();
         return View(model);
     }
 
-    /// <summary>
-    /// Quản lý Đơn hàng - Dữ liệu thực từ Cơ sở dữ liệu Microsoft SQL Server
-    /// GET: /Admin/Orders
-    /// </summary>
     public async Task<IActionResult> Orders(string? search, string? status, int page = 1)
     {
-        int pageSize = 5; // Giới hạn bảng hiển thị 5 đơn hàng mỗi trang để trang không bị dài
+        int pageSize = 5; 
         var pagedResult = await _orderService.GetOrdersAsync(search, status, page, pageSize);
 
         ViewBag.Search = search;
@@ -194,10 +164,6 @@ public class AdminController : Controller
         return View(pagedResult.Items);
     }
 
-    /// <summary>
-    /// Cập nhật trạng thái đơn hàng (Đang xử lý -> Đã xác nhận -> Đã giao / Hoàn thành / Đã hủy)
-    /// POST: /Admin/UpdateOrderStatus
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateOrderStatus(int orderId, string status, string? note)
@@ -217,13 +183,9 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Orders));
     }
 
-    /// <summary>
-    /// Quản lý Hợp đồng Trả góp (Mốc 1: Theo dõi đơn chờ trả trước, đang trả, quá hạn, đã tất toán)
-    /// GET: /Admin/Installments
-    /// </summary>
     public async Task<IActionResult> Installments(string? search, string? status, int page = 1)
     {
-        int pageSize = 5; // Giới hạn bảng hiển thị 5 hợp đồng mỗi trang
+        int pageSize = 5; 
         var pagedResult = await _installmentService.GetContractsAsync(search, status, page, pageSize);
         var (waitingPrepay, activeContracts, totalDebt) = await _installmentService.GetInstallmentDashboardMetricsAsync();
 
@@ -241,10 +203,6 @@ public class AdminController : Controller
         return View(pagedResult.Items);
     }
 
-    /// <summary>
-    /// Xem chi tiết hợp đồng trả góp kèm lịch các kỳ và lịch sử biên nhận thanh toán
-    /// GET: /Admin/InstallmentDetails/{id}
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> InstallmentDetails(int id)
     {
@@ -258,10 +216,6 @@ public class AdminController : Controller
         return View(contract);
     }
 
-    /// <summary>
-    /// Admin xác nhận đã nhận khoản tiền trả trước 30% -> Kích hoạt hợp đồng và chốt lịch trả chính thức
-    /// POST: /Admin/ActivateInstallment
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ActivateInstallment(int contractId, string paymentMethod, string? transactionRef, string? note, string? returnUrl = null)
@@ -287,10 +241,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Installments));
     }
 
-    /// <summary>
-    /// Admin thu tiền cho từng kỳ trả góp theo thứ tự
-    /// POST: /Admin/CollectInstallmentPeriod
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CollectInstallmentPeriod(
@@ -317,10 +267,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(InstallmentDetails), new { id = contractId });
     }
 
-    /// <summary>
-    /// In hoặc xem Biên nhận thu tiền trả góp
-    /// GET: /Admin/InstallmentReceipt/{paymentId}
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> InstallmentReceipt(int id)
     {
@@ -339,13 +285,9 @@ public class AdminController : Controller
         return View(payment);
     }
 
-    /// <summary>
-    /// Quản lý Khách hàng
-    /// GET: /Admin/Customers
-    /// </summary>
     public async Task<IActionResult> Customers(string? search, string? status, string? tier, int page = 1)
     {
-        // Lấy danh sách khách hàng thật từ CSDL
+        
         var realCustomers = await _db.Users
             .AsNoTracking()
             .Where(u => u.Role == "Customer")
@@ -407,7 +349,7 @@ public class AdminController : Controller
         }
 
         var list = query.ToList();
-        int pageSize = 5; // Giới hạn bảng hiển thị 5 khách hàng mỗi trang
+        int pageSize = 5; 
         var total = list.Count;
         var pagedList = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         ViewBag.Search = search ?? "";
@@ -423,10 +365,6 @@ public class AdminController : Controller
         return View(pagedList);
     }
 
-    /// <summary>
-    /// POST: /Admin/ToggleCustomerLock
-    /// Khóa / Mở khóa tài khoản khách hàng thật trong cơ sở dữ liệu
-    /// </summary>
     [HttpPost]
     public async Task<IActionResult> ToggleCustomerLock(string customerCode)
     {
@@ -451,10 +389,6 @@ public class AdminController : Controller
         return Json(new { success = false, message = "Không tìm thấy khách hàng trong cơ sở dữ liệu" });
     }
 
-    /// <summary>
-    /// GET: /Admin/Staff
-    /// Quản lý danh sách tài khoản nhân viên & quản trị viên
-    /// </summary>
     public async Task<IActionResult> Staff(string? search, string? status, int page = 1)
     {
         var staffUsers = await _db.Users
@@ -495,7 +429,7 @@ public class AdminController : Controller
         }
 
         var list = query.ToList();
-        int pageSize = 5; // Giới hạn bảng hiển thị 5 nhân viên mỗi trang
+        int pageSize = 5; 
         var total = list.Count;
         var pagedList = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
@@ -515,10 +449,6 @@ public class AdminController : Controller
         return View(pagedList);
     }
 
-    /// <summary>
-    /// GET: /Admin/GetStaffJson
-    /// Lấy chi tiết nhân viên để load lên modal Sửa
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetStaffJson(int id)
     {
@@ -544,10 +474,6 @@ public class AdminController : Controller
         });
     }
 
-    /// <summary>
-    /// POST: /Admin/CreateStaff
-    /// Thêm tài khoản nhân viên mới
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateStaff([FromForm] CreateStaffInput input)
@@ -590,10 +516,6 @@ public class AdminController : Controller
         return Json(new { success = true, message = $"Thêm nhân viên {newStaff.FullName} thành công!" });
     }
 
-    /// <summary>
-    /// POST: /Admin/UpdateStaff
-    /// Cập nhật thông tin tài khoản nhân viên
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStaff([FromForm] UpdateStaffInput input)
@@ -634,10 +556,6 @@ public class AdminController : Controller
         return Json(new { success = true, message = "Cập nhật thông tin nhân viên thành công!" });
     }
 
-    /// <summary>
-    /// POST: /Admin/DeleteStaff
-    /// Xóa tài khoản nhân viên
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteStaff(int id)
@@ -670,10 +588,6 @@ public class AdminController : Controller
         return Json(new { success = true, message = "Đã xóa tài khoản nhân viên thành công!" });
     }
 
-    /// <summary>
-    /// POST: /Admin/ToggleStaffLock
-    /// Khóa / Mở khóa tài khoản nhân viên
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStaffLock(int id)
@@ -696,18 +610,11 @@ public class AdminController : Controller
         return Json(new { success = true, isActive = user.IsActive, message = user.IsActive ? "Đã kích hoạt hoạt động tài khoản nhân viên" : "Đã khóa tài khoản nhân viên thành công" });
     }
 
-    /// <summary>
-    /// GET: /Admin/Discounts
-    /// Gỡ bỏ trang quản lý voucher, chuyển hướng an toàn về Báo cáo thống kê
-    /// </summary>
     public IActionResult Discounts()
     {
         return RedirectToAction(nameof(Reports));
     }
 
-    /// <summary>
-    /// POST: /Admin/CreateDiscount
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateDiscount(CreateDiscountInput input)
@@ -731,10 +638,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Discounts));
     }
 
-    /// <summary>
-    /// Bật / Tắt (Ngừng áp dụng) mã giảm giá
-    /// POST: /Admin/ToggleDiscountStatus
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleDiscountStatus(int id)
@@ -743,9 +646,6 @@ public class AdminController : Controller
         return Json(new { success, message });
     }
 
-    /// <summary>
-    /// POST: /Admin/DeleteDiscount
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteDiscount(int id)
@@ -754,10 +654,6 @@ public class AdminController : Controller
         return Json(new { success, message });
     }
 
-    /// <summary>
-    /// Báo cáo thống kê nâng cao đa chiều (Bán hàng, Dòng tiền thực thu trả góp, Sản phẩm biến thể, Dịch vụ bảo hành)
-    /// GET: /Admin/Reports
-    /// </summary>
     public async Task<IActionResult> Reports(string period = "month", DateTime? fromDate = null, DateTime? toDate = null)
     {
         DateTime start;
@@ -798,7 +694,6 @@ public class AdminController : Controller
             ToDate = end
         };
 
-        // 1. BÁO CÁO BÁN HÀNG TRONG KHOẢNG THỜI GIAN
         var ordersInRange = await _db.Orders
             .AsNoTracking()
             .Include(o => o.OrderItems)
@@ -815,7 +710,6 @@ public class AdminController : Controller
         var completedOrders = ordersInRange.Where(o => o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.OrderStatus == "Đã giao hàng").ToList();
         report.TotalCompletedRevenue = completedOrders.Sum(o => o.TotalAmount);
 
-        // Dòng tiền thực thu: Đơn thường hoàn tất + Tiền trả trước đơn trả góp + Các kỳ trả góp đã thu
         decimal normalCash = completedOrders.Where(o => o.PurchaseMode != "Installment").Sum(o => o.TotalAmount);
         decimal installmentPrepay = completedOrders.Where(o => o.PurchaseMode == "Installment")
             .Sum(o => o.InstallmentContract != null ? o.InstallmentContract.PrepayAmount : Math.Round(o.TotalAmount * 0.30m));
@@ -833,7 +727,6 @@ public class AdminController : Controller
         report.InstallmentCashCollected = installmentPrepay + installmentPaidSchedules;
         report.ActualCashCollected = normalCash + report.InstallmentCashCollected;
 
-        // 2. BÁO CÁO SẢN PHẨM: SẢN PHẨM BÁN CHẠY (TOP SELLING)
         var completedOrderIds = completedOrders.Select(o => o.OrderId).ToList();
         var topSellingItems = await _db.OrderItems
             .AsNoTracking()
@@ -867,7 +760,6 @@ public class AdminController : Controller
             TotalRevenue = t.TotalRevenue
         }).ToList();
 
-        // SẢN PHẨM SẮP HẾT HÀNG THEO CẤU HÌNH (STOCK <= 3)
         var lowStockBase = await _db.Products
             .AsNoTracking()
             .Include(p => p.Specification)
@@ -903,7 +795,6 @@ public class AdminController : Controller
 
         report.LowStockProducts = lowStockBase.Concat(lowStockVariants).OrderBy(x => x.StockQuantity).Take(10).ToList();
 
-        // 3. BÁO CÁO DỊCH VỤ SỬA CHỮA & BẢO HÀNH
         var ticketsInRange = await _db.ServiceTickets
             .AsNoTracking()
             .Where(t => t.CreatedAt >= start && t.CreatedAt <= end)
@@ -924,7 +815,6 @@ public class AdminController : Controller
                 .Average(t => ((t.ReturnedAt ?? t.CompletedAt!.Value) - t.CreatedAt).TotalHours), 1);
         }
 
-        // 4. BIỂU ĐỒ DOANH THU THEO KHOẢNG THỜI GIAN
         if (period == "today")
         {
             for (int h = 8; h <= 20; h += 2)
@@ -951,7 +841,7 @@ public class AdminController : Controller
             var totalDays = (end.Date - start.Date).TotalDays + 1;
             if (totalDays <= 1)
             {
-                // Cùng 1 ngày: chia theo khung giờ 2 tiếng
+                
                 for (int h = 8; h <= 20; h += 2)
                 {
                     var hStart = start.Date.AddHours(h);
@@ -963,7 +853,7 @@ public class AdminController : Controller
             }
             else if (totalDays <= 14)
             {
-                // Dưới 2 tuần: hiển thị chi tiết từng ngày
+                
                 for (var curr = start.Date; curr <= end.Date; curr = curr.AddDays(1))
                 {
                     var rev = completedOrders.Where(o => o.CreatedAt.Date == curr).Sum(o => o.TotalAmount);
@@ -973,7 +863,7 @@ public class AdminController : Controller
             }
             else if (totalDays <= 60)
             {
-                // Từ 15 - 60 ngày: gom nhóm 5 ngày
+                
                 for (var curr = start.Date; curr <= end.Date; curr = curr.AddDays(5))
                 {
                     var dEnd = curr.AddDays(5).AddTicks(-1);
@@ -985,7 +875,7 @@ public class AdminController : Controller
             }
             else
             {
-                // Khoảng thời gian dài (> 60 ngày): gom nhóm theo từng tháng
+                
                 var startMonth = new DateTime(start.Year, start.Month, 1);
                 var endMonth = new DateTime(end.Year, end.Month, 1);
                 int totalMonths = ((end.Year - start.Year) * 12) + end.Month - start.Month + 1;
@@ -1017,9 +907,6 @@ public class AdminController : Controller
         return View(report);
     }
 
-    /// <summary>
-    /// Tiện ích Xuất dữ liệu sản phẩm sang file CSV
-    /// </summary>
     public async Task<IActionResult> ExportProducts()
     {
         var products = await _db.Products
@@ -1041,10 +928,6 @@ public class AdminController : Controller
         return File(bytes, "text/csv", $"DanhSach_SanPham_{DateTime.Now:yyyyMMdd_HHmm}.csv");
     }
 
-    /// <summary>
-    /// API trả dữ liệu thông báo thời gian thực cho Dropdown trên Topbar
-    /// GET: /Admin/GetNotifications
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetNotifications()
     {
@@ -1053,7 +936,6 @@ public class AdminController : Controller
             var now = DateTime.UtcNow;
             var sevenDaysLater = now.AddDays(7);
 
-            // 1. Đơn hàng mới / Chờ xử lý / Chờ trả trước
             var pendingOrders = await _db.Orders
                 .AsNoTracking()
                 .Where(o => o.OrderStatus == "Chờ xử lý" || o.PaymentStatus == "Chờ trả trước")
@@ -1077,7 +959,6 @@ public class AdminController : Controller
                 })
                 .ToListAsync();
 
-            // 2. Kỳ trả góp đến hạn hoặc quá hạn
             var urgentSchedules = await _db.InstallmentSchedules
                 .AsNoTracking()
                 .Include(s => s.Contract)
@@ -1102,7 +983,6 @@ public class AdminController : Controller
                 })
                 .ToListAsync();
 
-            // 3. Cảnh báo tồn kho thấp (<= 2 máy)
             var lowStockItems = await _db.Products
                 .AsNoTracking()
                 .Where(p => p.IsActive && p.StockQuantity <= 2)
@@ -1149,10 +1029,6 @@ public class AdminController : Controller
         }
     }
 
-    /// <summary>
-    /// GET: /Admin/ServiceTickets
-    /// Quản lý Hàng chờ tiếp nhận và Phiếu dịch vụ Bảo hành & Sửa chữa
-    /// </summary>
     public async Task<IActionResult> ServiceTickets(string? status = "all", string? search = null, string? type = "all")
     {
         var tickets = await _warrantyService.GetAdminTicketsAsync(status, search, type);
@@ -1174,7 +1050,6 @@ public class AdminController : Controller
             .ThenBy(s => s.ServiceCode)
             .ToListAsync();
 
-        // Danh sách khách hàng và thiết bị đã mua máy để hỗ trợ tự điền khi tạo/sửa phiếu bảo hành
         var soldDevices = await _db.SoldDevices
             .AsNoTracking()
             .Include(d => d.OrderItem)
@@ -1224,7 +1099,6 @@ public class AdminController : Controller
 
         ViewBag.CustomerLookup = soldDevices;
 
-        // Danh sách khách hàng duy nhất (chỉ gồm SĐT, Tên để hiển thị gọn gàng trong ô chọn SĐT)
         ViewBag.CustomerPhones = soldDevices
             .GroupBy(d => d.PhoneNumber)
             .Select(g => new CustomerPhoneLookupDto
@@ -1237,7 +1111,6 @@ public class AdminController : Controller
             .OrderBy(c => c.CustomerName)
             .ToList();
 
-        // Danh sách tất cả sản phẩm trong kho (hỗ trợ chọn dòng máy ở phần Sửa chữa)
         var warehouseProducts = await _db.Products
             .AsNoTracking()
             .Include(p => p.Brand)
@@ -1255,10 +1128,6 @@ public class AdminController : Controller
         return View(tickets);
     }
 
-    /// <summary>
-    /// GET: /Admin/ServiceTicketDetails/{id}
-    /// Xem chi tiết phiếu dịch vụ, báo giá và lịch sử thao tác
-    /// </summary>
     public async Task<IActionResult> ServiceTicketDetails(int id)
     {
         var ticket = await _warrantyService.GetTicketByIdAsync(id);
@@ -1271,10 +1140,6 @@ public class AdminController : Controller
         return View(ticket);
     }
 
-    /// <summary>
-    /// POST: /Admin/UpdateServiceTicket
-    /// Cập nhật trạng thái phiếu tiếp nhận, tình trạng máy, phân công kỹ thuật viên
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateServiceTicket(
@@ -1303,10 +1168,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(ServiceTickets));
     }
 
-    /// <summary>
-    /// POST: /Admin/SaveServiceTicket
-    /// Thêm mới hoặc Cập nhật thông tin phiếu tiếp nhận Bảo hành / Sửa chữa
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveServiceTicket(
@@ -1337,7 +1198,7 @@ public class AdminController : Controller
 
         if (ticketId <= 0)
         {
-            // THÊM MỚI PHIẾU TIẾP NHẬN TẠI QUẦY
+            
             var todayStr = DateTime.Now.ToString("yyyyMMdd");
             var countToday = await _db.ServiceTickets.CountAsync(t => t.TicketCode.Contains(todayStr)) + 1;
             var prefix = ticketType == "Bảo hành" ? "BH" : "SC";
@@ -1370,7 +1231,6 @@ public class AdminController : Controller
                 ReceivedAt = DateTime.UtcNow
             };
 
-            // Nếu là bảo hành và có Serial, tìm kiếm SoldDevices
             if (!string.IsNullOrWhiteSpace(ticket.ExternalSerialNumber))
             {
                 var soldDevice = await _db.SoldDevices
@@ -1387,7 +1247,6 @@ public class AdminController : Controller
             _db.ServiceTickets.Add(ticket);
             await _db.SaveChangesAsync();
 
-            // Thêm nhật ký lịch sử
             _db.ServiceTicketHistories.Add(new ServiceTicketHistory
             {
                 TicketId = ticket.TicketId,
@@ -1403,7 +1262,7 @@ public class AdminController : Controller
         }
         else
         {
-            // CẬP NHẬT PHIẾU TIẾP NHẬN
+            
             var existing = await _db.ServiceTickets
                 .Include(t => t.Histories)
                 .FirstOrDefaultAsync(t => t.TicketId == ticketId);
@@ -1456,10 +1315,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(ServiceTickets));
     }
 
-    /// <summary>
-    /// POST: /Admin/DeleteServiceTicket
-    /// Xóa phiếu tiếp nhận dịch vụ
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteServiceTicket(int id)
@@ -1478,10 +1333,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(ServiceTickets));
     }
 
-    /// <summary>
-    /// POST: /Admin/CreateServiceQuote
-    /// Kỹ thuật viên gửi báo giá chi phí sửa chữa / linh kiện cho khách duyệt
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateServiceQuote(int ticketId, string description, decimal amount, string? returnUrl = null)
@@ -1500,10 +1351,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(ServiceTickets));
     }
 
-    /// <summary>
-    /// GET: /Admin/SoldDevices
-    /// Quản lý Máy đã bán & Số Serial để phục vụ tra cứu và tiếp nhận bảo hành
-    /// </summary>
     public async Task<IActionResult> SoldDevices(string? search = null)
     {
         var devices = await _warrantyService.GetAllSoldDevicesAsync(search);
@@ -1511,10 +1358,6 @@ public class AdminController : Controller
         return View(devices);
     }
 
-    /// <summary>
-    /// POST: /Admin/AssignOrderSerials
-    /// Gán hoặc bổ sung số Serial cho các laptop trong đơn hàng đã giao
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AssignOrderSerials(int orderId, List<int> orderItemIds, List<string> serialLists, string? returnUrl = null)
@@ -1549,10 +1392,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Orders));
     }
 
-    /// <summary>
-    /// GET: /Admin/ServiceCatalog
-    /// Quản lý Danh mục dịch vụ Sửa chữa & Bảo hành
-    /// </summary>
     public async Task<IActionResult> ServiceCatalog()
     {
         var items = await _db.ServiceCatalog
@@ -1574,10 +1413,6 @@ public class AdminController : Controller
         return View(items);
     }
 
-    /// <summary>
-    /// POST: /Admin/SaveServiceCatalog
-    /// Thêm mới hoặc Cập nhật thông tin dịch vụ Sửa chữa / Bảo hành
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveServiceCatalog(ServiceCatalogItem model)
@@ -1598,7 +1433,7 @@ public class AdminController : Controller
 
         if (model.ServiceId <= 0)
         {
-            // Thêm mới dịch vụ
+            
             var codeExists = await _db.ServiceCatalog.AnyAsync(s => s.ServiceCode == model.ServiceCode);
             if (codeExists)
             {
@@ -1612,7 +1447,7 @@ public class AdminController : Controller
         }
         else
         {
-            // Cập nhật dịch vụ
+            
             var existing = await _db.ServiceCatalog.FindAsync(model.ServiceId);
             if (existing == null)
             {
@@ -1643,10 +1478,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(ServiceCatalog));
     }
 
-    /// <summary>
-    /// POST: /Admin/DeleteServiceCatalog
-    /// Xóa một dịch vụ khỏi danh mục
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteServiceCatalog(int id)
@@ -1661,7 +1492,7 @@ public class AdminController : Controller
         var ticketsCount = await _db.ServiceTickets.CountAsync(t => t.ServiceId == id);
         if (ticketsCount > 0)
         {
-            // Dịch vụ đã phát sinh phiếu bảo hành/sửa chữa -> chuyển sang tạm ngưng để bảo toàn dữ liệu lịch sử
+            
             existing.IsActive = false;
             await _db.SaveChangesAsync();
             TempData["Success"] = $"Dịch vụ '{existing.ServiceName}' đã phát sinh {ticketsCount} phiếu tiếp nhận trong hệ thống nên được chuyển sang trạng thái 'Tạm ngưng' thay vì xóa để bảo toàn dữ liệu lịch sử.";
@@ -1676,10 +1507,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(ServiceCatalog));
     }
 
-    /// <summary>
-    /// POST: /Admin/ToggleServiceStatus
-    /// Bật/tắt trạng thái nhận một hạng mục dịch vụ
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleServiceStatus(int id)

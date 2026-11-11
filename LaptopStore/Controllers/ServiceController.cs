@@ -34,10 +34,8 @@ public class ServiceController : Controller
             PreSelectedDeviceId = deviceId
         };
 
-        // 1. Tải bảng giá dịch vụ
         model.Catalog = await _warrantyService.GetCatalogAsync();
 
-        // 2. Xác định UserId hoặc SĐT nếu đã đăng nhập
         int? currentUserId = null;
         var userIdStr = HttpContext.Session.GetString("UserId");
         if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int uid))
@@ -45,13 +43,11 @@ public class ServiceController : Controller
             currentUserId = uid;
         }
 
-        // 3. Tải danh sách thiết bị đã mua
         if (currentUserId.HasValue || !string.IsNullOrWhiteSpace(phone))
         {
             model.MyDevices = await _warrantyService.GetCustomerDevicesAsync(phone, currentUserId);
         }
 
-        // 4. Nếu có mã tra cứu
         if (!string.IsNullOrWhiteSpace(code))
         {
             model.ActiveTab = "lookup";
@@ -126,4 +122,3 @@ public class ServiceController : Controller
         return RedirectToAction(nameof(Index), new { tab = "lookup", code = ticketCode, phone });
     }
 }
-

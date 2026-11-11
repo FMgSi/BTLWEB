@@ -18,7 +18,6 @@ export default function TopHeader({
     setKeyword(searchKeyword || '');
   }, [searchKeyword]);
 
-  // Gửi từ khóa tìm kiếm
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
     if (onSearch) {
@@ -26,7 +25,6 @@ export default function TopHeader({
     }
   };
 
-  // Menu dropdown tài khoản
   const renderUserDropdown = () => (
     <div 
       className="position-absolute end-0 top-100 mt-2 bg-white rounded-3 shadow-lg border p-2 text-start"
@@ -91,7 +89,6 @@ export default function TopHeader({
     <header className="top-header text-white py-2">
       <div className="site-container">
         <div className="row align-items-center g-2 g-md-3">
-          {/* Logo */}
           <div className="col-auto logo-wrap flex-shrink-0" style={{ maxWidth: '240px' }}>
             <a 
               href="/" 
@@ -109,7 +106,6 @@ export default function TopHeader({
             </a>
           </div>
 
-          {/* Search Box - Hiển thị full width trên mobile, dạng cột trên desktop */}
           <div className="col-12 col-md order-3 order-md-2 mt-1 mt-md-0">
             <form onSubmit={handleSearchSubmit} className="input-group">
               <input
@@ -140,7 +136,6 @@ export default function TopHeader({
             </form>
           </div>
 
-          {/* Hotline, Support, Account, Cart trên màn hình lớn (Desktop / Laptop) */}
           <div className="col-auto d-none d-lg-flex align-items-center gap-4 text-white order-md-3" style={{ fontSize: '12px' }}>
             <div className="d-flex align-items-center gap-2">
               <i className="bi bi-telephone text-secondary fs-5"></i>
@@ -158,7 +153,6 @@ export default function TopHeader({
               </div>
             </div>
 
-            {/* Tài khoản Người dùng / Đăng nhập */}
             {!currentUser ? (
               <div 
                 className="d-flex align-items-center gap-2" 
@@ -209,7 +203,6 @@ export default function TopHeader({
               </div>
             )}
 
-            {/* Giỏ hàng Desktop */}
             <div 
               className="d-flex align-items-center gap-2 position-relative" 
               style={{ cursor: 'pointer' }}
@@ -226,9 +219,7 @@ export default function TopHeader({
             </div>
           </div>
 
-          {/* Cụm hành động nhanh cho Mobile & Tablet (< 992px): Tài khoản & Giỏ hàng luôn hiển thị */}
           <div className="col-auto d-flex d-lg-none align-items-center gap-3 ms-auto order-2">
-            {/* Tài khoản Mobile */}
             {!currentUser ? (
               <button 
                 type="button"
@@ -258,7 +249,6 @@ export default function TopHeader({
               </div>
             )}
 
-            {/* Giỏ hàng Mobile */}
             <div 
               className="d-flex align-items-center position-relative text-white" 
               style={{ cursor: 'pointer' }}

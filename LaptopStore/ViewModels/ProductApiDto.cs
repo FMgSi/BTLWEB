@@ -47,9 +47,6 @@ public class ProductDetailDto
     public List<ProductVariantDto> Variants { get; set; } = new();
 }
 
-/// <summary>
-/// DTO gợi ý Model máy tính phục vụ đăng ký tiếp nhận sửa chữa
-/// </summary>
 public class ModelSuggestionDto
 {
     public int ProductId { get; set; }

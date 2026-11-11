@@ -18,9 +18,8 @@
     </div>
 </div>
 
-<!-- 4 TOP METRIC CARDS -->
 <div class="row g-3 mb-4">
-    <!-- Card 1: Doanh thu tháng này -->
+    
     <div class="col-xl-3 col-md-6">
         <div class="metric-card">
             <div class="metric-header">
@@ -35,7 +34,7 @@
         </div>
     </div>
 
-    <!-- Card 2: Đơn hàng mới -->
+    
     <div class="col-xl-3 col-md-6">
         <div class="metric-card">
             <div class="metric-header">
@@ -50,7 +49,7 @@
         </div>
     </div>
 
-    <!-- Card 3: Laptop đã bán -->
+    
     <div class="col-xl-3 col-md-6">
         <div class="metric-card">
             <div class="metric-header">
@@ -65,7 +64,7 @@
         </div>
     </div>
 
-    <!-- Card 4: Sản phẩm sắp hết hàng -->
+    
     <div class="col-xl-3 col-md-6">
         <div class="metric-card">
             <div class="metric-header">
@@ -81,7 +80,6 @@
     </div>
 </div>
 
-<!-- 2 THẺ NGHIỆP VỤ TRẢ GÓP (MỐC 1) -->
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <a href="/Admin/Installments?status=Ch%E1%BB%9D+tr%E1%BA%A3+tr%C6%B0%E1%BB%9Bc" class="text-decoration-none">
@@ -125,9 +123,8 @@
     </div>
 </div>
 
-<!-- MIDDLE CHARTS ROW -->
 <div class="row g-3 mb-4">
-    <!-- Left: Xu hướng doanh thu (Line Chart) -->
+    
     <div class="col-lg-8">
         <div class="admin-card h-100">
             <div class="admin-card-header">
@@ -151,7 +148,7 @@
         </div>
     </div>
 
-    <!-- Right: Tỷ lệ phân khúc Laptop bán chạy (Donut Chart) -->
+    
     <div class="col-lg-4">
         <div class="admin-card h-100">
             <div class="admin-card-header">
@@ -162,7 +159,7 @@
             <div style="position: relative; height: 180px;" class="mb-3">
                 <canvas id="categoryDonutChart"></canvas>
             </div>
-            <!-- Custom Legend matching design -->
+            
             <div class="d-flex flex-column gap-2 px-2">
                 @foreach (var c in Model.CategoryShares)
                 {
@@ -179,9 +176,8 @@
     </div>
 </div>
 
-<!-- BOTTOM ROW: ĐƠN HÀNG MỚI NHẤT & SẢN PHẨM BÁN CHẠY -->
 <div class="row g-3">
-    <!-- Left: Đơn hàng mới nhất -->
+    
     <div class="col-lg-8">
         <div class="admin-card h-100 mb-0">
             <div class="admin-card-header">
@@ -226,7 +222,7 @@
         </div>
     </div>
 
-    <!-- Right: Sản phẩm bán chạy -->
+    
     <div class="col-lg-4">
         <div class="admin-card h-100 mb-0">
             <div class="admin-card-header">
@@ -272,10 +268,8 @@
 
 @section Scripts {
     <script>
-        // 1. Chart.js: Xu hướng doanh thu (Line Chart)
         const ctxRevenue = document.getElementById('revenueTrendChart').getContext('2d');
         
-        // Gradient fill dưới đường biểu đồ
         const gradientRevenue = ctxRevenue.createLinearGradient(0, 0, 0, 240);
         gradientRevenue.addColorStop(0, 'rgba(37, 99, 235, 0.45)');
         gradientRevenue.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
@@ -336,7 +330,6 @@
             }
         });
 
-        // 2. Chart.js: Tỷ lệ phân khúc Laptop (Donut Chart)
         const ctxDonut = document.getElementById('categoryDonutChart').getContext('2d');
         new Chart(ctxDonut, {
             type: 'doughnut',

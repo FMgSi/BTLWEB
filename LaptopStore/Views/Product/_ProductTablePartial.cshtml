@@ -78,7 +78,6 @@
     </table>
 </div>
 
-<!-- PAGINATION FOOTER -->
 @if (ViewBag.TotalPages != null && (int)ViewBag.TotalPages > 0)
 {
     int curPage = ViewBag.CurrentPage ?? 1;
@@ -114,7 +113,7 @@
             Trang <strong>@curPage</strong> / <strong>@totPages</strong> (Hiển thị <strong>@startItem - @endItem</strong> trong tổng số <strong>@totCount</strong> sản phẩm)
         </div>
         <ul class="admin-pagination m-0 d-flex gap-1 list-unstyled align-items-center">
-            <!-- Nút Trước -->
+            
             <li class="admin-page-item @(curPage <= 1 ? "disabled" : "")">
                 <a href="javascript:void(0)" 
                    onclick="@(curPage <= 1 ? "" : $"loadProductPage({curPage - 1})")" 
@@ -148,7 +147,7 @@
                 }
             }
 
-            <!-- Nút Sau -->
+            
             <li class="admin-page-item @(curPage >= totPages ? "disabled" : "")">
                 <a href="javascript:void(0)" 
                    onclick="@(curPage >= totPages ? "" : $"loadProductPage({curPage + 1})")" 

@@ -1,7 +1,6 @@
 import React from 'react';
 
 export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
-  // Chuyển tab điều hướng
   const handleClick = (e, tab) => {
     e.preventDefault();
     if (onNavigate) {
@@ -13,7 +12,6 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
     <nav className="border-bottom bg-white shadow-sm customer-navbar">
       <div className="site-container">
         <div className="d-flex align-items-center customer-navbar-inner">
-          {/* Nút PHÂN LOẠI LAPTOP đỏ */}
           <div 
             onClick={(e) => handleClick(e, 'products')}
             className="bg-pc-red text-white py-2 px-3 fw-bold d-flex align-items-center gap-2 category-nav-btn flex-shrink-0" 
@@ -25,7 +23,6 @@ export default function Navbar({ activeNav = 'home', onNavigate, onGoHome }) {
             <span className="d-sm-none">DANH MỤC</span>
           </div>
 
-          {/* Menu ngang tối giản có cuộn mượt trên thiết bị di động */}
           <ul className="nav ms-2 fw-semibold customer-nav-scroll flex-nowrap" style={{ fontSize: '13px' }}>
             <li className="nav-item">
               <a 

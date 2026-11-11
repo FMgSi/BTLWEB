@@ -2,9 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LaptopStore.ViewModels;
 
-/// <summary>
-/// DTO yêu cầu xem trước phương án trả góp
-/// </summary>
 public class InstallmentPlanPreviewRequest
 {
     [Required]
@@ -16,9 +13,6 @@ public class InstallmentPlanPreviewRequest
     public int TermMonths { get; set; } = 6;
 }
 
-/// <summary>
-/// DTO kết quả phương án tính trả góp (30% trả trước, lãi suất 0%, dồn lẻ kỳ cuối)
-/// </summary>
 public class InstallmentPlanDto
 {
     public decimal TotalAmount { get; set; }
@@ -39,9 +33,6 @@ public class InstallmentPeriodPreviewDto
     public decimal Amount { get; set; }
 }
 
-/// <summary>
-/// DTO chi tiết hợp đồng trả góp kèm lịch các kỳ và lịch sử biên nhận
-/// </summary>
 public class InstallmentContractDetailDto
 {
     public int ContractId { get; set; }
@@ -55,25 +46,19 @@ public class InstallmentContractDetailDto
     public int TermMonths { get; set; }
     public decimal PrepayPercent { get; set; }
     public decimal PrepayAmount { get; set; }
-    public string PrepayStatus { get; set; } = "Chưa thanh toán"; // "Chưa thanh toán" | "Đã thanh toán"
+    public string PrepayStatus { get; set; } = "Chưa thanh toán"; 
     public decimal TotalFinancedAmount { get; set; }
     public decimal InterestRate { get; set; }
     public decimal MonthlyInstallmentAmount { get; set; }
-    public string Status { get; set; } = string.Empty; // "Chờ trả trước", "Đang trả góp", "Đã tất toán", "Đã hủy"
+    public string Status { get; set; } = string.Empty; 
     public string OrderStatus { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? ActivatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? Notes { get; set; }
 
-    /// <summary>
-    /// Tổng tiền thực tế đã thu được (tiền trả trước + các kỳ đã thu)
-    /// </summary>
     public decimal TotalPaid { get; set; }
 
-    /// <summary>
-    /// Dư nợ còn lại = TotalOrderAmount - TotalPaid
-    /// </summary>
     public decimal RemainingDebt { get; set; }
 
     public int PaidPeriodsCount { get; set; }
@@ -91,7 +76,7 @@ public class InstallmentScheduleDto
     public DateTime DueDate { get; set; }
     public decimal Amount { get; set; }
     public decimal PaidAmount { get; set; }
-    public string Status { get; set; } = "Chưa thanh toán"; // "Chưa thanh toán", "Đã thanh toán", "Quá hạn"
+    public string Status { get; set; } = "Chưa thanh toán"; 
     public DateTime? PaidAt { get; set; }
     public string? CollectedBy { get; set; }
     public int? PaymentId { get; set; }
@@ -101,7 +86,7 @@ public class InstallmentScheduleDto
 public class InstallmentPaymentReceiptDto
 {
     public int PaymentId { get; set; }
-    public string PaymentType { get; set; } = string.Empty; // "Prepay", "InstallmentPeriod", "Full"
+    public string PaymentType { get; set; } = string.Empty; 
     public decimal Amount { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;
@@ -111,9 +96,6 @@ public class InstallmentPaymentReceiptDto
     public string? Note { get; set; }
 }
 
-/// <summary>
-/// DTO tóm tắt danh sách Hợp đồng trả góp cho Admin
-/// </summary>
 public class InstallmentContractSummaryDto
 {
     public int ContractId { get; set; }
@@ -128,7 +110,7 @@ public class InstallmentContractSummaryDto
     public string PrepayStatus { get; set; } = "Chưa thanh toán";
     public decimal TotalPaid { get; set; }
     public decimal RemainingDebt { get; set; }
-    public string ProgressText { get; set; } = string.Empty; // vd: "0/6 kỳ", "3/6 kỳ"
+    public string ProgressText { get; set; } = string.Empty; 
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? ActivatedAt { get; set; }
@@ -141,7 +123,7 @@ public class ActivateContractRequest
     public int ContractId { get; set; }
 
     [Required]
-    public string PaymentMethod { get; set; } = "Tiền mặt"; // "Tiền mặt", "VietQR", "Chuyển khoản"
+    public string PaymentMethod { get; set; } = "Tiền mặt"; 
 
     public string? TransactionReference { get; set; }
     public string? Note { get; set; }
@@ -156,7 +138,7 @@ public class CollectPeriodPaymentRequest
     public int PeriodNumber { get; set; }
 
     [Required]
-    public string PaymentMethod { get; set; } = "Tiền mặt"; // "Tiền mặt", "Chuyển khoản"
+    public string PaymentMethod { get; set; } = "Tiền mặt"; 
 
     public string? TransactionReference { get; set; }
     public string? Note { get; set; }

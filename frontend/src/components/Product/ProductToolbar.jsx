@@ -1,11 +1,5 @@
 import { FILTER_TAGS } from '../../data/mockData';
 
-/**
- * Component thanh công cụ đầu danh sách sản phẩm:
- * - Hiển thị tiêu đề và Breadcrumb
- * - Các nút Tag danh mục nhanh (Tất cả, Gaming, Văn phòng, Đồ họa, Mỏng nhẹ)
- * - Dropdown chọn tiêu chí sắp xếp (Mới nhất, Giá tăng dần, Giá giảm dần)
- */
 export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSortBy, onToggleMobileFilter }) {
   return (
     <>
@@ -20,7 +14,6 @@ export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSor
       </div>
 
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        {/* Nút Tag danh mục */}
         <div className="d-flex flex-wrap gap-2">
           {FILTER_TAGS.map((tag) => (
             <button
@@ -33,7 +26,6 @@ export default function ProductToolbar({ activeTag, setActiveTag, sortBy, setSor
           ))}
         </div>
 
-        {/* Nút mở bộ lọc mobile & Dropdown chọn kiểu sắp xếp */}
         <div className="d-flex align-items-center gap-2 ms-auto ms-sm-0">
           {onToggleMobileFilter && (
             <button

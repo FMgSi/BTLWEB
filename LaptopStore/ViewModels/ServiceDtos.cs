@@ -7,7 +7,7 @@ public class ServiceCatalogDto
     public int ServiceId { get; set; }
     public string ServiceCode { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
-    public string ServiceType { get; set; } = string.Empty; // 'Sửa chữa' | 'Bảo hành'
+    public string ServiceType { get; set; } = string.Empty; 
     public string? ApplicableConditions { get; set; }
     public decimal EstimatedCost { get; set; }
     public string? EstimatedTime { get; set; }
@@ -101,7 +101,7 @@ public class CreateRepairTicketRequest
 
     public int? ServiceId { get; set; }
 
-    public string DeviceSource { get; set; } = "External"; // "Purchased" hoặc "External"
+    public string DeviceSource { get; set; } = "External"; 
 
     public int? SoldDeviceId { get; set; }
 
@@ -146,7 +146,7 @@ public class ServiceTicketDetailDto
 {
     public int TicketId { get; set; }
     public string TicketCode { get; set; } = string.Empty;
-    public string TicketType { get; set; } = string.Empty; // 'Bảo hành' | 'Sửa chữa'
+    public string TicketType { get; set; } = string.Empty; 
     public string Status { get; set; } = string.Empty;
 
     public string CustomerName { get; set; } = string.Empty;
@@ -154,7 +154,6 @@ public class ServiceTicketDetailDto
     public string? Email { get; set; }
     public string? Address { get; set; }
 
-    // Thông tin thiết bị
     public int? SoldDeviceId { get; set; }
     public string DeviceDisplayName { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;
@@ -162,14 +161,12 @@ public class ServiceTicketDetailDto
     public bool IsUnderWarranty { get; set; }
     public DateTime? WarrantyEndDate { get; set; }
 
-    // Hạng mục dịch vụ
     public int? ServiceId { get; set; }
     public string? ServiceCode { get; set; }
     public string? ServiceName { get; set; }
     public decimal EstimatedCost { get; set; }
     public string? EstimatedTime { get; set; }
 
-    // Chi tiết xử lý
     public string FaultDescription { get; set; } = string.Empty;
     public string? PhysicalCondition { get; set; }
     public string? Accessories { get; set; }
@@ -211,4 +208,3 @@ public class OrderItemSerialsInput
     public int OrderItemId { get; set; }
     public List<string> SerialNumbers { get; set; } = new();
 }
-

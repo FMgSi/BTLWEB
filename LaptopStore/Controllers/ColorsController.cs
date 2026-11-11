@@ -8,11 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Controllers;
 
-/// <summary>
-/// Controller Quản trị Bảng Màu sắc Laptop (Colors)
-/// Thiết kế theo mô hình MVC mẫu của LapTrinhWeb (CategoriesController / BrandsController)
-/// Được bảo vệ chặt chẽ bởi Cookie Authentication: [Authorize(Roles = "Admin,Staff")]
-/// </summary>
 [Authorize(Roles = "Admin,Staff")]
 public class ColorsController : Controller
 {
@@ -23,7 +18,6 @@ public class ColorsController : Controller
         _context = context;
     }
 
-    // GET: Colors
     public async Task<IActionResult> Index(string? keyword)
     {
         var query = _context.Colors
@@ -42,7 +36,6 @@ public class ColorsController : Controller
         return View(colors);
     }
 
-    // GET: Colors/Details/5
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)
@@ -64,7 +57,6 @@ public class ColorsController : Controller
         return View(color);
     }
 
-    // GET: Colors/Create
     public IActionResult Create()
     {
         var model = new Color
@@ -75,7 +67,6 @@ public class ColorsController : Controller
         return View(model);
     }
 
-    // POST: Colors/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("Name,HexCode,IsActive")] Color color)
@@ -103,7 +94,6 @@ public class ColorsController : Controller
         return View(color);
     }
 
-    // GET: Colors/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -120,7 +110,6 @@ public class ColorsController : Controller
         return View(color);
     }
 
-    // POST: Colors/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, [Bind("ColorId,Name,HexCode,IsActive")] Color color)
@@ -167,7 +156,6 @@ public class ColorsController : Controller
         return View(color);
     }
 
-    // GET: Colors/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -188,7 +176,6 @@ public class ColorsController : Controller
         return View(color);
     }
 
-    // POST: Colors/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
@@ -213,7 +200,6 @@ public class ColorsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // POST: Colors/ToggleActive/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleActive(int id)

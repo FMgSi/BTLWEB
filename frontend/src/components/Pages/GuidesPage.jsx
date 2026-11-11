@@ -59,7 +59,6 @@ export default function GuidesPage({ onGoHome }) {
   return (
     <div className="py-4" style={{ backgroundColor: '#f8fafc', minHeight: '80vh' }}>
       <div className="site-container">
-        {/* Breadcrumb */}
         <div className="d-flex align-items-center gap-2 small text-secondary mb-3">
           <a
             href="/"
@@ -75,7 +74,6 @@ export default function GuidesPage({ onGoHome }) {
           <span className="text-dark fw-bold">Hướng dẫn</span>
         </div>
 
-        {/* 1. TOP HERO BANNER */}
         <div className="guides-hero-banner">
           <h1 className="fw-bold mb-2 fs-3">HƯỚNG DẪN SỬ DỤNG</h1>
           <p className="mb-1 fs-6 opacity-90">Hỗ trợ bạn trong quá trình mua sắm và sử dụng sản phẩm</p>
@@ -84,7 +82,6 @@ export default function GuidesPage({ onGoHome }) {
           </p>
         </div>
 
-        {/* 2. DANH MỤC HƯỚNG DẪN (5 THẺ) */}
         <div className="mb-4">
           <h5 className="fw-bold text-dark mb-3">Danh mục hướng dẫn</h5>
           <div className="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
@@ -130,7 +127,6 @@ export default function GuidesPage({ onGoHome }) {
           </div>
         </div>
 
-        {/* 3. BÀI VIẾT NỔI BẬT (2x2 GRID) */}
         <div>
           <h5 className="fw-bold text-dark mb-3">Bài viết nổi bật</h5>
           <div className="row g-3">
@@ -156,7 +152,6 @@ export default function GuidesPage({ onGoHome }) {
         </div>
       </div>
 
-      {/* MODAL CHI TIẾT BÀI HƯỚNG DẪN */}
       {selectedArticle && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
           <div className="modal-dialog modal-dialog-centered modal-lg">

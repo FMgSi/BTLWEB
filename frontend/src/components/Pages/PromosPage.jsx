@@ -9,7 +9,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState('');
 
-  // Tải danh sách mã đã lưu từ localStorage để không bị mất khi tải lại trang
   const [claimedCodes, setClaimedCodes] = useState(() => {
     try {
       const saved = localStorage.getItem('laptopworld_claimed_vouchers');
@@ -19,7 +18,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
     }
   });
 
-  // Tải danh sách voucher thật từ SQL Server qua API /api/promotions
   useEffect(() => {
     let isMounted = true;
     const fetchPromos = async () => {
@@ -45,7 +43,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
     };
   }, []);
 
-  // Lưu voucher vào ví
   const handleClaim = (code) => {
     const nextClaimed = claimedCodes.includes(code) ? claimedCodes : [...claimedCodes, code];
     setClaimedCodes(nextClaimed);
@@ -54,7 +51,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
     } catch { }
   };
 
-  // Sao chép mã
   const handleCopy = (code) => {
     handleClaim(code);
     navigator.clipboard.writeText(code).then(() => {
@@ -65,19 +61,16 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
     });
   };
 
-  // Lọc theo tab
   const availablePromos = promotions.filter((p) => !claimedCodes.includes(p.code));
   const claimedPromos = promotions.filter((p) => claimedCodes.includes(p.code));
   const displayPromos = activeTab === 'available'
     ? availablePromos
     : (activeTab === 'claimed' ? claimedPromos : promotions);
 
-  // Lấy các sản phẩm có giảm giá
   const promoProducts = products.filter((p) => p.discountPrice || p.originalPrice).slice(0, 5);
 
   return (
     <div className="site-container py-3">
-      {/* 1. TOP BANNER KHUYẾN MÃI NỀN TỐI */}
       <div
         className="rounded-3 p-4 text-center text-white mb-4 shadow-sm"
         style={{
@@ -101,7 +94,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
         </p>
       </div>
 
-      {/* 2. THANH TAB CHỌN MÃ */}
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
         <div className="d-flex gap-2">
           <button
@@ -137,7 +129,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
         </div>
       </div>
 
-      {/* 3. LƯỚI THẺ VOUCHER ĐỌC TRỰC TIẾP TỪ SQL SERVER */}
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-danger" role="status">
@@ -219,7 +210,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
         </div>
       )}
 
-      {/* 4. TẤT CẢ LAPTOP ĐANG GIẢM GIÁ */}
       <div className="mb-4">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="fw-bold text-danger m-0 d-flex align-items-center gap-2 fs-5">
@@ -236,7 +226,6 @@ export default function PromosPage({ products = [], onSelectProduct, onAddToCart
           </button>
         </div>
 
-        {/* 5 Card sản phẩm */}
         <div className="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-2">
           {promoProducts.map((p) => (
             <div className="col" key={p.id}>

@@ -9,7 +9,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [orderError, setOrderError] = useState('');
 
-  // Installments state & payment modal
   const [payingModal, setPayingModal] = useState(null); // { type: 'period' | 'prepay', order, contract, period }
   const [payingMethod, setPayingMethod] = useState('cash'); // 'cash' | 'transfer' | 'card'
   const [payingNote, setPayingNote] = useState('');
@@ -23,20 +22,17 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     accountName: 'HOANG BA TRUNG',
   };
 
-  // Guest lookup
   const [guestCode, setGuestCode] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestOrderResult, setGuestOrderResult] = useState(null);
   const [isLookingUpGuest, setIsLookingUpGuest] = useState(false);
   const [guestLookupError, setGuestLookupError] = useState('');
 
-  // Devices
   const [devices, setDevices] = useState([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [deviceError, setDeviceError] = useState('');
   const [devicePhone, setDevicePhone] = useState(currentUser?.phoneNumber || '');
 
-  // 1. Tải đơn hàng của người dùng khi đã đăng nhập
   useEffect(() => {
     if (currentUser) {
       loadUserOrders();
@@ -139,7 +135,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     }
   };
 
-  // Tra cứu đơn hàng cho khách vãng lai
   const handleGuestLookup = async (e) => {
     if (e) e.preventDefault();
     setGuestLookupError('');
@@ -169,11 +164,9 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     }
   };
 
-  // Tính toán tổng chi tiêu từ các đơn hàng HOÀN THÀNH để xác định Hạng thành viên
   const completedOrders = orders.filter((o) => o.status === 'Hoàn thành' || o.status === 'Đã giao');
   const totalSpent = completedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
-  // Quy tắc hạng thành viên
   let memberTier = 'Đồng';
   let tierColor = '#78716c';
   let tierBadgeBg = 'bg-secondary';
@@ -213,7 +206,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
 
   const remainingToNextTier = Math.max(0, nextTierAmount - totalSpent);
 
-  // Kiểm tra đơn hàng có thể xóa hay không: Cửa hàng chưa xác minh (Chờ xác nhận, Đang xử lý, Mới, Chờ duyệt)
   const canDeleteOrder = (o) => {
     if (!o) return false;
     const s = (o.status || o.orderStatus || '').trim().toLowerCase();
@@ -298,7 +290,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
   return (
     <div className="bg-light py-4" style={{ minHeight: '80vh' }}>
       <div className="site-container">
-        {/* Breadcrumb */}
         <div className="mb-3 text-muted small d-flex align-items-center gap-2">
           <a
             href="/"
@@ -314,7 +305,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           <span className="text-dark fw-semibold">Tài khoản cá nhân</span>
         </div>
 
-        {/* 1. PROFILE & MEMBERSHIP HEADER CARD */}
         <div className="bg-white rounded-3 shadow-sm p-4 mb-4 border">
           <div className="row align-items-center g-3">
             <div className="col-lg-7 d-flex align-items-center gap-3">
@@ -381,7 +371,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           </div>
         </div>
 
-        {/* 2. NAVIGATION TABS */}
         <div className="d-flex flex-wrap gap-2 mb-4 bg-white p-2 rounded-3 shadow-sm border">
           <button
             type="button"
@@ -412,7 +401,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           </button>
         </div>
 
-        {/* TAB 1: ĐƠN HÀNG CỦA TÔI */}
         {activeTab === 'orders' && (
           <div>
             {!currentUser && (
@@ -657,7 +645,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                       </div>
                     ))}
 
-                    {/* Phân trang 5 đơn hàng mỗi trang - Chuẩn hình dáng và tính năng như trang quản lý */}
                     {Math.ceil(orders.length / 5) > 1 && (
                       <div className="d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded-3 border shadow-sm mt-3">
                         <div className="small text-muted">
@@ -749,7 +736,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           </div>
         )}
 
-        {/* TAB 2: TRẢ GÓP SẢN PHẨM ĐÃ MUA */}
         {activeTab === 'installments' && (
           <div>
             <div className="bg-white rounded-3 p-4 mb-3 border shadow-sm d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -802,7 +788,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
 
                   return (
                     <div key={order.orderId || order.orderCode} className="card shadow-sm border rounded-3 overflow-hidden">
-                      {/* HEADER HỢP ĐỒNG */}
                       <div className="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <div>
                           <span className="badge bg-danger text-white me-2">Trả góp 0%</span>
@@ -830,9 +815,7 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                         </div>
                       </div>
 
-                      {/* NỘI DUNG SẢN PHẨM & TÀI CHÍNH */}
                       <div className="card-body p-4">
-                        {/* THÔNG TIN SẢN PHẨM */}
                         <div className="mb-3 pb-3 border-bottom">
                           <h6 className="fw-bold text-dark small text-uppercase mb-2 text-muted">Sản phẩm trả góp:</h6>
                           {order.items?.map((item, idx) => (
@@ -861,7 +844,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                           ))}
                         </div>
 
-                        {/* CHỈ SỐ TÀI CHÍNH */}
                         <div className="row g-2 mb-3">
                           <div className="col-6 col-md-3">
                             <div className="bg-light p-3 rounded-3 border text-center h-100">
@@ -900,7 +882,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                           </div>
                         </div>
 
-                        {/* NẾU ĐANG CHỜ TRẢ TRƯỚC 30% THÌ HIỆN NÚT THANH TOÁN TRẢ TRƯỚC */}
                         {!isPrepayPaid && (
                           <div className="alert alert-warning py-3 px-3 rounded-3 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <div>
@@ -920,7 +901,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                           </div>
                         )}
 
-                        {/* BẢNG LỊCH CÁC KỲ TRẢ GÓP */}
                         <div className="mt-3">
                           <h6 className="fw-bold text-dark small text-uppercase mb-2">Lịch chi tiết các kỳ trả góp ({schedules.length} kỳ):</h6>
                           <div className="table-responsive border rounded-3">
@@ -1011,7 +991,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
           </div>
         )}
 
-        {/* TAB 3: HẠNG THÀNH VIÊN */}
         {activeTab === 'membership' && (
           <div className="row g-4">
             <div className="col-lg-4">
@@ -1113,7 +1092,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
         )}
       </div>
 
-      {/* MODAL THANH TOÁN TRẢ GÓP TRỰC TUYẾN */}
       {payingModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1080 }}>
           <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '520px' }}>
@@ -1154,7 +1132,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                   </div>
                 </div>
 
-                {/* Chọn phương thức */}
                 <label className="form-label small fw-bold text-dark mb-2">Chọn phương thức thanh toán:</label>
                 <div className="row g-2 mb-3">
                   <div className="col-4">
@@ -1189,7 +1166,6 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
                   </div>
                 </div>
 
-                {/* Ghi chú */}
                 <div className="mb-3">
                   <label className="form-label small text-muted mb-1">Ghi chú thanh toán (tùy chọn):</label>
                   <input
@@ -1251,4 +1227,3 @@ export default function AccountPage({ currentUser, onGoHome, onOpenLogin, onNavi
     </div>
   );
 }
-

@@ -67,7 +67,6 @@ public class WarrantyService : IWarrantyService
                 }
             }
 
-            // Tự động liên kết các đơn hàng cũ chưa có UserId nếu khớp SĐT hoặc Email
             if (!string.IsNullOrEmpty(userPhone) || !string.IsNullOrEmpty(userEmail))
             {
                 var unlinkedOrders = await _db.Orders
@@ -90,7 +89,6 @@ public class WarrantyService : IWarrantyService
 
         var cleanCode = !string.IsNullOrWhiteSpace(orderCode) ? orderCode.Trim() : null;
 
-        // Tìm tất cả đơn hàng phù hợp với khách hàng
         var targetOrders = await _db.Orders
             .Include(o => o.OrderItems)
                 .ThenInclude(i => i.Product)
@@ -299,7 +297,6 @@ public class WarrantyService : IWarrantyService
             return (false, "Không tìm thấy thiết bị tương ứng trong hệ thống máy đã bán.", null);
         }
 
-        // Kiểm tra quyền sở hữu thiết bị
         var cleanPhone = request.PhoneNumber.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
         var orderPhone = (device.OrderItem?.Order?.PhoneNumber ?? "").Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
 
@@ -318,13 +315,11 @@ public class WarrantyService : IWarrantyService
             return (false, "Số điện thoại không khớp với thông tin người mua trên hóa đơn của chiếc máy này.", null);
         }
 
-        // Kiểm tra thời hạn bảo hành
         if (DateTime.UtcNow > device.WarrantyEndDate)
         {
             return (false, $"Thiết bị (Serial: {device.SerialNumber}) đã hết hạn bảo hành vào ngày {device.WarrantyEndDate:dd/MM/yyyy}. Quý khách vui lòng chuyển sang gửi yêu cầu 'Sửa chữa'.", null);
         }
 
-        // Chống tiếp nhận trùng: Một máy đang nằm tại cửa hàng hoặc đang xử lý không được tạo phiếu mới
         var activeStatuses = new List<string> { "Chờ tiếp nhận", "Đã tiếp nhận", "Đang kiểm tra", "Chờ duyệt báo giá", "Đang xử lý", "Chờ trả máy" };
         var hasActiveTicket = await _db.ServiceTickets.AnyAsync(t => t.SoldDeviceId == device.DeviceId && activeStatuses.Contains(t.Status));
         if (hasActiveTicket)
@@ -332,7 +327,6 @@ public class WarrantyService : IWarrantyService
             return (false, $"Thiết bị (Serial: {device.SerialNumber}) hiện đang có một phiếu dịch vụ đang được tiếp nhận/xử lý tại cửa hàng.", null);
         }
 
-        // Sinh mã phiếu duy nhất (BH-YYYYMMDD-XXXX)
         var datePrefix = DateTime.UtcNow.ToString("yyyyMMdd");
         var countToday = await _db.ServiceTickets.CountAsync(t => t.TicketCode.StartsWith($"BH-{datePrefix}"));
         var ticketCode = $"BH-{datePrefix}-{(countToday + 1):D4}";
@@ -351,7 +345,7 @@ public class WarrantyService : IWarrantyService
             FaultDescription = request.FaultDescription.Trim(),
             Accessories = request.Accessories?.Trim(),
             Status = "Chờ tiếp nhận",
-            FinalCost = 0, // Bảo hành ban đầu = 0đ
+            FinalCost = 0, 
             CreatedAt = DateTime.UtcNow
         };
 
@@ -395,7 +389,6 @@ public class WarrantyService : IWarrantyService
             }
         }
 
-        // Sinh mã phiếu duy nhất (SC-YYYYMMDD-XXXX)
         var datePrefix = DateTime.UtcNow.ToString("yyyyMMdd");
         var countToday = await _db.ServiceTickets.CountAsync(t => t.TicketCode.StartsWith($"SC-{datePrefix}"));
         var ticketCode = $"SC-{datePrefix}-{(countToday + 1):D4}";
@@ -416,7 +409,7 @@ public class WarrantyService : IWarrantyService
             FaultDescription = request.FaultDescription.Trim(),
             Accessories = request.Accessories?.Trim(),
             Status = "Chờ tiếp nhận",
-            FinalCost = 0, // Sẽ được cập nhật sau khi kỹ thuật kiểm tra và báo giá
+            FinalCost = 0, 
             CreatedAt = DateTime.UtcNow
         };
 
@@ -446,7 +439,6 @@ public class WarrantyService : IWarrantyService
         var ticket = await _db.ServiceTickets.FirstOrDefaultAsync(t => t.TicketCode == cleanCode);
         if (ticket == null) return null;
 
-        // Xác thực số điện thoại để bảo vệ quyền riêng tư nếu người dùng tra cứu ngoài
         if (!string.IsNullOrEmpty(phoneVerification))
         {
             var cleanPhone = phoneVerification.Trim().Replace(" ", "").Replace(".", "").Replace("-", "");
@@ -714,7 +706,6 @@ public class WarrantyService : IWarrantyService
                     return (false, $"Sản phẩm '{orderItem.ProductName}' yêu cầu đúng {orderItem.Quantity} số Serial khác nhau (đã nhập: {cleanedSerials.Count}).");
                 }
 
-                // Kiểm tra trùng Serial với máy khác đã lưu
                 var existingOtherSerials = await _db.SoldDevices
                     .Where(d => d.OrderItemId != orderItem.OrderItemId && cleanedSerials.Contains(d.SerialNumber))
                     .Select(d => d.SerialNumber)
@@ -725,14 +716,12 @@ public class WarrantyService : IWarrantyService
                     return (false, $"Số Serial [{string.Join(", ", existingOtherSerials)}] đã được cấp cho một máy khác trong hệ thống!");
                 }
 
-                // Xóa các serial cũ của item này nếu cập nhật lại
                 var oldDevices = await _db.SoldDevices.Where(d => d.OrderItemId == orderItem.OrderItemId).ToListAsync();
                 if (oldDevices.Any())
                 {
                     _db.SoldDevices.RemoveRange(oldDevices);
                 }
 
-                // Thêm các máy mới theo serial
                 foreach (var sn in cleanedSerials)
                 {
                     _db.SoldDevices.Add(new SoldDevice

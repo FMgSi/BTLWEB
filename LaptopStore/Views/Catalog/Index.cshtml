@@ -7,7 +7,7 @@
 }
 
 <div class="container">
-    <!-- Breadcrumb & Tiêu đề -->
+    
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="/Catalog" class="text-decoration-none">Trang chủ</a></li>
@@ -23,7 +23,7 @@
         </ol>
     </nav>
 
-    <!-- Header danh mục với số lượng kết quả -->
+    
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 bg-white p-3 rounded-3 border">
         <div>
             <h1 class="h4 fw-bold mb-1 text-dark">
@@ -47,7 +47,7 @@
             <p class="text-muted small mb-0">Tìm thấy <strong>@Model.TotalItems</strong> sản phẩm sẵn sàng giao nhanh</p>
         </div>
 
-        <!-- Sắp xếp -->
+        
         <div class="d-flex align-items-center gap-2">
             <label class="small text-muted text-nowrap fw-semibold">Sắp xếp theo:</label>
             <form method="get" action="/Catalog" id="sortForm">
@@ -67,7 +67,7 @@
     </div>
 
     <div class="row g-4">
-        <!-- ==================== CỘT TRÁI: BỘ LỌC TÌM KIẾM ==================== -->
+        
         <div class="col-12 col-lg-3">
             <div class="filter-card p-3 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -75,7 +75,7 @@
                     <a href="/Catalog" class="text-danger small text-decoration-none fw-semibold">Xóa tất cả</a>
                 </div>
 
-                <!-- Lọc Thương hiệu -->
+                
                 <div class="mb-4">
                     <div class="filter-title">Hãng sản xuất</div>
                     <div class="d-flex flex-wrap">
@@ -90,7 +90,7 @@
                     </div>
                 </div>
 
-                <!-- Lọc Nhu cầu sử dụng / Danh mục -->
+                
                 <div class="mb-4">
                     <div class="filter-title">Nhu cầu sử dụng</div>
                     <div class="d-flex flex-wrap">
@@ -105,7 +105,7 @@
                     </div>
                 </div>
 
-                <!-- Lọc Mức giá -->
+                
                 <div>
                     <div class="filter-title">Mức giá</div>
                     <div class="d-flex flex-column gap-1">
@@ -130,7 +130,7 @@
             </div>
         </div>
 
-        <!-- ==================== CỘT PHẢI: LƯỚI SẢN PHẨM ==================== -->
+        
         <div class="col-12 col-lg-9">
             @if (Model.Products.Items == null || !Model.Products.Items.Any())
             {
@@ -148,7 +148,7 @@
                     {
                         <div class="col">
                             <div class="product-card shadow-sm">
-                                <!-- Ảnh sản phẩm -->
+                                
                                 <div class="product-card-img-wrap">
                                     <a href="/Catalog/Details/@product.Id">
                                         <img src="@(string.IsNullOrEmpty(product.Image) ? "/images/products/placeholder.png" : product.Image)" 
@@ -165,7 +165,7 @@
                                     }
                                 </div>
 
-                                <!-- Nội dung thông tin -->
+                                
                                 <div class="p-3 d-flex flex-column flex-grow-1 justify-content-between">
                                     <div>
                                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -179,7 +179,7 @@
                                             </a>
                                         </h3>
 
-                                        <!-- Thông số cấu hình tóm tắt -->
+                                        
                                         @if (!string.IsNullOrEmpty(product.Specs))
                                         {
                                             <div class="d-flex flex-wrap gap-1 mb-3">
@@ -188,7 +188,7 @@
                                         }
                                     </div>
 
-                                    <!-- Giá và CTA -->
+                                    
                                     <div class="pt-2 border-top">
                                         <div class="d-flex align-items-baseline gap-2 mb-2">
                                             <span class="product-price-current">@product.Price.ToString("N0")đ</span>
@@ -210,7 +210,7 @@
                     }
                 </div>
 
-                <!-- Phân trang -->
+                
                 @if (Model.TotalPages > 1)
                 {
                     int curPage = Model.CurrentPage;

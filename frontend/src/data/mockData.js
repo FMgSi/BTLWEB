@@ -16,7 +16,6 @@ export const CPU_TYPES = [
   'Apple Silicon'
 ];
 
-// 5 danh muc laptop dong nhat voi sidebar trang chu va toolbar san pham (da loai bo hoan toan PC de ban)
 export const CATEGORIES = [
   { icon: 'bi-mortarboard-fill', label: 'Laptop Sinh Viên' },
   { icon: 'bi-briefcase-fill', label: 'Laptop Văn Phòng' },
@@ -29,7 +28,6 @@ export const CATEGORIES = [
   { icon: 'bi-tag', label: 'Khuyến mãi' }
 ];
 
-// 5 nut phan loai dong nhat o ca Trang chu va Trang san pham (cung lua chon Tat ca san pham)
 export const FILTER_TAGS = [
   'Tất cả sản phẩm',
   'Laptop Sinh Viên',

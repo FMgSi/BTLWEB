@@ -5,11 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LaptopStore.Controllers.Api;
 
-/// <summary>
-/// Controller API cung cấp dữ liệu sản phẩm cho giao diện React Frontend
-/// Đường dẫn gốc: /api/products
-/// Sử dụng kiến trúc Clean MVC: Ủy nhiệm toàn bộ nghiệp vụ lọc, tính giá, chi tiết sang IProductService
-/// </summary>
 [ApiController]
 [Route("api/products")]
 public class ProductsApiController : ControllerBase
@@ -22,18 +17,11 @@ public class ProductsApiController : ControllerBase
         _productService = productService;
     }
 
-    /// <summary>
-    /// Constructor dự phòng hỗ trợ Unit Testing trực tiếp với DbContext
-    /// </summary>
     public ProductsApiController(AppDbContext db)
     {
         _productService = new ProductService(db, null!);
     }
 
-    /// <summary>
-    /// Lấy danh sách sản phẩm có hỗ trợ bộ lọc và phân trang
-    /// GET: /api/products?tag=...&brands=...&cpus=...&page=1
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetProducts(
         [FromQuery] string? q = null,
@@ -55,10 +43,6 @@ public class ProductsApiController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Lấy chi tiết một sản phẩm theo ID (Tự động lọc trạng thái IsActive)
-    /// GET: /api/products/{id}
-    /// </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -71,10 +55,6 @@ public class ProductsApiController : ControllerBase
         return Ok(detail);
     }
 
-    /// <summary>
-    /// Gợi ý tìm kiếm nhanh model máy phục vụ đăng ký tiếp nhận sửa chữa
-    /// GET: /api/products/suggest-models?q=dell
-    /// </summary>
     [HttpGet("suggest-models")]
     public async Task<IActionResult> SuggestModels([FromQuery] string? q = null)
     {

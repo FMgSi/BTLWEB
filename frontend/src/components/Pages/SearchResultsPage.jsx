@@ -12,7 +12,6 @@ export default function SearchResultsPage({
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
 
-  // Lấy dữ liệu sản phẩm theo từ khóa tìm kiếm (từ API hoặc mock)
   useEffect(() => {
     let isMounted = true;
     const fetchSearchData = async () => {
@@ -51,7 +50,6 @@ export default function SearchResultsPage({
     };
   }, [keyword]);
 
-  // Sắp xếp danh sách sản phẩm theo lựa chọn của người dùng
   let displayedProducts = [...searchResults];
   if (sortBy === 'price-asc') {
     displayedProducts.sort((a, b) => a.price - b.price);
@@ -63,7 +61,6 @@ export default function SearchResultsPage({
 
   return (
     <div className="site-container py-3">
-      {/* 1. Đường dẫn Breadcrumb */}
       <nav aria-label="breadcrumb" className="mb-3">
         <ol className="breadcrumb small mb-0">
           <li className="breadcrumb-item">
@@ -85,7 +82,6 @@ export default function SearchResultsPage({
         </ol>
       </nav>
 
-      {/* 2. Tiêu đề kết quả tìm kiếm - Đặt cùng nền trang, không có khung bao ngoài */}
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-3">
         <div>
           <h2 className="fw-bold fs-5 text-dark m-0 d-flex align-items-center gap-2">
@@ -97,7 +93,6 @@ export default function SearchResultsPage({
           </div>
         </div>
 
-        {/* Bộ chọn sắp xếp */}
         <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
           <span className="text-muted small">Sắp xếp:</span>
           <select
@@ -114,7 +109,6 @@ export default function SearchResultsPage({
         </div>
       </div>
 
-      {/* 3. Lưới sản phẩm - Nằm trực tiếp trên nền chung của trang */}
       {isLoading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-danger" role="status">
@@ -135,7 +129,6 @@ export default function SearchResultsPage({
           ))}
         </div>
       ) : (
-        /* Trạng thái không có sản phẩm khớp - Tự nhiên trên nền trang */
         <div className="text-center py-5 my-4">
           <i className="bi bi-search text-muted fs-1 mb-2 d-block"></i>
           <h5 className="fw-bold text-dark">

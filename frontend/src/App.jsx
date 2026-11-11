@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './App.css';
@@ -22,52 +22,44 @@ import Pagination from './components/Common/Pagination';
 import { PRODUCT_DATA } from './data/mockData';
 
 export default function App() {
-  // State điều hướng trang chi tiết sản phẩm (null = trang danh sách, number = id sản phẩm)
   const [selectedProductId, setSelectedProductId] = useState(null);
 
-  // State tìm kiếm sản phẩm ({ keyword: '', category: 'Tất cả danh mục' })
   const [searchQuery, setSearchQuery] = useState({ keyword: '', category: 'Tất cả danh mục' });
 
-  // State điều hướng tab trang chính ('home', 'products', 'promos', 'news', 'guides', 'contact', 'search')
   const [activeNav, setActiveNav] = useState('home');
 
-  // State điều hướng trang Giỏ hàng
   const [isCartView, setIsCartView] = useState(false);
 
-  // State giỏ hàng lưu trữ sản phẩm (tự động đồng bộ với localStorage)
   const [cartItems, setCartItems] = useState(() => {
     try {
       const saved = localStorage.getItem('pcstore_cart');
       return saved ? JSON.parse(saved) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
 
-  // Thông báo toast
   const [toastMessage, setToastMessage] = useState('');
 
-  // State điều hướng trang Đăng nhập / Đăng ký (null, 'login', 'register')
   const [authView, setAuthView] = useState(null);
 
-  // State thông tin người dùng đang đăng nhập (lưu trong localStorage để giữ phiên)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('pcstore_user');
       return saved ? JSON.parse(saved) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });
 
-  // Tự động lưu giỏ hàng vào localStorage khi có thay đổi
   useEffect(() => {
     try {
       localStorage.setItem('pcstore_cart', JSON.stringify(cartItems));
-    } catch (e) {}
+    } catch {
+      return;
+    }
   }, [cartItems]);
 
-  // Đồng bộ phiên đăng nhập từ Backend Session (/api/auth/me)
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then((res) => {
@@ -91,7 +83,6 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Bộ lọc sản phẩm
   const [activeTag, setActiveTag] = useState("Tất cả sản phẩm");
   const [sortBy, setSortBy] = useState("newest");
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -104,7 +95,6 @@ export default function App() {
   const [appliedCustomPrice, setAppliedCustomPrice] = useState(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-  // States phân trang & dữ liệu Backend API
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
 
@@ -113,7 +103,6 @@ export default function App() {
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [totalCount, setTotalCount] = useState(PRODUCT_DATA.length);
 
-  // 1. Tự động đọc URL khi load trang hoặc khi người dùng bấm Back/Forward trình duyệt
   useEffect(() => {
     const parseUrl = () => {
       const path = window.location.pathname.toLowerCase();
@@ -181,7 +170,6 @@ export default function App() {
         setSelectedProductId(null);
         window.history.replaceState({}, '', '/products');
       } else if (path.includes('/promotions') || path.includes('/khuyen-mai')) {
-        // Chuyển hướng các đường dẫn khuyến mãi cũ về danh sách sản phẩm mặc định
         handleResetFilters();
         setActiveNav('products');
         setIsCartView(false);
@@ -229,14 +217,12 @@ export default function App() {
     return () => window.removeEventListener('popstate', parseUrl);
   }, []);
 
-  // Hàm chuyển đến trang chi tiết sản phẩm
   const handleSelectProduct = (id) => {
     setSelectedProductId(id);
     window.history.pushState({}, '', `/product/${id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Điều hướng các tab chính (Trang chủ, Sản phẩm, Sửa chữa & bảo hành, Tài khoản, Liên hệ...)
   const handleNavigate = (tab) => {
     setSelectedProductId(null);
     setAuthView(null);
@@ -270,7 +256,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Hàm xử lý tìm kiếm và chuyển hướng sang trang kết quả tìm kiếm riêng biệt
   const handleSearch = (kw, cat = 'Tất cả danh mục') => {
     setSearchQuery({ keyword: kw, category: cat });
     setSelectedProductId(null);
@@ -285,7 +270,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Hàm quay lại danh sách sản phẩm hoặc trang chủ
   const handleBackToList = () => {
     setSelectedProductId(null);
     setAuthView(null);
@@ -295,14 +279,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Hàm xử lý chọn danh mục phân loại laptop từ Trang chủ
   const handleSelectCategoryFromHome = (cat) => {
     setSelectedProductId(null);
     setAuthView(null);
     setIsCartView(false);
     setActiveNav('products');
 
-    // Reset các bộ lọc phụ để hiển thị trọn vẹn danh mục
     setSelectedBrands([]);
     setSelectedSizes([]);
     setSelectedRams([]);
@@ -341,7 +323,6 @@ export default function App() {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // Thêm sản phẩm vào giỏ hàng với đúng giá trị RAM, SSD và Giá đã nâng cấp
   const handleAddToCart = (itemOrProduct, ramArg = null, storageArg = null, priceArg = null) => {
     const ramLabel = itemOrProduct.selectedRam || (typeof ramArg === 'string' ? ramArg : (itemOrProduct.specification ? `${itemOrProduct.specification.ramGB} GB` : '16 GB'));
     const storageLabel = itemOrProduct.selectedStorage || (typeof storageArg === 'string' ? storageArg : (itemOrProduct.specification ? `${itemOrProduct.specification.storageGB} GB SSD` : '512 GB SSD'));
@@ -390,7 +371,6 @@ export default function App() {
     showToast(`Đã thêm "${itemOrProduct.name}"${colorText} vào giỏ hàng!`);
   };
 
-  // Mua ngay (Thêm vào giỏ hàng và chuyển ngay đến trang Giỏ hàng)
   const handleBuyNow = (itemOrProduct, ramArg = null, storageArg = null, priceArg = null) => {
     handleAddToCart(itemOrProduct, ramArg, storageArg, priceArg);
     setSelectedProductId(null);
@@ -400,7 +380,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Cập nhật số lượng
   const handleUpdateCartQuantity = (cartItemId, delta) => {
     setCartItems((prev) =>
       prev
@@ -415,12 +394,10 @@ export default function App() {
     );
   };
 
-  // Xóa sản phẩm khỏi giỏ
   const handleRemoveCartItem = (cartItemId) => {
     setCartItems((prev) => prev.filter((item) => (item.cartItemId || item.id) !== cartItemId));
   };
 
-  // Xóa danh sách các sản phẩm đã thanh toán khỏi giỏ (một thao tác duy nhất, tự động đồng bộ localStorage)
   const handleRemovePurchasedItems = (purchasedItemKeys) => {
     setCartItems((prev) => {
       const keys = new Set(purchasedItemKeys);
@@ -428,12 +405,10 @@ export default function App() {
     });
   };
 
-  // Xóa toàn bộ giỏ
   const handleClearCart = () => {
     setCartItems([]);
   };
 
-  // Chọn / bỏ chọn 1 sản phẩm
   const handleToggleCartCheck = (cartItemId) => {
     setCartItems((prev) =>
       prev.map((item) =>
@@ -444,12 +419,10 @@ export default function App() {
     );
   };
 
-  // Chọn / bỏ chọn tất cả
   const handleToggleAllCart = (checked) => {
     setCartItems((prev) => prev.map((item) => ({ ...item, checked })));
   };
 
-  // Mở trang giỏ hàng
   const handleOpenCart = () => {
     setSelectedProductId(null);
     setAuthView(null);
@@ -458,7 +431,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Mở trang Đăng nhập hoặc Đăng ký
   const handleOpenAuth = (mode = 'login') => {
     setSelectedProductId(null);
     setAuthView(mode);
@@ -466,7 +438,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Xử lý khi đăng nhập hoặc đăng ký thành công
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
     try {
@@ -477,7 +448,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Xử lý Đăng xuất
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
@@ -488,7 +458,6 @@ export default function App() {
     } catch (e) {}
   };
 
-  // Toggle hãng
   const toggleBrand = (brand) => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
@@ -496,7 +465,6 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // Toggle kích thước màn hình
   const toggleSize = (size) => {
     setSelectedSizes((prev) =>
       prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
@@ -504,7 +472,6 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // Toggle dung lượng RAM (FPT Shop Style)
   const toggleRam = (ram) => {
     setSelectedRams((prev) =>
       prev.includes(ram) ? prev.filter((r) => r !== ram) : [...prev, ram]
@@ -512,7 +479,6 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // Toggle vi xử lý CPU
   const toggleCpu = (cpu) => {
     setSelectedCpus((prev) =>
       prev.includes(cpu) ? prev.filter((c) => c !== cpu) : [...prev, cpu]
@@ -520,7 +486,6 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // Áp dụng nhập giá tùy biến
   const handleApplyCustomPrice = () => {
     if (customMin || customMax) {
       setAppliedCustomPrice({
@@ -532,7 +497,6 @@ export default function App() {
     }
   };
 
-  // Xóa toàn bộ bộ lọc
   const handleResetFilters = () => {
     setActiveTag("Tất cả sản phẩm");
     setSelectedBrands([]);
@@ -547,7 +511,6 @@ export default function App() {
     setCurrentPage(1);
   };
 
-  // Gọi API từ ASP.NET Core Backend (GET: /api/products)
   useEffect(() => {
     let isMounted = true;
 
@@ -584,10 +547,8 @@ export default function App() {
           console.warn("Chưa kết nối được API Backend, sử dụng dữ liệu mẫu có lọc:", err);
           setIsBackendConnected(false);
 
-          // Lọc offline dữ liệu mock để demo
           let filtered = [...PRODUCT_DATA];
 
-          // Lọc Tag đồng nhất theo 5 nhóm laptop chính thống
           if (activeTag && activeTag !== "Tất cả sản phẩm") {
             const cleanTag = activeTag.toLowerCase();
             if (cleanTag.includes("sinh viên")) {
@@ -605,13 +566,11 @@ export default function App() {
             }
           }
 
-          // Lọc Hãng
           if (selectedBrands.length > 0) {
             const brandsLower = selectedBrands.map(b => b.toLowerCase());
             filtered = filtered.filter(p => brandsLower.includes(p.brand.toLowerCase()));
           }
 
-          // Lọc RAM
           if (selectedRams.length > 0) {
             const ramNums = selectedRams.map(r => parseInt(r.replace(/\D/g, ''), 10));
             filtered = filtered.filter(p => {
@@ -620,17 +579,14 @@ export default function App() {
             });
           }
 
-          // Lọc Màn hình
           if (selectedSizes.length > 0) {
             filtered = filtered.filter(p => selectedSizes.some(s => p.screenSize.includes(s.replace('inch', '').trim())));
           }
 
-          // Lọc CPU
           if (selectedCpus.length > 0) {
             filtered = filtered.filter(p => selectedCpus.some(c => p.specs.toLowerCase().includes(c.toLowerCase().replace('intel ', '').replace('amd ', ''))));
           }
 
-          // Lọc Giá
           if (selectedPriceRange === 'under10') filtered = filtered.filter(p => p.price < 10000000);
           else if (selectedPriceRange === '10to20') filtered = filtered.filter(p => p.price >= 10000000 && p.price <= 20000000);
           else if (selectedPriceRange === '20to30') filtered = filtered.filter(p => p.price >= 20000000 && p.price <= 30000000);
@@ -669,7 +625,6 @@ export default function App() {
       />
       <Navbar activeNav={activeNav} onNavigate={handleNavigate} onGoHome={() => handleNavigate('home')} />
 
-      {/* Điều hướng giao diện đa trang: Đăng nhập/Đăng ký -> Giỏ hàng -> Chi tiết sản phẩm -> Trang chủ / Liên hệ / Hướng dẫn / Sản phẩm */}
       {authView ? (
         <AuthPage
           initialMode={authView}
@@ -742,10 +697,8 @@ export default function App() {
           showToast={showToast}
         />
       ) : (
-        /* Trang danh sách sản phẩm - Đã xóa CategorySidebar theo yêu cầu */
         <div className="site-container py-3">
           <div className="d-flex gap-3 align-items-start">
-            {/* Sidebar chỉ còn Bộ lọc sản phẩm (CategorySidebar đã được loại bỏ) */}
             <aside className="sidebar-fixed d-none d-md-block">
               <FilterSection
                 selectedPriceRange={selectedPriceRange}
@@ -767,7 +720,6 @@ export default function App() {
               />
             </aside>
 
-            {/* Vùng hiển thị danh sách sản phẩm */}
             <main className="content-fluid-area">
               <ProductToolbar
                 activeTag={activeTag}
@@ -785,7 +737,6 @@ export default function App() {
                 onToggleMobileFilter={() => setShowMobileFilter(true)}
               />
 
-              {/* Modal Bộ lọc dành cho Mobile */}
               {showMobileFilter && (
                 <div className="modal show d-block d-md-none" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
                   <div className="modal-dialog modal-dialog-scrollable m-3">
@@ -860,7 +811,6 @@ export default function App() {
         </div>
       )}
     
-      {/* Toast thông báo nổi khi thêm vào giỏ hàng */}
       {toastMessage && (
         <div 
           className="position-fixed bottom-0 end-0 m-4 p-3 bg-dark text-white rounded-3 shadow-lg z-3 d-flex align-items-center gap-2"

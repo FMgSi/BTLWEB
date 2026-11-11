@@ -3,7 +3,6 @@ using LaptopStore.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
-// Tự động định vị ContentRootPath và WebRootPath kể cả khi chạy trực tiếp file .exe từ bin\Debug
 var currentDir = Directory.GetCurrentDirectory();
 var webRoot = Path.Combine(currentDir, "wwwroot");
 var contentRoot = currentDir;
@@ -35,17 +34,11 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     WebRootPath = webRoot
 });
 
-// =========================================================================
-// 1. CẤU HÌNH CÁC DỊCH VỤ (DEPENDENCY INJECTION - DI SERVICES)
-// =========================================================================
-
-// 1.1. Kết nối Cơ sở dữ liệu Microsoft SQL Server qua Entity Framework Core
 var configuredConnStr = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 
 var connStr = AutoDetectWorkingSqlServer(configuredConnStr);
 
-// Tự động khởi động và phân giải Named Pipe cho (localdb) (kế thừa cơ chế xử lý từ LapTrinhWeb - TvcLesson08Df)
 if (connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
 {
     try
@@ -87,7 +80,7 @@ if (connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
     }
     catch
     {
-        // Giữ nguyên chuỗi kết nối mặc định nếu không chạy được sqllocaldb
+        
     }
 }
 
@@ -98,17 +91,14 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
             maxRetryDelay: TimeSpan.FromSeconds(2),
             errorNumbersToAdd: null)));
 
-// 1.2. Đăng ký các Service tầng nghiệp vụ (Clean MVC / Service Layer Pattern)
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IInstallmentService, InstallmentService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IWarrantyService, WarrantyService>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 
-// 1.3. Kích hoạt mô hình ASP.NET Core MVC (hỗ trợ cả Razor Views và Web API Controllers)
 builder.Services.AddControllersWithViews();
 
-// 1.4. Cấu hình Xác thực bằng Cookie cho Trang Quản trị Admin
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -126,7 +116,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
-// 1.5. Cấu hình Session
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(opt =>
 {
@@ -135,7 +124,6 @@ builder.Services.AddSession(opt =>
     opt.Cookie.IsEssential = true;
 });
 
-// 1.6. Cấu hình chính sách CORS để React Frontend (port 3000) có thể gọi API kèm Credentials
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("AllowReactApp", p =>
@@ -149,9 +137,6 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
-// =========================================================================
-// 2. KHỞI TẠO CƠ SỞ DỮ LIỆU & DỮ LIỆU MẪU BAN ĐẦU (DATABASE SEEDING)
-// =========================================================================
 if (args.Contains("--reset-db", StringComparer.OrdinalIgnoreCase) || args.Contains("--recreate-db", StringComparer.OrdinalIgnoreCase))
 {
     using (var scope = app.Services.CreateScope())
@@ -185,7 +170,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        // Tự động kiểm tra tạo bảng và nạp dữ liệu mẫu ban đầu một cách an toàn
+        
         DbInitializer.Initialize(context);
     }
     catch (Exception ex)
@@ -206,43 +191,29 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// =========================================================================
-// 3. CẤU HÌNH ĐƯỜNG ỐNG XỬ LÝ YÊU CẦU HTTP (HTTP REQUEST PIPELINE / MIDDLEWARE)
-// =========================================================================
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-// Cho phép phục vụ file tĩnh (ảnh, css, js trong thư mục wwwroot)
 app.UseStaticFiles();
 
-// Bật cơ chế định tuyến URL
 app.UseRouting();
 
-// Kích hoạt CORS cho React Frontend
 app.UseCors("AllowReactApp");
 
-// Kích hoạt Session
 app.UseSession();
 
-// Kích hoạt Xác thực (Authentication) trước Phân quyền (Authorization)
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Định tuyến mặc định cho trang Quản trị Admin MVC (/Product/Index)
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Product}/{action=Index}/{id?}");
 
-// Định tuyến cho các Web API Controllers (/api/products, /api/orders, /api/auth)
 app.MapControllers();
 
-// =========================================================================
-// 4. TIỆN ÍCH TỰ ĐỘNG BẬT REACT FRONTEND (PORT 3000)
-// =========================================================================
-// Nếu đã được khởi động từ run.bat hoặc run.ps1 thì bỏ qua hoàn toàn để không mở thêm terminal thứ 2
 if (Environment.GetEnvironmentVariable("LAUNCHED_BY_RUN_BAT") != "true")
 {
     _ = Task.Run(async () =>
@@ -265,13 +236,13 @@ if (Environment.GetEnvironmentVariable("LAUNCHED_BY_RUN_BAT") != "true")
                 using var tcpClient = new System.Net.Sockets.TcpClient();
                 try
                 {
-                    // Kiểm tra xem cổng 3000 đã có React chạy chưa
+                    
                     await tcpClient.ConnectAsync("127.0.0.1", 3000);
-                    return; // Đã chạy rồi thì không cần bật lại
+                    return; 
                 }
                 catch
                 {
-                    // Cổng 3000 chưa có tiến trình nào, tiến hành chạy lệnh "npm run dev"
+                    
                 }
 
                 var psi = new System.Diagnostics.ProcessStartInfo
@@ -290,7 +261,6 @@ if (Environment.GetEnvironmentVariable("LAUNCHED_BY_RUN_BAT") != "true")
     });
 }
 
-// Tự động giải phóng cổng 5148 nếu có tiến trình LaptopStore cũ bị treo
 try
 {
     var currentProcId = System.Diagnostics.Process.GetCurrentProcess().Id;
@@ -304,7 +274,6 @@ try
 }
 catch { }
 
-// Khởi động Web Server Kestrel
 try
 {
     app.Run();
@@ -329,19 +298,14 @@ catch (System.IO.IOException ex) when (ex.Message.Contains("address already in u
     }
 }
 
-// =========================================================================
-// TIỆN ÍCH TỰ ĐỘNG PHÁT HIỆN INSTANCE SQL SERVER KHẢ DỤNG TRÊN MÁY KHÁC
-// Hỗ trợ tự động chạy mượt mà trên mọi máy (SQLEXPRESS, LocalDB, localhost, .)
-// =========================================================================
 static string AutoDetectWorkingSqlServer(string initialConnStr)
 {
-    // 1. Nếu chuỗi cấu hình sẵn trong appsettings.json kết nối được ngay -> Sử dụng luôn
+    
     if (CanConnectToSqlServer(initialConnStr))
     {
         return initialConnStr;
     }
 
-    // 2. Danh sách các instance SQL Server phổ biến trên máy tính Windows học tập/chấm bài
     var candidateServers = new[]
     {
         "Server=.\\SQLEXPRESS;Database=LaptopStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;",
@@ -387,7 +351,7 @@ static bool CanConnectToSqlServer(string connectionString)
         var csb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString)
         {
             ConnectTimeout = 2,
-            InitialCatalog = "master" // Thử kết nối tới database master của SQL Server
+            InitialCatalog = "master" 
         };
         using var conn = new Microsoft.Data.SqlClient.SqlConnection(csb.ConnectionString);
         conn.Open();

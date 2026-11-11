@@ -18,7 +18,6 @@
     </div>
 </div>
 
-<!-- LỰA CHỌN MỤC KHÁCH HÀNG HOẶC NHÂN VIÊN -->
 <div class="d-flex align-items-center gap-2 mb-3">
     <a href="/Admin/Customers" class="btn btn-sm btn-dark text-white fw-bold shadow-sm" style="min-height: 36px; display: inline-flex; align-items: center; border-radius: 6px;">
         Khách hàng (@ViewBag.CustomerCount)
@@ -28,11 +27,9 @@
     </a>
 </div>
 
-<!-- FILTER CARD -->
 <div class="admin-card mb-3">
     <form method="get" action="/Admin/Customers" id="filterForm">
         <div class="row g-3 align-items-center">
-            <!-- Search Input & Nút Làm Mới -->
             <div class="col-lg-4 col-md-12">
                 <div class="d-flex align-items-center gap-2">
                     <div class="position-relative flex-grow-1">
@@ -46,7 +43,6 @@
                 </div>
             </div>
 
-            <!-- Trạng thái hoạt động -->
             <div class="col-lg-4 col-md-6">
                 <div class="d-flex align-items-center gap-2">
                     <span class="text-secondary small fw-semibold text-nowrap">Trạng thái:</span>
@@ -59,7 +55,6 @@
                 </div>
             </div>
 
-            <!-- Hạng thành viên -->
             <div class="col-lg-4 col-md-6">
                 <div class="d-flex align-items-center gap-2">
                     <span class="text-secondary small fw-semibold text-nowrap">Hạng thành viên:</span>
@@ -77,12 +72,9 @@
     </form>
 </div>
 
-<!-- CUSTOMER TABLE CARD -->
 <div class="admin-card">
     <div class="admin-card-header">
-        <h5 class="card-title-text">
-            Bảng dữ liệu khách hàng
-        </h5>
+        <h5 class="card-title-text">Bảng dữ liệu khách hàng</h5>
         <span class="text-muted small">Cập nhật theo thời gian thực</span>
     </div>
 
@@ -143,7 +135,6 @@
         </table>
     </div>
 
-    <!-- PAGINATION -->
     @if ((ViewBag.TotalPages ?? 1) > 1)
     {
         int curPage = ViewBag.CurrentPage ?? 1;
@@ -226,12 +217,10 @@
     }
 </div>
 
-<!-- FORM CHỨA CSRF TOKEN -->
 <form id="antiForgeryForm" style="display:none;">
     @Html.AntiForgeryToken()
 </form>
 
-<!-- MODAL THÊM KHÁCH HÀNG -->
 <div class="modal fade" id="addCustomerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">

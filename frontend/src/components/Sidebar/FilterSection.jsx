@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BRANDS_LIST, SCREEN_SIZES, RAM_LIST, CPU_TYPES } from '../../data/mockData';
 
 export default function FilterSection({
@@ -20,8 +20,6 @@ export default function FilterSection({
   onResetFilters
 }) {
   const [showAllBrands, setShowAllBrands] = useState(false);
-
-  // Mặc định hiện 4 hãng đầu, khi bấm 'Xem thêm' sẽ hiện toàn bộ
   const visibleBrands = showAllBrands ? BRANDS_LIST : BRANDS_LIST.slice(0, 4);
 
   return (
@@ -37,7 +35,6 @@ export default function FilterSection({
         </button>
       </div>
 
-      {/* 1. LỌC THEO GIÁ */}
       <div className="mb-3">
         <p className="fw-semibold mb-2 text-secondary">Khoảng giá</p>
         
@@ -113,7 +110,6 @@ export default function FilterSection({
           <label className="form-check-label text-nowrap" htmlFor="p4">Trên 30.000.000₫</label>
         </div>
 
-        {/* Nhập khoảng giá Min - Max */}
         <div className="d-flex align-items-center gap-1 mb-2">
           <input
             type="number"
@@ -144,7 +140,6 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 2. LỌC THEO HÃNG SẢN XUẤT */}
       <div className="mb-3">
         <p className="fw-semibold mb-2 text-secondary">Hãng sản xuất</p>
         {visibleBrands.map((brand) => (
@@ -162,7 +157,6 @@ export default function FilterSection({
           </div>
         ))}
         
-        {/* Nút Xem thêm / Thu gọn */}
         <button
           type="button"
           onClick={() => setShowAllBrands(!showAllBrands)}
@@ -179,7 +173,6 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 3. LỌC THEO DUNG LƯỢNG RAM (4, 8, 12, 16, 24, 32, 48, 64 GB) */}
       <div className="mb-3">
         <p className="fw-semibold mb-2 text-secondary d-flex align-items-center gap-1">
           <i className="bi bi-memory text-danger"></i>
@@ -207,7 +200,6 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 4. LỌC THEO KÍCH THƯỚC MÀN HÌNH */}
       <div className="mb-3">
         <p className="fw-semibold mb-2 text-secondary">Kích thước màn hình</p>
         {SCREEN_SIZES.map((size) => (
@@ -228,7 +220,6 @@ export default function FilterSection({
 
       <hr className="text-muted opacity-25" />
 
-      {/* 5. LỌC THEO VI XỬ LÝ (CPU) */}
       <div>
         <p className="fw-semibold mb-2 text-secondary">Vi xử lý (CPU)</p>
         {CPU_TYPES.map((cpu) => (

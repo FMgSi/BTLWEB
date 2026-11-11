@@ -3,11 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LaptopStore.Models;
 
-/// <summary>
-/// Đại diện cho tài khoản người dùng trong hệ thống (Khách hàng & Quản trị)
-/// Phù hợp yêu cầu 3.1: Hệ thống có tối thiểu 2 lớp người dùng (Customer & Admin)
-/// và yêu cầu 3.3: Có kiểm soát dữ liệu (Validation) và chú thích (Annotation)
-/// </summary>
 public class User
 {
     [Key]
@@ -25,9 +20,6 @@ public class User
     [Display(Name = "Địa chỉ Email")]
     public string Email { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Mật khẩu đã được mã hóa băm một chiều (SHA256 + Salt) đảm bảo an toàn bảo mật
-    /// </summary>
     [Required(ErrorMessage = "Mật khẩu không được để trống")]
     [StringLength(255)]
     public string PasswordHash { get; set; } = string.Empty;
@@ -36,17 +28,11 @@ public class User
     [Display(Name = "Họ và tên")]
     public string FullName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Phân quyền người dùng: "Customer" (Khách hàng) hoặc "Admin" (Quản trị viên)
-    /// </summary>
     [Required]
     [StringLength(20)]
     [Display(Name = "Vai trò")]
     public string Role { get; set; } = "Customer";
 
-    /// <summary>
-    /// Mã ID tài khoản Google (nếu đăng nhập bằng Google OAuth)
-    /// </summary>
     [StringLength(100)]
     public string? GoogleId { get; set; }
 

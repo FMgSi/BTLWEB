@@ -40,7 +40,6 @@
     </div>
 }
 
-<!-- THỐNG KÊ NHANH -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
         <div class="admin-card p-3 d-flex align-items-center gap-3 bg-white border rounded-3">
@@ -88,54 +87,53 @@
     </div>
 </div>
 
-<!-- ==================== KHUNG CÔNG CỤ & FORM TIẾP NHẬN (THÊM, SỬA, XÓA, LƯU, HỦY, THOÁT) ==================== -->
 <div class="admin-card mb-4 shadow-sm border">
-    <!-- THANH CÔNG CỤ NÚT BẤM TRÊN CÙNG THEO MẪU CHUẨN: THAO TÁC / [ THÊM ] [ SỬA ] [ XÓA ] [ LƯU ] [ HỦY ] [ THOÁT ] -->
+    
     <div class="p-3 bg-white border-bottom">
         <div class="operation-label fw-bold mb-2 text-dark" style="font-size: 0.95rem;">Thao tác</div>
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- 1. NÚT THÊM -->
+            
             <button type="button" class="btn-action-tool" id="btnThemTicket" onclick="onThemTicketClick()">
                 Thêm
             </button>
 
-            <!-- 2. NÚT SỬA -->
+            
             <button type="button" class="btn-action-tool" id="btnSuaTicket" onclick="onSuaTicketClick()" disabled>
                 Sửa
             </button>
 
-            <!-- 3. NÚT XÓA -->
+            
             <button type="button" class="btn-action-tool" id="btnXoaTicket" onclick="onXoaTicketClick()" disabled>
                 Xóa
             </button>
 
-            <!-- 4. NÚT LƯU -->
+            
             <button type="button" class="btn-action-tool" id="btnLuuTicket" onclick="onLuuTicketClick()" disabled>
                 Lưu
             </button>
 
-            <!-- 5. NÚT HỦY -->
+            
             <button type="button" class="btn-action-tool" id="btnHuyTicket" onclick="onHuyTicketClick()" disabled>
                 Hủy
             </button>
 
-            <!-- 6. NÚT THOÁT -->
+            
             <button type="button" class="btn-action-tool" id="btnThoatTicket" onclick="onThoatTicketClick()">
                 Thoát
             </button>
 
-            <!-- DÒNG TRẠNG THÁI / THÔNG TIN PHIẾU ĐANG CHỌN -->
+            
             <div class="ms-auto text-muted small" id="toolbarTicketHint"></div>
         </div>
     </div>
 
-    <!-- KHUNG NHẬP LIỆU PHIẾU TIẾP NHẬN DỊCH VỤ -->
+    
     <form id="ticketForm" method="post" asp-action="SaveServiceTicket" class="p-3 bg-white border-top">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ticketId" id="inpTicketId" value="0" />
 
         <div class="row g-3">
-            <!-- CỘT 1: THÔNG TIN TIẾP NHẬN & KHÁCH HÀNG -->
+            
             <div class="col-lg-4 col-md-12">
                 <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
@@ -144,7 +142,7 @@
                         </span>
                     </div>
 
-                    <!-- Loại dịch vụ -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">Loại dịch vụ <span class="text-danger">*</span></label>
                         <select name="ticketType" id="inpTicketType" class="form-select-dark" disabled onchange="handleTicketTypeChange(true)">
@@ -153,13 +151,13 @@
                         </select>
                     </div>
 
-                    <!-- Mã phiếu -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">Mã phiếu tiếp nhận</label>
                         <input type="text" name="ticketCode" id="inpTicketCode" class="form-control-dark font-monospace fw-bold" placeholder="Tự sinh nếu để trống" disabled />
                     </div>
 
-                    <!-- SỐ ĐIỆN THOẠI KHÁCH HÀNG (Chọn SĐT có sẵn hoặc nhập mới) -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">
                             <i class="bi bi-telephone-inbound me-1"></i>Số điện thoại khách hàng <span class="text-danger">*</span>
@@ -182,7 +180,7 @@
                         </div>
                     </div>
 
-                    <!-- Tên khách hàng (Tự điền khi chọn SĐT) -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">
                             Tên khách hàng <span class="text-danger">*</span>
@@ -190,7 +188,7 @@
                         <input type="text" name="customerName" id="inpCustomerName" class="form-control-dark" placeholder="VD: Nguyễn Văn A" disabled required />
                     </div>
 
-                    <!-- Email liên hệ -->
+                    
                     <div class="mb-2">
                         <label class="form-label-dark small fw-bold mb-1">Email liên hệ (tùy chọn)</label>
                         <input type="email" name="email" id="inpEmail" class="form-control-dark" placeholder="khachhang@gmail.com" disabled />
@@ -198,7 +196,7 @@
                 </div>
             </div>
 
-            <!-- CỘT 2: THÔNG TIN MÁY & NGOẠI QUAN -->
+            
             <div class="col-lg-4 col-md-12">
                 <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
@@ -207,12 +205,12 @@
                         </span>
                     </div>
 
-                    <!-- Thiết bị / Model máy -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">
                             <i class="bi bi-laptop me-1"></i>Thiết bị / Model máy <span class="text-danger">*</span>
                         </label>
-                        <!-- Selector chọn máy (Bảo hành: máy khách đã mua / Sửa chữa: tất cả máy trong kho) -->
+                        
                         <select id="selDeviceModel" class="form-select-dark mb-2" disabled onchange="handleDeviceModelSelect(this)">
                             <option value="">-- Vui lòng chọn số điện thoại trước --</option>
                         </select>
@@ -221,19 +219,19 @@
                         </div>
                     </div>
 
-                    <!-- Số Serial / Service Tag -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">Số Serial / Service Tag</label>
                         <input type="text" name="serialNumber" id="inpSerialNumber" class="form-control-dark font-monospace" placeholder="VD: SN-DELL-1002" disabled />
                     </div>
 
-                    <!-- Tình trạng ngoại quan -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">Tình trạng ngoại quan lúc nhận</label>
                         <input type="text" name="physicalCondition" id="inpPhysicalCondition" class="form-control-dark" placeholder="VD: Vỏ xước nhẹ góc trái, màn hình nguyên vẹn" disabled />
                     </div>
 
-                    <!-- Phụ kiện nhận kèm -->
+                    
                     <div class="mb-2">
                         <label class="form-label-dark small fw-bold mb-1">Phụ kiện nhận kèm theo</label>
                         <input type="text" name="accessories" id="inpAccessories" class="form-control-dark" placeholder="VD: Thân máy + Sạc zin 65W" disabled />
@@ -241,7 +239,7 @@
                 </div>
             </div>
 
-            <!-- CỘT 3: HẠNG MỤC DỊCH VỤ, CHI PHÍ & TRẠNG THÁI -->
+            
             <div class="col-lg-4 col-md-12">
                 <div class="bg-white p-3 rounded-3 border h-100 shadow-sm">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
@@ -250,7 +248,7 @@
                         </span>
                     </div>
 
-                    <!-- Hạng mục dịch vụ -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">Hạng mục dịch vụ (Bảng giá niêm yết)</label>
                         <select name="serviceId" id="inpServiceId" class="form-select-dark" disabled onchange="handleCatalogServiceChange()">
@@ -264,13 +262,13 @@
                         </select>
                     </div>
 
-                    <!-- Triệu chứng / Lỗi khách phản ánh -->
+                    
                     <div class="mb-3">
                         <label class="form-label-dark small fw-bold mb-1">Triệu chứng / Lỗi khách phản ánh <span class="text-danger">*</span></label>
                         <input type="text" name="faultDescription" id="inpFaultDescription" class="form-control-dark" placeholder="VD: Bật không lên màn hình, cắm sạc chập chờn..." disabled required />
                     </div>
 
-                    <!-- Chi phí & Kỹ thuật viên (2 ô nhỏ cùng hàng) -->
+                    
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label-dark small fw-bold mb-1">Chi phí (VNĐ)</label>
@@ -282,7 +280,7 @@
                         </div>
                     </div>
 
-                    <!-- Trạng thái phiếu tiếp nhận -->
+                    
                     <div class="mb-2">
                         <label class="form-label-dark small fw-bold mb-1">Trạng thái phiếu</label>
                         <select name="status" id="inpStatus" class="form-select-dark" disabled>
@@ -302,13 +300,11 @@
     </form>
 </div>
 
-<!-- FORM ẨN DÙNG ĐỂ GỬI YÊU CẦU XÓA PHIẾU -->
 <form id="deleteTicketForm" method="post" asp-action="DeleteServiceTicket" class="d-none">
     @Html.AntiForgeryToken()
     <input type="hidden" name="id" id="deleteTicketIdInput" value="0" />
 </form>
 
-<!-- FILTER BAR (CĂN LỀ TRÁI GỌN GÀNG) -->
 <div class="admin-card mb-4 p-3 shadow-sm border">
     <form method="get" asp-action="ServiceTickets" class="d-flex flex-wrap align-items-center gap-2">
         <div class="position-relative" style="width: 300px; max-width: 100%;">
@@ -344,7 +340,6 @@
     </form>
 </div>
 
-<!-- BẢNG PHIẾU DỊCH VỤ -->
 <div class="admin-card shadow-sm border">
     <div class="admin-card-header d-flex justify-content-between align-items-center py-3 bg-white border-bottom">
         <h5 class="card-title-text mb-0 fw-bold">
@@ -505,7 +500,6 @@
 
 @section Scripts {
     <script>
-        // Dữ liệu máy đã bán (phục vụ lọc máy theo khách hàng khi Bảo hành hoặc Sửa chữa)
         const soldDevicesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
             customerLookup.Select(d => new {
                 phone = d.PhoneNumber,
@@ -518,7 +512,6 @@
             })
         ));
 
-        // Dữ liệu tất cả các máy trong kho (phục vụ chọn máy khi Sửa chữa dịch vụ)
         const warehouseProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
             warehouseProducts.Select(p => new {
                 id = p.ProductId,
@@ -580,7 +573,6 @@
                 }
             }
 
-            // Cập nhật lại dropdown thiết bị ở Cột 2 theo loại phiếu (Bảo hành: máy khách đã mua / Sửa chữa: tất cả máy trong kho)
             updateDeviceModelOptions();
         }
 
@@ -597,7 +589,6 @@
             const nameHint = document.getElementById('lblAutoFillNameHint');
 
             if (val === '__manual__') {
-                // Nhập số điện thoại mới cho khách vãng lai
                 manualDiv.style.display = 'block';
                 phoneInput.value = '';
                 nameInput.value = '';
@@ -607,7 +598,6 @@
                 phoneInput.focus();
                 updateDeviceModelOptions();
             } else if (val) {
-                // Chọn số điện thoại có sẵn
                 manualDiv.style.display = 'none';
                 phoneInput.value = val;
                 if (opt && opt.dataset.name) {
@@ -624,7 +614,6 @@
                     nameInput.readOnly = false;
                 }
 
-                // Cập nhật ngay danh sách máy ở Cột 2!
                 updateDeviceModelOptions();
             } else {
                 manualDiv.style.display = 'none';
@@ -649,7 +638,6 @@
                 if (badge) badge.textContent = 'Máy khách đã mua';
                 if (devHelp) devHelp.textContent = 'Chọn máy khách đã mua tại cửa hàng để tiếp nhận bảo hành.';
 
-                // Lọc danh sách máy mà SĐT này đã mua
                 const customerDevices = soldDevicesData.filter(d => d.phone === phone);
 
                 if (customerDevices.length === 0) {
@@ -672,7 +660,6 @@
                         selDevice.add(opt);
                     });
 
-                    // Nếu khách chỉ có 1 máy duy nhất và đang thêm mới phiếu, tự động chọn luôn máy đó!
                     const currentDevice = document.getElementById('inpDeviceModel').value.trim();
                     const matched = customerDevices.find(d => d.device === currentDevice);
                     if (matched) {
@@ -683,7 +670,6 @@
                     }
                 }
             } else {
-                // Chế độ Sửa chữa: Hiển thị TẤT CẢ máy trong kho + máy khách từng mua + máy ngoài
                 if (badge) badge.textContent = 'Tất cả máy trong kho';
                 if (devHelp) devHelp.textContent = 'Có thể chọn bất kỳ máy nào trong kho hoặc chọn dòng máy ngoài.';
 
@@ -692,7 +678,6 @@
                 defaultOpt.text = '-- Chọn dòng máy trong kho hoặc nhập máy ngoài --';
                 selDevice.add(defaultOpt);
 
-                // 1. Máy khách từng mua tại cửa hàng (nếu có)
                 const customerDevices = soldDevicesData.filter(d => d.phone === phone);
                 if (customerDevices.length > 0) {
                     const groupBought = document.createElement('optgroup');
@@ -707,7 +692,6 @@
                     selDevice.appendChild(groupBought);
                 }
 
-                // 2. TẤT CẢ các sản phẩm laptop có trong kho
                 if (warehouseProducts && warehouseProducts.length > 0) {
                     const groupWarehouse = document.createElement('optgroup');
                     groupWarehouse.label = '📦 Tất cả laptop trong kho (' + warehouseProducts.length + ' model)';
@@ -721,13 +705,11 @@
                     selDevice.appendChild(groupWarehouse);
                 }
 
-                // 3. Tùy chọn nhập máy ngoài
                 const customOpt = document.createElement('option');
                 customOpt.value = '__custom__';
                 customOpt.text = '✎ Dòng máy ngoài danh mục (Nhập tay tên máy)';
                 selDevice.add(customOpt);
 
-                // Đồng bộ lại máy hiện tại nếu có
                 const currentDevice = document.getElementById('inpDeviceModel').value.trim();
                 if (currentDevice) {
                     let found = false;
@@ -762,7 +744,6 @@
                 devInput.value = val;
                 devInput.readOnly = false;
 
-                // Nếu là bảo hành hoặc máy có Serial gán sẵn, tự điền Serial
                 if (opt && opt.dataset.serial) {
                     serialInput.value = opt.dataset.serial;
                 }
@@ -815,7 +796,6 @@
             document.getElementById('inpFinalCost').value = row.dataset.cost || '0';
             document.getElementById('inpAssignedStaff').value = row.dataset.staff || '';
 
-            // Đồng bộ selCustomerPhone
             const selPhone = document.getElementById('selCustomerPhone');
             if (selPhone) {
                 selPhone.value = row.dataset.phone || '';
@@ -878,7 +858,6 @@
             clearTicketForm();
             setTicketInputsDisabled(false);
 
-            // Sinh mã phiếu dự kiến theo ngày
             const now = new Date();
             const yyyy = now.getFullYear();
             const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -964,12 +943,10 @@
             const deviceInput = document.getElementById('inpDeviceModel');
             const selDevice = document.getElementById('selDeviceModel');
 
-            // Đồng bộ SĐT nếu chưa có nhưng selPhone có giá trị
             if (!phoneInput.value.trim() && selPhone && selPhone.value && selPhone.value !== '__manual__') {
                 phoneInput.value = selPhone.value;
             }
 
-            // Đồng bộ Tên máy nếu chưa có nhưng selDevice có giá trị hợp lệ
             if (!deviceInput.value.trim() && selDevice && selDevice.value && selDevice.value !== '__custom__') {
                 deviceInput.value = selDevice.value;
             }

@@ -45,7 +45,6 @@ public class AccountController : Controller
             model.Orders = await _orderService.GetUserOrdersAsync(currentUserId.Value);
             model.Devices = await _warrantyService.GetCustomerDevicesAsync(null, currentUserId.Value);
 
-            // Tính toán chi tiêu và hạng thành viên
             var completedOrders = model.Orders
                 .Where(o => o.Status == "Hoàn thành" || o.Status == "Đã giao")
                 .ToList();
@@ -108,4 +107,3 @@ public class AccountController : Controller
         return View(model);
     }
 }
-

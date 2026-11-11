@@ -9,10 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Controllers;
 
-/// <summary>
-/// Controller Quản trị (Admin) dành cho việc quản lý sản phẩm Laptop
-/// Được bảo vệ chặt chẽ bởi Cookie Authentication: [Authorize(Roles = "Admin,Staff")]
-/// </summary>
 [Authorize(Roles = "Admin,Staff")]
 public class ProductController : Controller
 {
@@ -27,10 +23,6 @@ public class ProductController : Controller
         _env = env;
     }
 
-    /// <summary>
-    /// 1. Hiển thị danh sách sản phẩm cho Admin (Tìm kiếm từ khóa, Lọc Hãng, Danh mục, Trạng thái kho, Khoảng giá, Phân trang)
-    /// GET: /Product
-    /// </summary>
     public async Task<IActionResult> Index(
         string? keyword,
         int? brandId,
@@ -38,9 +30,9 @@ public class ProductController : Controller
         string? status,
         string? priceRange,
         int page = 1,
-        int pageSize = 5) // Giới hạn bảng hiển thị 5 sản phẩm mỗi trang theo yêu cầu
+        int pageSize = 5) 
     {
-        // Ghi nhận lượt truy cập qua Cookie
+        
         var visits = int.Parse(Request.Cookies["AdminVisits"] ?? "0") + 1;
         Response.Cookies.Append("AdminVisits", visits.ToString(), new CookieOptions { Expires = DateTimeOffset.UtcNow.AddDays(7) });
         ViewBag.Visits = visits;
@@ -71,10 +63,6 @@ public class ProductController : Controller
         return View(list);
     }
 
-    /// <summary>
-    /// 2. Giao diện Thêm mới sản phẩm (GET)
-    /// GET: /Product/Create
-    /// </summary>
     public async Task<IActionResult> Create()
     {
         ViewBag.Brands = new SelectList(await _db.Brands.AsNoTracking().ToListAsync(), "BrandId", "BrandName");
@@ -100,10 +88,6 @@ public class ProductController : Controller
         });
     }
 
-    /// <summary>
-    /// 2. Xử lý lưu sản phẩm mới vào Database (POST)
-    /// POST: /Product/Create
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ProductEditViewModel vm)
@@ -133,10 +117,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>
-    /// 3. Giao diện Chỉnh sửa sản phẩm (GET)
-    /// GET: /Product/Edit/{id}
-    /// </summary>
     public async Task<IActionResult> Edit(int id)
     {
         var p = await _productService.GetProductByIdAsync(id);
@@ -176,10 +156,6 @@ public class ProductController : Controller
         return View(vm);
     }
 
-    /// <summary>
-    /// 3. Xử lý cập nhật thông tin sản phẩm vào Database (POST)
-    /// POST: /Product/Edit/{id}
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(ProductEditViewModel vm)
@@ -207,10 +183,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>
-    /// 4. Xem chi tiết thông tin sản phẩm laptop (GET: /Product/Details/5)
-    /// Điều hướng thẳng sang trang Chỉnh sửa để thao tác trực tiếp, loại bỏ trang Xem trung gian
-    /// </summary>
     public IActionResult Details(int? id)
     {
         if (id == null)
@@ -221,10 +193,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Edit), new { id = id.Value });
     }
 
-    /// <summary>
-    /// 5. Giao diện Xác nhận xóa sản phẩm (GET: /Product/Delete/5)
-    /// Triển khai theo chuẩn mô hình được học trong LapTrinhWeb (TvcLesson08Df)
-    /// </summary>
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -246,10 +214,6 @@ public class ProductController : Controller
         return View(product);
     }
 
-    /// <summary>
-    /// 6. Xử lý xóa sản phẩm (POST: /Product/Delete/5)
-    /// Hỗ trợ cả Form submit truyền thống (theo giáo trình MVC) lẫn AJAX Fetch từ giao diện
-    /// </summary>
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
@@ -283,9 +247,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>
-    /// 7. Giao diện quản lý các phiên bản cấu hình & Màu sắc của một Laptop (GET: /Product/Variants/5)
-    /// </summary>
     public async Task<IActionResult> Variants(int id)
     {
         var product = await _db.Products
@@ -309,9 +270,6 @@ public class ProductController : Controller
         return View(product);
     }
 
-    /// <summary>
-    /// 8. Thêm mới một phiên bản cấu hình & màu sắc cho Laptop (POST: /Product/AddVariant)
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddVariant(CreateProductVariantViewModel model)
@@ -333,19 +291,16 @@ public class ProductController : Controller
             return RedirectToAction(nameof(Variants), new { id = model.ProductId });
         }
 
-        // Tự động sinh mã SKU nếu để trống
         string sku = string.IsNullOrWhiteSpace(model.SKU)
             ? $"SKU-{product.ProductId}-{color.Name.ToUpper().Replace(" ", "")}-{model.RamGB}-{model.StorageGB}"
             : model.SKU.Trim().ToUpper();
 
-        // Kiểm tra trùng SKU
         if (await _db.ProductVariants.AnyAsync(v => v.SKU == sku))
         {
             TempData["ErrorMessage"] = $"Mã SKU '{sku}' đã tồn tại trên hệ thống. Vui lòng chọn mã SKU khác.";
             return RedirectToAction(nameof(Variants), new { id = model.ProductId });
         }
 
-        // Kiểm tra trùng tổ hợp (ProductId, ColorId, RamGB, StorageGB)
         if (await _db.ProductVariants.AnyAsync(v => v.ProductId == model.ProductId && v.ColorId == model.ColorId && v.RamGB == model.RamGB && v.StorageGB == model.StorageGB))
         {
             TempData["ErrorMessage"] = $"Sản phẩm đã có phiên bản Màu '{color.Name}' với RAM {model.RamGB}GB và SSD {model.StorageGB}GB. Không thể thêm phiên bản trùng lặp.";
@@ -371,7 +326,6 @@ public class ProductController : Controller
         _db.ProductVariants.Add(variant);
         await _db.SaveChangesAsync();
 
-        // Đồng bộ lại tổng tồn kho Product = tổng tồn kho các variant
         var totalStock = await _db.ProductVariants.Where(v => v.ProductId == model.ProductId).SumAsync(v => v.StockQuantity);
         product.StockQuantity = totalStock;
         await _db.SaveChangesAsync();
@@ -380,9 +334,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Variants), new { id = model.ProductId });
     }
 
-    /// <summary>
-    /// 9. Điều chỉnh số lượng tồn kho của một phiên bản cụ thể (POST: /Product/AdjustVariantStock)
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AdjustVariantStock(AdjustVariantStockViewModel model)
@@ -405,7 +356,6 @@ public class ProductController : Controller
         variant.StockQuantity = model.NewStockQuantity;
         await _db.SaveChangesAsync();
 
-        // Đồng bộ tổng tồn kho trên Product
         var totalStock = await _db.ProductVariants.Where(v => v.ProductId == variant.ProductId).SumAsync(v => v.StockQuantity);
         var product = await _db.Products.FindAsync(variant.ProductId);
         if (product != null)
@@ -418,9 +368,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
     }
 
-    /// <summary>
-    /// Cập nhật ảnh riêng cho phiên bản cụ thể (POST: /Product/UpdateVariantImage)
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateVariantImage(UpdateVariantImageViewModel model)
@@ -436,7 +383,7 @@ public class ProductController : Controller
         }
 
         var trimmedUrl = model.ImageUrl?.Trim();
-        // Nếu để trống hoặc trùng với ảnh đại diện chính của mẫu máy thì lưu null để kế thừa
+        
         variant.ImageUrl = (!string.IsNullOrWhiteSpace(trimmedUrl) && trimmedUrl != variant.Product?.ThumbnailUrl)
             ? trimmedUrl
             : null;
@@ -447,9 +394,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
     }
 
-    /// <summary>
-    /// 10. Chuyển trạng thái kích hoạt phiên bản (POST: /Product/ToggleVariant/5)
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleVariant(int id)
@@ -470,9 +414,6 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Variants), new { id = variant.ProductId });
     }
 
-    /// <summary>
-    /// 11. Xóa một phiên bản cấu hình & màu sắc (POST: /Product/DeleteVariant/5)
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteVariant(int id)
@@ -490,7 +431,6 @@ public class ProductController : Controller
         string sku = variant.SKU;
         string colorName = variant.Color?.Name ?? "Không xác định";
 
-        // Tách các liên kết với OrderItems (nếu có) để bảo toàn lịch sử đơn hàng
         var orderItems = await _db.OrderItems.Where(oi => oi.VariantId == id).ToListAsync();
         foreach (var oi in orderItems)
         {
@@ -500,7 +440,6 @@ public class ProductController : Controller
         _db.ProductVariants.Remove(variant);
         await _db.SaveChangesAsync();
 
-        // Đồng bộ lại tổng tồn kho của sản phẩm gốc
         var product = await _db.Products.FindAsync(productId);
         if (product != null)
         {
@@ -515,8 +454,5 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Variants), new { id = productId });
     }
 
-    /// <summary>
-    /// Chuyển hướng nhanh sang trang Quản lý sản phẩm
-    /// </summary>
     public IActionResult Dashboard() => RedirectToAction("Index");
 }

@@ -7,12 +7,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LaptopStore.Controllers.Api;
 
-/// <summary>
-/// Web API Xác thực Người dùng (Authentication Controller - RESTful API)
-/// Hỗ trợ Đăng nhập bằng Mật khẩu (có Hashing SHA256 + Salt), Đăng nhập bằng Google, Đăng ký, Đăng xuất và Session
-/// Phù hợp yêu cầu 3.1: Phân quyền Customer & Admin
-/// và yêu cầu 3.3: Làm việc với Session, Cookies, RESTful API, Validation
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -24,10 +18,6 @@ public class AuthController : ControllerBase
         _context = context;
     }
 
-    /// <summary>
-    /// POST /api/auth/login
-    /// Đăng nhập bằng Email hoặc Tên đăng nhập và Mật khẩu (có kiểm tra mã Hash)
-    /// </summary>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
@@ -39,7 +29,6 @@ public class AuthController : ControllerBase
 
         var normalizedInput = request.EmailOrUsername.Trim().ToLower();
 
-        // Tìm người dùng theo Email hoặc Username
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedInput || u.Username.ToLower() == normalizedInput);
 
@@ -48,20 +37,17 @@ public class AuthController : ControllerBase
             return BadRequest(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
         }
 
-        // Kiểm tra xem tài khoản có bị khóa không
         if (!user.IsActive)
         {
             return BadRequest(new { success = false, message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." });
         }
 
-        // Kiểm tra mật khẩu bằng hàm so khớp Hash
         bool isPasswordValid = PasswordHelper.VerifyPassword(request.Password, user.PasswordHash);
         if (!isPasswordValid)
         {
             return BadRequest(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác." });
         }
 
-        // Lưu thông tin người dùng vào Session (Yêu cầu 3.3: Làm việc với session)
         HttpContext.Session.SetString("UserId", user.UserId.ToString());
         HttpContext.Session.SetString("Username", user.Username);
         HttpContext.Session.SetString("Role", user.Role);
@@ -88,10 +74,6 @@ public class AuthController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// POST /api/auth/register
-    /// Đăng ký tài khoản mới (Mật khẩu được băm SHA256 trước khi lưu vào CSDL)
-    /// </summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
@@ -104,7 +86,6 @@ public class AuthController : ControllerBase
         var normalizedUsername = request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLower();
 
-        // Kiểm tra trùng lặp Username hoặc Email
         bool usernameExists = await _context.Users.AnyAsync(u => u.Username.ToLower() == normalizedUsername.ToLower());
         if (usernameExists)
         {
@@ -117,7 +98,6 @@ public class AuthController : ControllerBase
             return BadRequest(new { success = false, message = "Địa chỉ email này đã được đăng ký." });
         }
 
-        // Mã hóa băm mật khẩu một chiều bằng SHA256 + Salt
         string passwordHash = PasswordHelper.HashPassword(request.Password);
 
         var newUser = new User
@@ -126,14 +106,13 @@ public class AuthController : ControllerBase
             Email = normalizedEmail,
             FullName = string.IsNullOrWhiteSpace(request.FullName) ? normalizedUsername : request.FullName.Trim(),
             PasswordHash = passwordHash,
-            Role = "Customer", // Mặc định tài khoản đăng ký là Khách hàng
+            Role = "Customer", 
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Users.Add(newUser);
         await _context.SaveChangesAsync();
 
-        // Tự động lưu Session đăng nhập ngay sau khi tạo tài khoản
         HttpContext.Session.SetString("UserId", newUser.UserId.ToString());
         HttpContext.Session.SetString("Username", newUser.Username);
         HttpContext.Session.SetString("Role", newUser.Role);
@@ -154,10 +133,6 @@ public class AuthController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// POST /api/auth/google
-    /// Tạm khóa cơ chế nhận email không xác minh từ client nhằm ngăn chặn chiếm quyền tài khoản
-    /// </summary>
     [HttpPost("google")]
     public IActionResult GoogleAuth([FromBody] GoogleAuthRequest request)
     {
@@ -168,10 +143,6 @@ public class AuthController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// GET /api/auth/me
-    /// Lấy thông tin tài khoản đang đăng nhập trong Session hiện tại
-    /// </summary>
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
@@ -218,7 +189,6 @@ public class AuthController : ControllerBase
     {
         string phone = user.PhoneNumber ?? "";
 
-        // Nếu PhoneNumber rỗng, tìm kiếm từ đơn hàng gần nhất
         if (string.IsNullOrEmpty(phone))
         {
             var latestOrderPhone = await _context.Orders
@@ -234,7 +204,6 @@ public class AuthController : ControllerBase
             }
         }
 
-        // Tự động liên kết các đơn hàng cũ chưa có UserId
         if (!string.IsNullOrEmpty(phone) || !string.IsNullOrEmpty(user.Email))
         {
             var unlinkedOrders = await _context.Orders
@@ -259,7 +228,6 @@ public class AuthController : ControllerBase
         }
         catch { }
 
-        // Tính tổng chi tiêu từ các đơn hàng hoàn thành / đã thanh toán
         var completedOrders = await _context.Orders
             .Where(o => (o.UserId == user.UserId || (!string.IsNullOrEmpty(phone) && o.PhoneNumber == phone))
                 && (o.OrderStatus == "Hoàn thành" || o.OrderStatus == "Đã giao" || o.PaymentStatus == "Đã thanh toán" || o.PaymentStatus == "Đã tất toán"))
@@ -271,10 +239,6 @@ public class AuthController : ControllerBase
         return (totalSpent, tier, phone);
     }
 
-    /// <summary>
-    /// POST /api/auth/logout
-    /// Xóa phiên đăng nhập trong Session
-    /// </summary>
     [HttpPost("logout")]
     public IActionResult Logout()
     {
@@ -282,11 +246,6 @@ public class AuthController : ControllerBase
         return Ok(new { success = true, message = "Đã đăng xuất thành công!" });
     }
 }
-
-// =========================================================================
-// CÁC LỚP REQUEST DTO (DATA TRANSFER OBJECTS VỚI DATA ANNOTATIONS VALIDATION)
-// Phù hợp yêu cầu 3.3: Có kiểm soát dữ liệu (Validation) và chú thích (Annotation)
-// =========================================================================
 
 public class LoginRequest
 {

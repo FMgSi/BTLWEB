@@ -8,10 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LaptopStore.Controllers;
 
-/// <summary>
-/// Controller Quản trị Hãng / Thương hiệu Laptop (Brands)
-/// Tương ứng với PublishersController trong LapTrinhWeb (TvcLesson08Df)
-/// </summary>
 [Authorize(Roles = "Admin,Staff")]
 public class BrandsController : Controller
 {
@@ -22,7 +18,6 @@ public class BrandsController : Controller
         _context = context;
     }
 
-    // GET: Brands
     public async Task<IActionResult> Index()
     {
         var brands = await _context.Brands
@@ -32,7 +27,6 @@ public class BrandsController : Controller
         return View(brands);
     }
 
-    // GET: Brands/Details/5
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)
@@ -52,13 +46,11 @@ public class BrandsController : Controller
         return View(brand);
     }
 
-    // GET: Brands/Create
     public IActionResult Create()
     {
         return View();
     }
 
-    // POST: Brands/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("BrandId,BrandName,LogoUrl,Description")] Brand brand)
@@ -73,7 +65,6 @@ public class BrandsController : Controller
         return View(brand);
     }
 
-    // GET: Brands/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -89,7 +80,6 @@ public class BrandsController : Controller
         return View(brand);
     }
 
-    // POST: Brands/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, [Bind("BrandId,BrandName,LogoUrl,Description")] Brand brand)
@@ -123,7 +113,6 @@ public class BrandsController : Controller
         return View(brand);
     }
 
-    // GET: Brands/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -143,7 +132,6 @@ public class BrandsController : Controller
         return View(brand);
     }
 
-    // POST: Brands/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)

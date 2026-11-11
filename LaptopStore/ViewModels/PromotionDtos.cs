@@ -17,9 +17,6 @@ public class CreateDiscountInput
     [StringLength(500)]
     public string? Description { get; set; }
 
-    /// <summary>
-    /// "Percentage" hoặc "FixedAmount"
-    /// </summary>
     [Required]
     public string DiscountType { get; set; } = "Percentage";
 
@@ -82,4 +79,3 @@ public class CustomerPromotionDto
     public string ApplicableScope { get; set; } = "All";
     public bool IsHot { get; set; }
 }
-

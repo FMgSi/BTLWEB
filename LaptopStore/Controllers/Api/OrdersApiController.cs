@@ -7,11 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LaptopStore.Controllers.Api;
 
-/// <summary>
-/// Web API Quản lý và Tiếp nhận Đơn đặt hàng từ khách hàng (React Frontend)
-/// Đường dẫn gốc chuẩn hóa: /api/orders
-/// Alias tương thích ngược: /api/OrdersApi
-/// </summary>
 [ApiController]
 [Route("api/orders")]
 [Route("api/[controller]")]
@@ -26,10 +21,6 @@ public class OrdersApiController : ControllerBase
         _installmentService = installmentService;
     }
 
-    /// <summary>
-    /// GET /api/orders/installment-preview?amount=20000000&termMonths=6
-    /// Xem trước bảng tính phương án trả góp: số tiền trả trước 30%, lịch từng kỳ và ngày đến hạn
-    /// </summary>
     [HttpGet("installment-preview")]
     public IActionResult PreviewInstallmentPlan([FromQuery] decimal amount, [FromQuery] int termMonths = 6)
     {
@@ -47,11 +38,6 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, plan });
     }
 
-    /// <summary>
-    /// POST /api/orders
-    /// Tiếp nhận đơn đặt hàng từ giỏ hàng của khách hàng
-    /// Kiểm tra hợp lệ, trừ tồn kho nguyên tử chống bán vượt kho và lưu thông tin vào SQL Server
-    /// </summary>
     [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
     {
@@ -61,7 +47,6 @@ public class OrdersApiController : ControllerBase
             return BadRequest(new { success = false, message = string.Join("; ", errors) });
         }
 
-        // Lấy UserId từ Session nếu khách đã đăng nhập (kiểm tra an toàn tránh exception khi Session chưa kích hoạt)
         int? userId = null;
         try
         {
@@ -94,12 +79,6 @@ public class OrdersApiController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// GET /api/orders/code/{orderCode}?phone=0901234567
-    /// Tra cứu thông tin đơn hàng theo mã đơn
-    /// Bảo mật thông tin cá nhân: Chỉ trả về thông tin đầy đủ nếu là Quản trị viên, Chủ sở hữu đơn,
-    /// hoặc khách hàng cung cấp đúng số điện thoại đặt hàng.
-    /// </summary>
     [HttpGet("code/{orderCode}")]
     public async Task<IActionResult> GetByOrderCode(string orderCode, [FromQuery] string? phone = null)
     {
@@ -114,10 +93,8 @@ public class OrdersApiController : ControllerBase
             return NotFound(new { success = false, message = "Không tìm thấy đơn hàng với mã: " + orderCode });
         }
 
-        // 1. Quản trị viên
         bool isAdmin = User.IsInRole("Admin") || HttpContext.Session.GetString("Role") == "Admin";
 
-        // 2. Khách hàng đã đăng nhập
         int? currentUserId = null;
         var userIdStr = HttpContext.Session.GetString("UserId");
         if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out int uid))
@@ -136,12 +113,11 @@ public class OrdersApiController : ControllerBase
             isOwner = userOrders.Any(o => o.OrderCode == order.OrderCode);
         }
 
-        // 3. Khách vãng lai (không đăng nhập hoặc chưa chứng minh quyền sở hữu)
         if (!isOwner)
         {
             if (string.IsNullOrWhiteSpace(phone))
             {
-                // Che giấu (mask) thông tin cá nhân nhạy cảm
+                
                 MaskSensitiveCustomerInfo(order);
                 return Ok(new { success = true, order, isMasked = true, message = "Thông tin cá nhân đã được bảo vệ. Vui lòng cung cấp số điện thoại đặt hàng để xem chi tiết đầy đủ." });
             }
@@ -158,10 +134,6 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, order, isMasked = false });
     }
 
-    /// <summary>
-    /// GET /api/orders/my-orders
-    /// Lấy danh sách lịch sử đơn hàng của tài khoản đang đăng nhập
-    /// </summary>
     [HttpGet("my-orders")]
     public async Task<IActionResult> GetMyOrders()
     {
@@ -175,10 +147,6 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, orders });
     }
 
-    /// <summary>
-    /// DELETE /api/orders/{id} hoặc POST /api/orders/{id}/delete
-    /// Khách hàng xóa đơn hàng khi cửa hàng chưa xác minh
-    /// </summary>
     [HttpDelete("{id:int}")]
     [HttpPost("{id:int}/delete")]
     public async Task<IActionResult> DeleteCustomerOrder(int id)
@@ -203,10 +171,6 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, message });
     }
 
-    /// <summary>
-    /// DELETE /api/orders/code/{orderCode} hoặc POST /api/orders/code/{orderCode}/delete
-    /// Khách hàng (kể cả khách vãng lai) xóa đơn hàng theo mã đơn khi chưa xác minh
-    /// </summary>
     [HttpDelete("code/{orderCode}")]
     [HttpPost("code/{orderCode}/delete")]
     public async Task<IActionResult> DeleteCustomerOrderByCode(string orderCode, [FromQuery] string? phone = null)
@@ -237,10 +201,6 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, message });
     }
 
-    /// <summary>
-    /// POST /api/orders/pay-installment-period
-    /// Khách hàng thanh toán một kỳ trả góp trực tuyến
-    /// </summary>
     [HttpPost("pay-installment-period")]
     public async Task<IActionResult> PayInstallmentPeriod([FromBody] PayInstallmentPeriodRequest request)
     {
@@ -265,10 +225,6 @@ public class OrdersApiController : ControllerBase
         return Ok(new { success = true, message, schedule });
     }
 
-    /// <summary>
-    /// POST /api/orders/pay-installment-prepay
-    /// Khách hàng thanh toán khoản trả trước 30% trực tuyến để kích hoạt hợp đồng trả góp
-    /// </summary>
     [HttpPost("pay-installment-prepay")]
     public async Task<IActionResult> PayInstallmentPrepay([FromBody] PayInstallmentPrepayRequest request)
     {
@@ -295,7 +251,7 @@ public class OrdersApiController : ControllerBase
 
     private static void MaskSensitiveCustomerInfo(OrderResponseDto order)
     {
-        // 1. Che số điện thoại triệt để
+        
         if (!string.IsNullOrWhiteSpace(order.PhoneNumber))
         {
             if (order.PhoneNumber.Length >= 7)
@@ -308,7 +264,6 @@ public class OrdersApiController : ControllerBase
             }
         }
 
-        // 2. Bảo vệ địa chỉ nhận hàng
         if (!string.IsNullOrWhiteSpace(order.ShippingAddress))
         {
             var parts = order.ShippingAddress.Split(',');
@@ -322,7 +277,6 @@ public class OrdersApiController : ControllerBase
             }
         }
 
-        // 3. Che họ tên khách hàng (xử lý cả tên một từ)
         if (!string.IsNullOrWhiteSpace(order.CustomerName))
         {
             var name = order.CustomerName.Trim();

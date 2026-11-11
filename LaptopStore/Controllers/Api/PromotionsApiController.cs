@@ -5,10 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LaptopStore.Controllers.Api;
 
-/// <summary>
-/// Web API Khuyến mãi & Voucher dành cho khách hàng trên website (React Frontend)
-/// Đường dẫn chuẩn: /api/promotions
-/// </summary>
 [ApiController]
 [Route("api/promotions")]
 public class PromotionsApiController : ControllerBase
@@ -20,10 +16,6 @@ public class PromotionsApiController : ControllerBase
         _discountService = discountService;
     }
 
-    /// <summary>
-    /// GET /api/promotions
-    /// Lấy danh sách các voucher và ưu đãi đang có hiệu lực để khách hàng lưu vào ví voucher
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetActivePromotions()
     {
@@ -31,10 +23,6 @@ public class PromotionsApiController : ControllerBase
         return Ok(new { success = true, promotions });
     }
 
-    /// <summary>
-    /// POST /api/promotions/validate
-    /// Kiểm tra tính hợp lệ của mã giảm giá với các sản phẩm đang có trong giỏ hàng
-    /// </summary>
     [HttpPost("validate")]
     public async Task<IActionResult> ValidateDiscount([FromBody] ValidateDiscountRequest request)
     {
@@ -43,7 +31,6 @@ public class PromotionsApiController : ControllerBase
             return BadRequest(new { success = false, message = "Vui lòng nhập mã giảm giá cần áp dụng." });
         }
 
-        // Lấy UserId nếu khách đã đăng nhập
         int? userId = null;
         try
         {
@@ -82,4 +69,3 @@ public class PromotionsApiController : ControllerBase
         });
     }
 }
-
